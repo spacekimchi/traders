@@ -20,7 +20,7 @@ pub struct Trade {
 	pub action: String,
 	pub quantity: i32,
 	pub price: f32,
-	pub time: u32,
+	pub time: i64,
 	pub entry: bool,
 	pub position: String,
 	pub commission: f32,
@@ -70,9 +70,9 @@ pub async fn create(state: Data<AppState>, body: Json<TradeRequest>) -> HttpResp
     .bind(body.action.to_string())
     .bind(body.quantity)
     .bind(body.price)
-    .bind(body.time)
+    .bind(body.time as i64)
     .bind(body.entry)
-    .bind(body.position)
+    .bind(body.position.to_string())
     .bind(body.commission)
     .bind(body.rate)
     .bind(body.account_display_name.to_string())
