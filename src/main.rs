@@ -1,24 +1,12 @@
-#[macro_use]
-extern crate actix_web;
+use traders::run;
+use actix_web::cookie::Key;
 
-use dotenv::dotenv;
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
-
+use dotenv::dotenv;
 use std::{env, io};
-//use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
-
-use actix_web::{middleware, App, web, HttpServer};
-
-mod user;
-mod trade;
-//mod seeds;
-
-pub struct AppState {
-    db: Pool<Postgres>,
-}
 
 #[actix_web::main]
-async fn main() -> io::Result<()> {
+async fn main() -> std::io::Result<()> {
     env::set_var("RUST_LOG", "actix_web=debug,actix_server=info");
     env_logger::init();
 
@@ -32,32 +20,22 @@ async fn main() -> io::Result<()> {
     let _database_port = std::env::var("DATABASE_PORT").expect("DATABASE_PORT must be set");
     let _database_name = std::env::var("DATABASE_NAME").expect("DATABSE_NAME must be set");
     let database_url = std::env::var("DATABASE_URL").expect("DATABSE_URL must be set");
-    println!("database_url: {}", database_url);
+    let cookie_k = std::env::var("COOKIE_K").expect("COOKIE_K must be set");
 
-    let pool = PgPoolOptions::new()
+
+    /* Session */
+    let secret_key = Key::from(cookie_k.as_bytes());
+
+    /* Listener */
+    let listener = std::net::TcpListener::bind("127.0.0.1:8000").expect("failed to bind to port");
+
+    let _address = "127.0.0.1:8000";
+
+    let db_pool = PgPoolOptions::new()
         .max_connections(5)
         .connect(&database_url)
         .await
         .expect("Error building a conneciton pool");
 
-    HttpServer::new(move || {
-        App::new()
-            .wrap(middleware::Logger::default())
-            .app_data(web::Data::new(AppState { db: pool.clone() }))
-            .service(user::create)
-            .service(user::get)
-            .service(user::list)
-            .service(user::delete)
-            .service(trade::create)
-            .service(trade::get)
-            .service(trade::list)
-            .service(trade::delete)
-            //.service(seeds::seed)
-            //.service(seeds::trades_seed)
-            //.service(seeds::migrate)
-    })
-    .bind(("127.0.0.1", 8080))?
-    .run()
-    .await
+    run(db_pool, secret_key, listener)?.await
 }
-

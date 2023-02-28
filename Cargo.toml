@@ -3,11 +3,16 @@ name = "traders"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+path = "src/lib.rs"
+name = "traders"
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 actix = "0.13.0"
 actix-web = "4"
+actix-session = {version="0.7.2", features = ["redis-actor-session"]}
 chrono = {version="0.4.23", features = ["serde"]}
 env_logger = "0.9.3"
 serde = {version = "1.0", features = ["derive"]}
@@ -17,3 +22,9 @@ dotenv = "0.15.0"
 sqlx = { version = "0.6.2", features = ["runtime-async-std-native-tls", "postgres", "chrono", "uuid"] }
 time = {version="0.3.17", features=["serde"]}
 netcdf = { version = "0.7.0", features = ["static"] }
+oauth2 = "4.3.0"
+openssl = "0.10.45"
+jsonwebtokens-cognito = "0.1.1"
+
+[dev-dependencies]
+reqwest = "0.11.14"

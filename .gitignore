@@ -3,3 +3,6 @@
 Cargo.lock
 /data
 .tickets_config
+/psql_notes.md
+/session_notes.md
+/.cargo
