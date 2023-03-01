@@ -1,4 +1,5 @@
-use traders::run;
+use traders::startup::run;
+use traders::configuration::get_configuration;
 use actix_web::cookie::Key;
 
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
@@ -12,7 +13,10 @@ async fn main() -> std::io::Result<()> {
 
     dotenv().ok();
     println!("Connecting to database: {}", std::env::var("DATABASE_URL").unwrap());
+    
+    let configuration = get_configuration().expect("Failed to read configuration");
     /* DATABASE://DATABASE_USER:DATABASE_PASSWORD@DATABASE_HOST:DATABASE_PORT/DATABASE_DB_NAME */
+    println!("{}", configuration.application_port);
     let _database = std::env::var("DATABASE").expect("DATABSE must be set");
     let _database_user = std::env::var("DATABASE_USER").expect("DATABASE_USER must be set");
     let _database_password = std::env::var("DATABASE_PASSWORD").expect("DATABASE_PASSWORD must be set");
@@ -26,10 +30,11 @@ async fn main() -> std::io::Result<()> {
     /* Session */
     let secret_key = Key::from(cookie_k.as_bytes());
 
-    /* Listener */
-    let listener = std::net::TcpListener::bind("127.0.0.1:8000").expect("failed to bind to port");
+    //let _address = "127.0.0.1:8000";
+    let address = format!("127.0.0.1:{}", configuration.application_port);
 
-    let _address = "127.0.0.1:8000";
+    /* Listener */
+    let listener = std::net::TcpListener::bind(address)?;
 
     let db_pool = PgPoolOptions::new()
         .max_connections(5)
@@ -37,5 +42,6 @@ async fn main() -> std::io::Result<()> {
         .await
         .expect("Error building a conneciton pool");
 
+    println!("i am here");
     run(db_pool, secret_key, listener)?.await
 }

@@ -1,11 +1,11 @@
 use serde::{Deserialize, Serialize};
 use actix_web::web::{Data, Json, Path};
-use actix_web::{HttpResponse, Responder};
+use actix_web::{HttpResponse, Responder, get, post, delete};
 //use actix_web::web::Path;
 
 use sqlx::{self, FromRow};
 //use crate::response::Response;
-use crate::AppState;
+use crate::startup::AppState;
 
 //pub type Trades = Response<Trade>;
 
