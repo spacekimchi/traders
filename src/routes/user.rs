@@ -39,18 +39,33 @@ pub async fn list(state: Data<AppState>) -> impl Responder {
 
 #[post("/users")]
 pub async fn create(state: Data<AppState>, body: Json<UserRequest>) -> HttpResponse {
+    /* Need to remove request_id logic and possible pass it in as a parameter? */
+    let request_id = uuid::Uuid::new_v4();
+    let request_span = tracing::info_span!(
+        "Adding a new subscriber",
+        %request_id,
+        user_email = %body.email,
+        user_name = %body.username
+    );
+    tracing::info!("request_id {} - Creating new user '{}' '{}' and saving to database", request_id, body.email, body.username);
     let created_at = chrono::offset::Utc::now();
     match sqlx::query_as::<_, User>(
         "INSERT INTO users (username, email, created_at) VALUES ($1, $2, $3) RETURNING id, username, email, created_at"
     )
-    .bind(body.username.clone())
-    .bind(body.email.to_string())
+    .bind(&body.username)
+    .bind(&body.email)
     .bind(created_at)
     .fetch_one(&state.db)
     .await
     {
-        Ok(user) => HttpResponse::Ok().json(user),
-        Err(err) => HttpResponse::InternalServerError().json(format!("Failed to create user: {err}")),
+        Ok(user) => {
+            tracing::info!("request_id {} - New user has been saved", request_id);
+            HttpResponse::Ok().json(user)
+        },
+        Err(err) => {
+            tracing::error!("request_id {} - Failed to save user to database with error: {:?}", request_id, err); /* use {:?} here for more debug info */
+            HttpResponse::InternalServerError().json(format!("Failed to create user: {err}"))
+        },
     }
 }
 

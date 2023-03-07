@@ -9,6 +9,8 @@ use actix_web::cookie::Key;
 use sqlx::{Pool, Postgres};
 use std::net::TcpListener;
 
+use actix_web::middleware::Logger;
+
 pub struct AppState {
     pub db: Pool<Postgres>,
 }
@@ -17,7 +19,7 @@ pub struct AppState {
 pub fn run(db_pool: Pool<Postgres>, secret_key: Key, listener: TcpListener) -> Result<Server, std::io::Error> {
     let server = HttpServer::new(move || {
         App::new()
-            .wrap(middleware::Logger::default())
+            .wrap(Logger::default())
             .wrap(
                 SessionMiddleware::new(
                     RedisActorSessionStore::new("127.0.0.1:6379"),
