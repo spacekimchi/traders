@@ -9,9 +9,8 @@ use std::net::TcpListener;
 pub struct AppState {
     pub db: Pool<Postgres>,
 }
-//mod seeds;
 
-pub fn run(db_pool: Pool<Postgres>, secret_key: Key, listener: TcpListener) -> Result<Server, std::io::Error> {
+pub fn run(db_pool: Pool<Postgres>, _secret_key: Key, listener: TcpListener) -> Result<Server, std::io::Error> {
     let server = HttpServer::new(move || {
         App::new()
             .wrap(TracingLogger::default())

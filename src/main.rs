@@ -15,8 +15,6 @@ async fn main() -> std::io::Result<()> {
     dotenv().ok();
     
     let configuration = get_configuration().expect("Failed to read configuration");
-    /* DATABASE://DATABASE_USER:DATABASE_PASSWORD@DATABASE_HOST:DATABASE_PORT/DATABASE_DB_NAME */
-
     let cookie_k = std::env::var("COOKIE_K").expect("COOKIE_K must be set");
 
     /* Session */
@@ -36,3 +34,4 @@ async fn main() -> std::io::Result<()> {
 
     run(db_pool, secret_key, listener)?.await
 }
+

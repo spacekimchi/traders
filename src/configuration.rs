@@ -2,25 +2,17 @@
 use secrecy::{Secret, ExposeSecret};
 
 pub fn get_configuration() -> Result<Settings, config::ConfigError> {
-    /* Initialise our configuration reader */
-    //let mut settings = config::Config::default();
-
     /*
      * Add configuration values from a file named 'configuration'.
      * It will look for any top-level file with an extension
      * that 'config' knows how to parse: yaml, json, etc.
      */
     let settings = config::Config::builder().add_source(config::File::with_name("configuration"));
-    //settings.add_source(config::File::with_name("configuration"))?;
 
     /*
      * Try to convert the configuration values to read into
-     * our Settings type
+     * our Settings type below
      */
-    //settings.build()
-    //settings.try_into()
-
-    //settings.build().try_into()
     match settings.build() {
         Ok(config) => config.try_deserialize::<Settings>(),
         Err(e) => Err(e), 
@@ -62,3 +54,4 @@ impl DatabaseSettings {
         ))
     }
 }
+

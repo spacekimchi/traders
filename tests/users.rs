@@ -1,1 +1,1 @@
-//! tests/health_check.rs
+//! tests/users.rs

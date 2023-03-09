@@ -1,4 +1,4 @@
-//! tests/users/rs
+//! tests/health_check.rs
 use sqlx::{PgConnection, Executor, Connection};
 use traders::configuration::{get_configuration, DatabaseSettings};
 use traders::telemetry::{get_subscriber, init_subscriber};
@@ -64,7 +64,7 @@ async fn spawn_app() -> TestApp {
 }
 
 pub async fn configure_database(config: &DatabaseSettings) -> Pool<Postgres> {
-    // Create database to use for testing
+    /* Create database to use for testing */
     let mut connection = PgConnection::connect(config.connection_string_without_db().expose_secret())
         .await
         .expect("Failed to connect to Postgres");

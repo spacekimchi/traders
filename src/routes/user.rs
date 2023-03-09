@@ -3,7 +3,6 @@ use actix_web::web::{Data, Json, Path};
 use actix_web::{HttpResponse, Responder, get, post, delete};
 use sqlx::{self, FromRow};
 use crate::startup::AppState;
-use tracing::Instrument;
 
 #[derive(Debug, Deserialize, Serialize, FromRow)]
 pub struct User {
@@ -22,8 +21,6 @@ pub struct UserRequest {
 
 #[get("/users")]
 pub async fn list(state: Data<AppState>) -> impl Responder {
-    // TODO: get users this will have query params "?ingredients=apple,chicken,thyme"
-    println!("[users.rs:list]");
     match sqlx::query_as::<_, User>("SELECT id, username, email, created_at FROM users")
         .fetch_all(&state.db)
         .await
@@ -43,16 +40,17 @@ pub async fn list(state: Data<AppState>) -> impl Responder {
 )]
 #[post("/users")]
 pub async fn create(state: Data<AppState>, body: Json<UserRequest>) -> HttpResponse {
-    match insert_user(&state, &body).await
-    {
-        Ok(user) => {
-            HttpResponse::Ok().json(user)
-        },
-        Err(err) => {
-            tracing::error!("Failed to save user to database with error: {:?}", err); /* use {:?} here for more debug info */
-            HttpResponse::InternalServerError().json(format!("Failed to create user: {err}"))
-        },
-    }
+    match insert_user(&state, &body)
+        .await
+        {
+            Ok(user) => {
+                HttpResponse::Ok().json(user)
+            },
+            Err(err) => {
+                tracing::error!("Failed to save user to database with error: {:?}", err); /* use {:?} here for more debug info */
+                HttpResponse::InternalServerError().json(format!("Failed to create user: {err}"))
+            },
+        }
 }
 
 #[tracing::instrument(
