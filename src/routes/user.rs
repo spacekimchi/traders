@@ -9,9 +9,11 @@ use crate::startup::AppState;
 
 //pub type Users = Response<User>;
 
+use tracing::Instrument;
+
 #[derive(Debug, Deserialize, Serialize, FromRow)]
 pub struct User {
-    pub id: i32,
+    pub id: uuid::Uuid,
     #[serde(with = "chrono::serde::ts_seconds")]
     pub created_at: chrono::DateTime<chrono::offset::Utc>,
     pub username: String,
@@ -41,21 +43,35 @@ pub async fn list(state: Data<AppState>) -> impl Responder {
 pub async fn create(state: Data<AppState>, body: Json<UserRequest>) -> HttpResponse {
     /* Need to remove request_id logic and possible pass it in as a parameter? */
     let request_id = uuid::Uuid::new_v4();
+    let user_id = uuid::Uuid::new_v4();
+
+    /* tracing */
     let request_span = tracing::info_span!(
         "Adding a new subscriber",
         %request_id,
+        %user_id,
         user_email = %body.email,
         user_name = %body.username
     );
-    tracing::info!("request_id {} - Creating new user '{}' '{}' and saving to database", request_id, body.email, body.username);
+    /* tracing::info!("request_id {} - Creating new user '{}' '{}' and saving to database", request_id, body.email, body.username); */
+    /* tracing::info_span! replaces the above to give context and span to the request data */
+    /* do not use .enter() in async functions */
+    let _request_span_guard = request_span.enter();
+
+    let query_span = tracing::info_span!(
+        "Saving new subscriber details in the database"
+    );
+
     let created_at = chrono::offset::Utc::now();
     match sqlx::query_as::<_, User>(
-        "INSERT INTO users (username, email, created_at) VALUES ($1, $2, $3) RETURNING id, username, email, created_at"
+        "INSERT INTO users (id, username, email, created_at) VALUES ($1, $2, $3, $4) RETURNING id, username, email, visible, created_at, updated_at"
     )
+    .bind(user_id)
     .bind(&body.username)
     .bind(&body.email)
     .bind(created_at)
     .fetch_one(&state.db)
+    .instrument(query_span)
     .await
     {
         Ok(user) => {

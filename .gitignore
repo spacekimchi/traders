@@ -7,5 +7,4 @@ Cargo.lock
 /session_notes.md
 /.cargo
 /configuration.yaml
-/migrations
 /scripts/*
