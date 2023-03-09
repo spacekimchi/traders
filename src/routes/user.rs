@@ -1,14 +1,8 @@
 use serde::{Deserialize, Serialize};
 use actix_web::web::{Data, Json, Path};
 use actix_web::{HttpResponse, Responder, get, post, delete};
-//use actix_web::web::Path;
-
 use sqlx::{self, FromRow};
-//use crate::response::Response;
 use crate::startup::AppState;
-
-//pub type Users = Response<User>;
-
 use tracing::Instrument;
 
 #[derive(Debug, Deserialize, Serialize, FromRow)]
@@ -39,31 +33,36 @@ pub async fn list(state: Data<AppState>) -> impl Responder {
         }
 }
 
+#[tracing::instrument(
+    name = "Creating a new user",
+    skip(state, body),
+    fields(
+        email = %body.email,
+        username = %body.username,
+    )
+)]
 #[post("/users")]
 pub async fn create(state: Data<AppState>, body: Json<UserRequest>) -> HttpResponse {
-    /* Need to remove request_id logic and possible pass it in as a parameter? */
-    let request_id = uuid::Uuid::new_v4();
+    match insert_user(&state, &body).await
+    {
+        Ok(user) => {
+            HttpResponse::Ok().json(user)
+        },
+        Err(err) => {
+            tracing::error!("Failed to save user to database with error: {:?}", err); /* use {:?} here for more debug info */
+            HttpResponse::InternalServerError().json(format!("Failed to create user: {err}"))
+        },
+    }
+}
+
+#[tracing::instrument(
+    name = "Saving new user in the database",
+    skip(state, body),
+)]
+pub async fn insert_user(state: &Data<AppState>, body: &Json<UserRequest>) -> Result<User, sqlx::Error> {
     let user_id = uuid::Uuid::new_v4();
-
-    /* tracing */
-    let request_span = tracing::info_span!(
-        "Adding a new subscriber",
-        %request_id,
-        %user_id,
-        user_email = %body.email,
-        user_name = %body.username
-    );
-    /* tracing::info!("request_id {} - Creating new user '{}' '{}' and saving to database", request_id, body.email, body.username); */
-    /* tracing::info_span! replaces the above to give context and span to the request data */
-    /* do not use .enter() in async functions */
-    let _request_span_guard = request_span.enter();
-
-    let query_span = tracing::info_span!(
-        "Saving new subscriber details in the database"
-    );
-
     let created_at = chrono::offset::Utc::now();
-    match sqlx::query_as::<_, User>(
+    sqlx::query_as::<_, User>(
         "INSERT INTO users (id, username, email, created_at) VALUES ($1, $2, $3, $4) RETURNING id, username, email, visible, created_at, updated_at"
     )
     .bind(user_id)
@@ -71,18 +70,7 @@ pub async fn create(state: Data<AppState>, body: Json<UserRequest>) -> HttpRespo
     .bind(&body.email)
     .bind(created_at)
     .fetch_one(&state.db)
-    .instrument(query_span)
     .await
-    {
-        Ok(user) => {
-            tracing::info!("request_id {} - New user has been saved", request_id);
-            HttpResponse::Ok().json(user)
-        },
-        Err(err) => {
-            tracing::error!("request_id {} - Failed to save user to database with error: {:?}", request_id, err); /* use {:?} here for more debug info */
-            HttpResponse::InternalServerError().json(format!("Failed to create user: {err}"))
-        },
-    }
 }
 
 #[get("/users/{user_id}")]
