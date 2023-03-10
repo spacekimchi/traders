@@ -9,6 +9,7 @@ pub struct User {
     pub id: uuid::Uuid,
     #[serde(with = "chrono::serde::ts_seconds")]
     pub created_at: chrono::DateTime<chrono::offset::Utc>,
+    pub visible: bool,
     pub username: String,
     pub email: String,
 }
@@ -19,15 +20,32 @@ pub struct UserRequest {
     pub email: String,
 }
 
+#[tracing::instrument(
+    name = "Grabbing users",
+    skip(state),
+)]
 #[get("/users")]
 pub async fn list(state: Data<AppState>) -> impl Responder {
-    match sqlx::query_as::<_, User>("SELECT id, username, email, created_at FROM users")
-        .fetch_all(&state.db)
+    match get_users(&state)
         .await
         {
-            Ok(users) => HttpResponse::Ok().content_type("application/json").json(users),
-            Err(_) => HttpResponse::NotFound().json("No users found"),
+            Ok(users) => {
+                HttpResponse::Ok().content_type("application/json").json(users)
+            },
+            Err(err) => {
+                HttpResponse::InternalServerError().json(format!("Failed to get users: {err}"))
+            }
         }
+}
+
+#[tracing::instrument(
+    name = "Grabbing users from the database",
+    skip(state),
+)]
+pub async fn get_users(state: &Data<AppState>) -> Result<Vec<User>, sqlx::Error> {
+    sqlx::query_as::<_, User>("SELECT id, username, email, created_at FROM users")
+        .fetch_all(&state.db)
+        .await
 }
 
 #[tracing::instrument(
