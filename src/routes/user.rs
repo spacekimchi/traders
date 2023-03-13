@@ -7,11 +7,13 @@ use crate::startup::AppState;
 #[derive(Debug, Deserialize, Serialize, FromRow)]
 pub struct User {
     pub id: uuid::Uuid,
-    #[serde(with = "chrono::serde::ts_seconds")]
-    pub created_at: chrono::DateTime<chrono::offset::Utc>,
     pub visible: bool,
     pub username: String,
     pub email: String,
+    #[serde(with = "chrono::serde::ts_seconds")]
+    pub created_at: chrono::DateTime<chrono::offset::Utc>,
+    #[serde(with = "chrono::serde::ts_seconds")]
+    pub updated_at: chrono::DateTime<chrono::offset::Utc>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -21,7 +23,7 @@ pub struct UserRequest {
 }
 
 #[tracing::instrument(
-    name = "Grabbing users",
+    name = "Listing users",
     skip(state),
 )]
 #[get("/users")]
@@ -43,7 +45,7 @@ pub async fn list(state: Data<AppState>) -> impl Responder {
     skip(state),
 )]
 pub async fn get_users(state: &Data<AppState>) -> Result<Vec<User>, sqlx::Error> {
-    sqlx::query_as::<_, User>("SELECT id, username, email, created_at FROM users")
+    sqlx::query_as::<_, User>("SELECT id, username, email, visible, created_at, updated_at FROM users")
         .fetch_all(&state.db)
         .await
 }

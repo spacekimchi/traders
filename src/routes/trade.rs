@@ -1,56 +1,55 @@
 use serde::{Deserialize, Serialize};
 use actix_web::web::{Data, Json, Path};
 use actix_web::{HttpResponse, Responder, get, post, delete};
-//use actix_web::web::Path;
-
 use sqlx::{self, FromRow};
-//use crate::response::Response;
 use crate::startup::AppState;
-
-//pub type Trades = Response<Trade>;
 
 #[derive(Debug, Deserialize, Serialize, FromRow)]
 pub struct Trade {
-    pub id: i32,
-    #[serde(with = "chrono::serde::ts_seconds")]
-    pub created_at: chrono::DateTime<chrono::offset::Utc>,
-    pub user_id: i32,
-    pub shared: bool,
+    pub id: i64,
+    pub user_id: uuid::Uuid,
 	pub instrument: String,
 	pub action: String,
 	pub quantity: i32,
 	pub price: f32,
-	pub time: i64,
-	pub entry: bool,
-	pub position: String,
+	pub time: f64,
 	pub commission: f32,
-	pub rate: i32,
 	pub account_display_name: String,
-	pub pnl: f32,
+    #[serde(with = "chrono::serde::ts_seconds")]
+    pub created_at: chrono::DateTime<chrono::offset::Utc>,
+    #[serde(with = "chrono::serde::ts_seconds")]
+    pub updated_at: chrono::DateTime<chrono::offset::Utc>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct TradeRequest {
-    pub user_id: i32,
-    pub shared: bool,
-	pub instrument: String,
-	pub action: String,
-	pub quantity: i32,
-	pub price: f32,
-	pub time: u32,
-	pub entry: bool,
-	pub position: String,
-	pub commission: f32,
-	pub rate: i32,
-	pub account_display_name: String,
-	pub pnl: f32,
+    pub instrument: Vec<String>,
+	pub action: Vec<String>,
+	pub quantity: Vec<i32>,
+	pub price: Vec<f32>,
+	pub time: Vec<f64>,
+	pub commission: Vec<f32>,
+	pub account_display_name: Vec<String>,
 }
 
+impl std::fmt::Display for TradeRequest {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(
+            f,
+            "TradeFields: {:?}",
+            self.instrument,
+        )
+    }
+}
+
+
+#[tracing::instrument(
+    name = "Listing trades",
+    skip(state),
+)]
 #[get("/trades")]
 pub async fn list(state: Data<AppState>) -> impl Responder {
-    // TODO: get trades this will have query params "?ingredients=apple,chicken,thyme"
-    match sqlx::query_as::<_, Trade>("SELECT id, user_id, shared, instrument, action, quantity, price, time, entry, position, commission, rate, account_display_name, pnl, created_at FROM trades")
-        .fetch_all(&state.db)
+    match get_trades(&state)
         .await
         {
             Ok(trades) => HttpResponse::Ok().content_type("application/json").json(trades),
@@ -58,32 +57,73 @@ pub async fn list(state: Data<AppState>) -> impl Responder {
         }
 }
 
+#[tracing::instrument(
+    name = "Grabbing trades from the database",
+    skip(state),
+)]
+pub async fn get_trades(state: &Data<AppState>) -> Result<Vec<Trade>, sqlx::Error> {
+    sqlx::query_as::<_, Trade>("SELECT id, user_id, instrument, action, quantity, price, time, commission, account_display_name, created_at, updated_at from trades")
+        .fetch_all(&state.db)
+        .await
+}
+
+/*
+ * Xlsx file will be parsed on the frontend and uploaded to the backend as a field of json.
+ * Don't need to upload xlsx files to backend
+ */
+#[tracing::instrument(
+    name = "Creating a new trade",
+    skip(state, body),
+    fields(
+        instrument = ?body.instrument,
+        action = ?body.action,
+        quantity = ?body.quantity,
+        price = ?body.price,
+        time = ?body.time,
+        commission = ?body.commission,
+        account_display_name = ?body.account_display_name,
+    )
+)]
 #[post("/trades")]
 pub async fn create(state: Data<AppState>, body: Json<TradeRequest>) -> HttpResponse {
-    let created_at = chrono::offset::Utc::now();
-    match sqlx::query_as::<_, Trade>(
-        "INSERT INTO trades (user_id, shared, instrument, action, quantity, price, time, entry, position, commission, rate, account_display_name, pnl, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING id, user_id, shared, instrument, action, quantity, price, time, entry, position, commission, rate, account_display_name, pnl, created_at"
-    )
-    .bind(body.user_id)
-    .bind(body.shared)
-    .bind(body.instrument.to_string())
-    .bind(body.action.to_string())
-    .bind(body.quantity)
-    .bind(body.price)
-    .bind(body.time as i64)
-    .bind(body.entry)
-    .bind(body.position.to_string())
-    .bind(body.commission)
-    .bind(body.rate)
-    .bind(body.account_display_name.to_string())
-    .bind(body.pnl)
-    .bind(created_at)
-    .fetch_one(&state.db)
-    .await
-    {
-        Ok(trade) => HttpResponse::Ok().json(trade),
-        Err(err) => HttpResponse::InternalServerError().json(format!("Failed to create trade: {err}")),
-    }
+    match insert_trades(&state, &body)
+        .await
+        {
+            Ok(trades) => HttpResponse::Ok().json(trades),
+            Err(err) => HttpResponse::InternalServerError().json(format!("Failed to create trade: {err}")),
+        }
+}
+/*
+ *
+	pub instrument: Vec<String>,
+	pub action: Vec<String>,
+	pub quantity: Vec<i32>,
+	pub price: Vec<f32>,
+	pub time: Vec<f64>,
+	pub commission: Vec<f32>,
+	pub account_display_name: Vec<String>,
+ */
+#[tracing::instrument(
+    name = "Inserting new trades into the database",
+    skip(state, body),
+)]
+pub async fn insert_trades(state: &Data<AppState>, body: &Json<TradeRequest>) -> Result<Vec<Trade>, sqlx::Error> {
+    let user_ids = ["c894a480-b3e2-41ea-af47-e9fdd8ff4d7b", "c894a480-b3e2-41ea-af47-e9fdd8ff4d7b"];
+    sqlx::query_as::<_, Trade>(
+        "
+            INSERT INTO trades (instrument, action, quantity, price, time, commission, account_display_name, user_id)
+            SELECT * FROM UNNEST($1::text[], $2::text[], $3::int4[], $4::float4[], $5::float8[], $6::float4[], $7::text[], $8::uuid[]) 
+        ")
+        .bind(&body.instrument[..])
+        .bind(&body.action[..])
+        .bind(&body.quantity[..])
+        .bind(&body.price[..])
+        .bind(&body.time[..])
+        .bind(&body.commission[..])
+        .bind(&body.account_display_name[..])
+        .bind(user_ids)
+        .fetch_all(&state.db)
+        .await
 }
 
 #[get("/trades/{trade_id}")]
