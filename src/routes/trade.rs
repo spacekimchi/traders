@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use actix_web::web::{Data, Json, Path};
+use actix_web::web::{Data, Json, Path, Query};
 use actix_web::{HttpResponse, Responder, get, post, delete};
 use sqlx::{self, FromRow};
 use crate::startup::AppState;
@@ -42,14 +42,39 @@ impl std::fmt::Display for TradeRequest {
     }
 }
 
+/* Converts excel date format to human readable */
+fn to_date(xcell: &str) {
+    let daytime: Vec<&str> = xcell.split('.').collect();
+    let start = chrono::NaiveDate::from_ymd_opt(1900, 1, 1).expect("DATE");
+    let date = start.checked_add_signed(chrono::Duration::days(daytime[0].parse::<i64>().unwrap()));
+    //println!("{}", date.unwrap());
+}
+
+fn to_xcell(year: i32, month: u32, day: u32) {
+    println!("year: {}, month: {}, day: {}", year, month, day);
+    let start = chrono::NaiveDate::from_ymd_opt(1900, 1, 1).expect("DATE");
+    let today = chrono::NaiveDate::from_ymd_opt(year, month, day).expect("TODAY DATE");
+    let dur = chrono::NaiveDate::signed_duration_since(start, today);
+    println!("{}", dur);
+}
+
+#[derive(Debug, Deserialize)]
+pub struct GetTradesRequest {
+    view: Option<String>,
+    tail: Option<String>,
+    year: Option<i32>,
+    month: Option<u32>,
+    day: Option<u32>,
+}
 
 #[tracing::instrument(
-    name = "Listing trades",
+    name = "Index of trades without params",
     skip(state),
 )]
 #[get("/trades")]
-pub async fn list(state: Data<AppState>) -> impl Responder {
-    match get_trades(&state)
+pub async fn index(state: Data<AppState>) -> impl Responder {
+    /* fill the "" below in with today's date */
+    match get_trades(&state, "", 0, 0, 0)
         .await
         {
             Ok(trades) => HttpResponse::Ok().content_type("application/json").json(trades),
@@ -58,10 +83,48 @@ pub async fn list(state: Data<AppState>) -> impl Responder {
 }
 
 #[tracing::instrument(
+    name = "Listing trades with params",
+    skip(state),
+)]
+#[get("/trades/{tail:.*}")]
+pub async fn list(state: Data<AppState>, query_params: Path<GetTradesRequest>) -> impl Responder {
+    println!("{:?}", query_params);
+    let tails: Vec<&str> = query_params.tail.as_ref().expect("asdf").split('/').collect();
+    //let view = tail.first();
+    let mut t_iter = tails.iter();
+    let view = *t_iter.next().unwrap();
+    /*
+     * TODO
+     * Replace 2023, 1, and 1 with either constants and some kind of get_current_year() function
+     */
+    let year = t_iter.next().unwrap_or(&"2023").parse::<i32>().unwrap();
+    let month = t_iter.next().unwrap_or(&"1").parse::<u32>().unwrap();
+    let day = t_iter.next().unwrap_or(&"1").parse::<u32>().unwrap();
+    println!("year: {}, month: {}, day: {}", year, month, day);
+    match get_trades(&state, view, year, month, day)
+        .await
+        {
+            Ok(trades) => {
+                for trade in &trades {
+                    //to_date(&trade.time.to_string());
+                    println!("");
+                    println!("");
+                    println!("");
+                    to_xcell(year, month, day);
+                    println!("");
+                    println!("");
+                    println!("");
+                }
+                return HttpResponse::Ok().content_type("application/json").json(trades)
+            }, Err(err) => HttpResponse::NotFound().json(format!("Error: {err}")),
+        }
+}
+
+#[tracing::instrument(
     name = "Grabbing trades from the database",
     skip(state),
 )]
-pub async fn get_trades(state: &Data<AppState>) -> Result<Vec<Trade>, sqlx::Error> {
+pub async fn get_trades(state: &Data<AppState>, view: &str, year: i32, month: u32, day: u32) -> Result<Vec<Trade>, sqlx::Error> {
     sqlx::query_as::<_, Trade>("SELECT id, user_id, instrument, action, quantity, price, time, commission, account_display_name, created_at, updated_at from trades")
         .fetch_all(&state.db)
         .await
@@ -93,16 +156,7 @@ pub async fn create(state: Data<AppState>, body: Json<TradeRequest>) -> HttpResp
             Err(err) => HttpResponse::InternalServerError().json(format!("Failed to create trade: {err}")),
         }
 }
-/*
- *
-	pub instrument: Vec<String>,
-	pub action: Vec<String>,
-	pub quantity: Vec<i32>,
-	pub price: Vec<f32>,
-	pub time: Vec<f64>,
-	pub commission: Vec<f32>,
-	pub account_display_name: Vec<String>,
- */
+
 #[tracing::instrument(
     name = "Inserting new trades into the database",
     skip(state, body),
@@ -125,21 +179,6 @@ pub async fn insert_trades(state: &Data<AppState>, body: &Json<TradeRequest>) ->
         .fetch_all(&state.db)
         .await
 }
-
-#[get("/trades/{trade_id}")]
-pub async fn get(state: Data<AppState>, path: Path<String>) -> impl Responder {
-    // TODO: Get trade by ID. This will discard query params
-    let trade_id = path.into_inner();
-    match sqlx::query_as::<_, Trade>("SELECT id, user_id, shared, instrument, action, quantity, price, time, entry, position, commission, rate, account_display_name, pnl, created_at FROM trades WHERE id = $1")
-        .bind(trade_id)
-        .fetch_all(&state.db)
-        .await
-        {
-            Ok(trade) => HttpResponse::Ok().json(trade),
-            Err(_) => HttpResponse::NotFound().json("No trade found"),
-        }
-}
-
 
 #[delete("/trades/{trade_id}")]
 pub async fn delete(_state: Data<AppState>, _path: Path<(String,)>) -> HttpResponse {

@@ -34,4 +34,3 @@ async fn main() -> std::io::Result<()> {
 
     run(db_pool, secret_key, listener)?.await
 }
-

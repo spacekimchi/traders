@@ -1,5 +1,5 @@
 use crate::routes::{user, trade, health_check};
-use actix_web::{App, web, HttpServer};
+use actix_web::{App, web, HttpServer, middleware, http::Method};
 use tracing_actix_web::TracingLogger;
 use actix_web::dev::Server;
 use actix_web::cookie::Key;
@@ -14,6 +14,7 @@ pub fn run(db_pool: Pool<Postgres>, _secret_key: Key, listener: TcpListener) -> 
     let server = HttpServer::new(move || {
         App::new()
             .wrap(TracingLogger::default())
+            .wrap(middleware::NormalizePath::default())
             .app_data(web::Data::new(AppState { db: db_pool.clone() }))
             .service(health_check::health_check)
             .service(user::create)
@@ -21,9 +22,10 @@ pub fn run(db_pool: Pool<Postgres>, _secret_key: Key, listener: TcpListener) -> 
             .service(user::list)
             .service(user::delete)
             .service(trade::create)
-            .service(trade::get)
             .service(trade::list)
+            .service(trade::index)
             .service(trade::delete)
+            .default_service(web::route().method(Method::GET))
         })
         .listen(listener)?
         .run();
