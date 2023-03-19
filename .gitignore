@@ -11,3 +11,4 @@ configuration.yaml
 scripts/*
 notes.md
 xcell_files
+migrations
