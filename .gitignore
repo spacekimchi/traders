@@ -10,5 +10,5 @@ curl_examples.md
 configuration.yaml
 scripts/*
 notes.md
-migrations/seed_data.sql
+migrations/*seed_data.sql
 
