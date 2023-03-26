@@ -7,14 +7,13 @@ use crate::startup::AppState;
 #[derive(Debug, Deserialize, Serialize, FromRow)]
 pub struct Trade {
     pub id: i64,
-    pub user_id: uuid::Uuid,
+    pub account_id: i64,
 	pub instrument: String,
-	pub action: String,
-	pub quantity: i32,
-	pub price: f32,
-	pub time: f64,
+    pub entry_time: f64,
+    pub exit_time: f64,
 	pub commission: f32,
-	pub account_display_name: String,
+    pub pnl: f32,
+    pub short: bool,
     #[serde(with = "chrono::serde::ts_seconds")]
     pub created_at: chrono::DateTime<chrono::offset::Utc>,
     #[serde(with = "chrono::serde::ts_seconds")]
@@ -24,12 +23,11 @@ pub struct Trade {
 #[derive(Debug, Deserialize, Serialize)]
 pub struct TradeRequest {
     pub instrument: Vec<String>,
-	pub action: Vec<String>,
-	pub quantity: Vec<i32>,
-	pub price: Vec<f32>,
-	pub time: Vec<f64>,
+	pub entry_time: Vec<f64>,
+	pub exit_time: Vec<f64>,
 	pub commission: Vec<f32>,
-	pub account_display_name: Vec<String>,
+	pub pnl: Vec<f32>,
+	pub short: Vec<bool>,
 }
 
 impl std::fmt::Display for TradeRequest {
@@ -106,7 +104,6 @@ pub async fn list(state: Data<AppState>, query_params: Path<GetTradesRequest>) -
         {
             Ok(trades) => {
                 for trade in &trades {
-                    //to_date(&trade.time.to_string());
                     println!("");
                     println!("");
                     println!("");
@@ -125,15 +122,16 @@ pub async fn list(state: Data<AppState>, query_params: Path<GetTradesRequest>) -
     skip(state),
 )]
 pub async fn get_trades(state: &Data<AppState>, view: &str, year: i32, month: u32, day: u32) -> Result<Vec<Trade>, sqlx::Error> {
-    sqlx::query_as::<_, Trade>("SELECT id, user_id, instrument, action, quantity, price, time, commission, account_display_name, created_at, updated_at from trades")
+    sqlx::query_as::<_, Trade>("SELECT id, account_id, instrument, entry_time, exit_time, commission, pnl, short, created_at, updated_at from trades")
         .fetch_all(&state.db)
         .await
 }
 
 /*
- * Xlsx file will be parsed on the frontend and uploaded to the backend as a field of json.
- * Don't need to upload xlsx files to backend
- */
+ * xlsx file will be uploaded to backend. Don't need a post for trades
+ * here just for example
+ *
+
 #[tracing::instrument(
     name = "Creating a new trade",
     skip(state, body),
@@ -179,6 +177,9 @@ pub async fn insert_trades(state: &Data<AppState>, body: &Json<TradeRequest>) ->
         .fetch_all(&state.db)
         .await
 }
+
+ *
+ */
 
 #[delete("/trades/{trade_id}")]
 pub async fn delete(_state: Data<AppState>, _path: Path<(String,)>) -> HttpResponse {
