@@ -1,0 +1,12 @@
+application:
+  port: 8000
+  host: 0.0.0.0
+database:
+  host: "127.0.0.1"
+  port: 5432
+  username: "postgres"
+  password: "password"
+  database_name: "traders"
+  require_ssl: false
+test:
+  secret_key: "2s5v8y/B?E(H+MbQeThWmZq4t6w9z$C&F)J@NcRfUjXn2r5u8x!A%D*G-KaPdSgV"
