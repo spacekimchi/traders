@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
-use actix_web::web::{Data, Json, Path, Query};
-use actix_web::{HttpResponse, Responder, get, post, delete};
+use actix_web::web::{Data, Path};
+use actix_web::{HttpResponse, Responder, get, delete};
 use sqlx::{self, FromRow};
 use crate::startup::AppState;
 
@@ -40,7 +40,7 @@ impl std::fmt::Display for TradeRequest {
     }
 }
 
-/* Converts excel date format to human readable */
+/* Converts excel date format to human readable
 fn to_date(xcell: &str) {
     let daytime: Vec<&str> = xcell.split('.').collect();
     let start = chrono::NaiveDate::from_ymd_opt(1900, 1, 1).expect("DATE");
@@ -55,14 +55,11 @@ fn to_xcell(year: i32, month: u32, day: u32) {
     let dur = chrono::NaiveDate::signed_duration_since(start, today);
     println!("{}", dur);
 }
+*/
 
 #[derive(Debug, Deserialize)]
 pub struct GetTradesRequest {
-    view: Option<String>,
     tail: Option<String>,
-    year: Option<i32>,
-    month: Option<u32>,
-    day: Option<u32>,
 }
 
 #[tracing::instrument(
@@ -86,9 +83,7 @@ pub async fn index(state: Data<AppState>) -> impl Responder {
 )]
 #[get("/trades/{tail:.*}")]
 pub async fn list(state: Data<AppState>, query_params: Path<GetTradesRequest>) -> impl Responder {
-    println!("{:?}", query_params);
     let tails: Vec<&str> = query_params.tail.as_ref().expect("asdf").split('/').collect();
-    //let view = tail.first();
     let mut t_iter = tails.iter();
     let view = *t_iter.next().unwrap();
     /*
@@ -98,22 +93,11 @@ pub async fn list(state: Data<AppState>, query_params: Path<GetTradesRequest>) -
     let year = t_iter.next().unwrap_or(&"2023").parse::<i32>().unwrap();
     let month = t_iter.next().unwrap_or(&"1").parse::<u32>().unwrap();
     let day = t_iter.next().unwrap_or(&"1").parse::<u32>().unwrap();
-    println!("year: {}, month: {}, day: {}", year, month, day);
     match get_trades(&state, view, year, month, day)
         .await
         {
-            Ok(trades) => {
-                for trade in &trades {
-                    println!("");
-                    println!("");
-                    println!("");
-                    to_xcell(year, month, day);
-                    println!("");
-                    println!("");
-                    println!("");
-                }
-                return HttpResponse::Ok().content_type("application/json").json(trades)
-            }, Err(err) => HttpResponse::NotFound().json(format!("Error: {err}")),
+            Ok(trades) => HttpResponse::Ok().content_type("application/json").json(trades),
+            Err(err) => HttpResponse::NotFound().json(format!("Error: {err}")),
         }
 }
 

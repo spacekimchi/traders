@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
-use actix_web::web::{Data, Json, Path, Query};
-use actix_web::{HttpResponse, Responder, get, post, delete};
+use actix_web::web::Data;
+use actix_web::{HttpResponse, Responder, get};
 use sqlx::{self, FromRow};
 use crate::startup::AppState;
 

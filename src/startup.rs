@@ -1,5 +1,5 @@
-use crate::routes::{user, trade, health_check, account};
-use actix_web::{App, web, HttpServer, middleware, http::Method};
+use crate::routes::{user, trade, health_check, account, login};
+use actix_web::{App, web, HttpServer, http::Method};
 use tracing_actix_web::TracingLogger;
 use actix_web::dev::Server;
 use sqlx::{Pool, PgPool, Postgres};
@@ -55,15 +55,15 @@ pub struct ApplicationBaseUrl(pub String);
 pub fn run(db_pool: PgPool, listener: TcpListener, base_url: String) -> Result<Server, std::io::Error> {
     let base_url = web::Data::new(ApplicationBaseUrl(base_url));
     let server = HttpServer::new(move || {
-        let cors = Cors::default()
+        let cors = Cors::permissive()
             .allowed_origin("http://localhost:3000");
         App::new()
             .wrap(TracingLogger::default())
-            .wrap(middleware::NormalizePath::default())
             .wrap(cors)
             .app_data(web::Data::new(AppState { db: db_pool.clone() }))
             .app_data(base_url.clone())
             .service(health_check::health_check)
+            .service(login::login)
             .service(user::create)
             .service(user::get)
             .service(user::list)
