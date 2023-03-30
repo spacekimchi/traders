@@ -164,6 +164,7 @@ pub async fn create(
     body: Json<UserRequest>,
     request: HttpRequest,
 ) -> Result<HttpResponse, UserError> {
+    /*
     let credentials = basic_authentication(request.headers()).map_err(UserError::AuthError)?;
     let _user_id = validate_credentials(credentials, &state)
         .await
@@ -171,6 +172,7 @@ pub async fn create(
             AuthError::InvalidCredentials(_) => UserError::AuthError(e.into()),
             AuthError::UnexpectedError(_) => UserError::UnexpectedError(e.into()),
         })?;
+    */
     let user = insert_user(&state, &body).await.context("Failed to commit user to the database")?;
     /*
     match insert_user(&state, &body)
@@ -197,7 +199,7 @@ pub async fn insert_user(state: &Data<AppState>, body: &Json<UserRequest>) -> Re
     let password_hash = "asdjflsajflsfls";
     let created_at = chrono::offset::Utc::now();
     println!("creating user: ");
-    let user = sqlx::query_as::<_, User>(
+    sqlx::query_as::<_, User>(
         "INSERT INTO users (id, username, email, password_hash, created_at) VALUES ($1, $2, $3, $4, $5) RETURNING id, username, email, visible, password_hash, created_at, updated_at"
     )
     .bind(user_id)
@@ -207,9 +209,7 @@ pub async fn insert_user(state: &Data<AppState>, body: &Json<UserRequest>) -> Re
     .bind(created_at)
     .fetch_one(&state.db)
     .await
-    .map_err(StoreUserError)?;
-    println!("user: {:?}", user);
-    Ok(user)
+    .map_err(StoreUserError)
 }
 
 pub struct StoreUserError(sqlx::Error);

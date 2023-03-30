@@ -3,6 +3,10 @@ use actix_web::web::{Data, Path};
 use actix_web::{HttpResponse, Responder, get, delete};
 use sqlx::{self, FromRow};
 use crate::startup::AppState;
+use actix_session::Session;
+use uuid::Uuid;
+use crate::utils::e500;
+use actix_web::ResponseError;
 
 #[derive(Debug, Deserialize, Serialize, FromRow)]
 pub struct Trade {
@@ -64,17 +68,32 @@ pub struct GetTradesRequest {
 
 #[tracing::instrument(
     name = "Index of trades without params",
-    skip(state),
+    skip(state, session),
 )]
 #[get("/trades")]
-pub async fn index(state: Data<AppState>) -> impl Responder {
+pub async fn index(state: Data<AppState>, session: Session) -> Result<impl Responder, actix_web::Error> {
     /* fill the "" below in with today's date */
-    match get_trades(&state, "", 0, 0, 0)
+    let username = if let Some(user_id) = session
+        .get::<Uuid>("user_id")
+        .map_err(e500)?
+        {
+            println!("\n\n\nsuccess");
+            user_id
+        } else {
+            println!("\n\n\nsome kind of error");
+            Uuid::new_v4()
+        };
+    println!("user_id: {}\n\n\n", username);
+
+    let trades = get_trades(&state, "", 0, 0, 0).await.map_err(e500)?;
+        /*
         .await
         {
             Ok(trades) => HttpResponse::Ok().content_type("application/json").json(trades),
             Err(err) => HttpResponse::NotFound().json(format!("Error: {err}")),
         }
+        */
+    Ok(HttpResponse::Ok().content_type("application/json").json(trades))
 }
 
 #[tracing::instrument(
@@ -176,3 +195,13 @@ pub async fn delete(_state: Data<AppState>, _path: Path<(String,)>) -> HttpRespo
         .unwrap()
 }
 
+pub struct GetTradesError(sqlx::Error);
+
+impl std::fmt::Display for GetTradesError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "A database failure was encountered while trying to get trades."
+        )
+    }
+}

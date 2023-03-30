@@ -4,7 +4,7 @@ use dotenv::dotenv;
 use traders::startup::Application;
 
 #[actix_web::main]
-async fn main() -> std::io::Result<()> {
+async fn main() -> anyhow::Result<()> {
     let subscriber = get_subscriber("traders".into(), "info".into(), std::io::stdout);
     init_subscriber(subscriber);
 

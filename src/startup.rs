@@ -8,9 +8,14 @@ use sqlx::postgres::PgPoolOptions;
 use actix_cors::Cors;
 use crate::configuration::Settings;
 use crate::configuration::DatabaseSettings;
+use actix_session::SessionMiddleware;
+use actix_session::storage::RedisSessionStore;
+use secrecy::{Secret, ExposeSecret};
+use actix_web::cookie::Key;
 
 pub struct AppState {
     pub db: Pool<Postgres>,
+    pub hmac_secret: Secret<String>,
 }
 
 pub struct Application {
@@ -19,7 +24,7 @@ pub struct Application {
 }
 
 impl Application {
-    pub async fn build(configuration: Settings) -> Result<Self, std::io::Error> {
+    pub async fn build(configuration: Settings) -> Result<Self, anyhow::Error> {
         let connection_pool = get_connection_pool(&configuration.database);
 
         let address = format!(
@@ -28,7 +33,13 @@ impl Application {
         );
         let listener = TcpListener::bind(address)?;
         let port = listener.local_addr().unwrap().port();
-        let server = run(connection_pool, listener, configuration.application.base_url)?;
+        let server = run(
+            connection_pool,
+            listener,
+            configuration.application.base_url,
+            configuration.redis_uri,
+            configuration.application.hmac_secret,
+        ).await?;
 
         Ok(Self { port, server })
     }
@@ -52,15 +63,19 @@ pub fn get_connection_pool(
 
 pub struct ApplicationBaseUrl(pub String);
 
-pub fn run(db_pool: PgPool, listener: TcpListener, base_url: String) -> Result<Server, std::io::Error> {
+pub async fn run(db_pool: PgPool, listener: TcpListener, base_url: String, redis_uri: Secret<String>, hmac_secret: Secret<String>) -> Result<Server, anyhow::Error> {
     let base_url = web::Data::new(ApplicationBaseUrl(base_url));
+    let redis_store = RedisSessionStore::new(redis_uri.expose_secret()).await?;
+    let secret_key = Key::from(hmac_secret.expose_secret().as_bytes());
+    println!("here");
     let server = HttpServer::new(move || {
         let cors = Cors::permissive()
             .allowed_origin("http://localhost:3000");
         App::new()
             .wrap(TracingLogger::default())
             .wrap(cors)
-            .app_data(web::Data::new(AppState { db: db_pool.clone() }))
+            .wrap(SessionMiddleware::new(redis_store.clone(), secret_key.clone()))
+            .app_data(web::Data::new(AppState { db: db_pool.clone(), hmac_secret: hmac_secret.clone() }))
             .app_data(base_url.clone())
             .service(health_check::health_check)
             .service(login::login)

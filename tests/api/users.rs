@@ -35,7 +35,7 @@ async fn new_user_is_created() {
     let body = serde_json::json!({
             "username": "test_user1",
             "email": "test1@email.com",
-            "password_hash": "newpassword",
+            "password": "newpassword",
         });
     
     let response = app.post_users(&body).await;

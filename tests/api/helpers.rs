@@ -69,12 +69,23 @@ pub struct TestApp {
     pub address: String,
     pub port: u16,
     pub db_pool: Pool<Postgres>,
-    pub test_user: TestUser
+    pub test_user: TestUser,
+    pub api_client: reqwest::Client,
 }
 
 impl TestApp {
+    pub async fn post_login(&self, body: &serde_json::Value) -> reqwest::Response {
+        self.api_client
+            .post(&format!("{}/login", &self.address))
+            //.basic_auth(&self.test_user.username, Some(&self.test_user.password))
+            .json(&body)
+            .send()
+            .await
+            .expect("Failed to execute request.")
+    }
+
     pub async fn post_users(&self, body: &serde_json::Value) -> reqwest::Response {
-        reqwest::Client::new()
+        self.api_client
             .post(&format!("{}/users", &self.address))
             .basic_auth(&self.test_user.username, Some(&self.test_user.password))
             .json(&body)
@@ -87,7 +98,7 @@ impl TestApp {
         let row = sqlx::query!("SELECT username, password_hash FROM users limit 1",)
             .fetch_one(&self.db_pool)
             .await
-            .expect("failed to create test users.");
+            .expect("failed to find test users.");
         (row.username, row.password_hash)
     }
 }
@@ -117,11 +128,17 @@ pub async fn spawn_app() -> TestApp {
     /* Session */
     let db_pool = configure_database(&configuration.database).await;
     let _ = actix_web::rt::spawn(application.run_until_stopped());
+    let client = reqwest::Client::builder()
+        .redirect(reqwest::redirect::Policy::none())
+        .cookie_store(true)
+        .build()
+        .unwrap();
     let test_app = TestApp {
         address,
         db_pool,
         port: application_port,
         test_user: TestUser::generate(),
+        api_client: client,
     };
     test_app.test_user.store(&test_app.db_pool).await;
     test_app
