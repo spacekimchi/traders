@@ -3,10 +3,10 @@ use actix_web::web::{Data, Path};
 use actix_web::{HttpResponse, Responder, get, delete};
 use sqlx::{self, FromRow};
 use crate::startup::AppState;
-use actix_session::Session;
 use uuid::Uuid;
 use crate::utils::e500;
-use actix_web::ResponseError;
+use crate::session_state::TypedSession;
+use anyhow::Context;
 
 #[derive(Debug, Deserialize, Serialize, FromRow)]
 pub struct Trade {
@@ -49,15 +49,12 @@ fn to_date(xcell: &str) {
     let daytime: Vec<&str> = xcell.split('.').collect();
     let start = chrono::NaiveDate::from_ymd_opt(1900, 1, 1).expect("DATE");
     let date = start.checked_add_signed(chrono::Duration::days(daytime[0].parse::<i64>().unwrap()));
-    //println!("{}", date.unwrap());
 }
 
 fn to_xcell(year: i32, month: u32, day: u32) {
-    println!("year: {}, month: {}, day: {}", year, month, day);
     let start = chrono::NaiveDate::from_ymd_opt(1900, 1, 1).expect("DATE");
     let today = chrono::NaiveDate::from_ymd_opt(year, month, day).expect("TODAY DATE");
     let dur = chrono::NaiveDate::signed_duration_since(start, today);
-    println!("{}", dur);
 }
 */
 
@@ -70,20 +67,17 @@ pub struct GetTradesRequest {
     name = "Index of trades without params",
     skip(state, session),
 )]
-#[get("/trades")]
-pub async fn index(state: Data<AppState>, session: Session) -> Result<impl Responder, actix_web::Error> {
+#[get("/api/trades")]
+pub async fn index(state: Data<AppState>, session: TypedSession) -> Result<impl Responder, actix_web::Error> {
     /* fill the "" below in with today's date */
     let username = if let Some(user_id) = session
-        .get::<Uuid>("user_id")
+        .get_user_id()
         .map_err(e500)?
         {
-            println!("\n\n\nsuccess");
-            user_id
+            get_username(user_id, &state).await.map_err(e500)?
         } else {
-            println!("\n\n\nsome kind of error");
-            Uuid::new_v4()
+            return Ok(HttpResponse::Unauthorized().json("you are not authorized"));
         };
-    println!("user_id: {}\n\n\n", username);
 
     let trades = get_trades(&state, "", 0, 0, 0).await.map_err(e500)?;
         /*
@@ -100,7 +94,7 @@ pub async fn index(state: Data<AppState>, session: Session) -> Result<impl Respo
     name = "Listing trades with params",
     skip(state),
 )]
-#[get("/trades/{tail:.*}")]
+#[get("/api/trades/{tail:.*}")]
 pub async fn list(state: Data<AppState>, query_params: Path<GetTradesRequest>) -> impl Responder {
     let tails: Vec<&str> = query_params.tail.as_ref().expect("asdf").split('/').collect();
     let mut t_iter = tails.iter();
@@ -204,4 +198,23 @@ impl std::fmt::Display for GetTradesError {
             "A database failure was encountered while trying to get trades."
         )
     }
+}
+
+#[tracing::instrument(name = "Get username", skip(state))]
+pub async fn get_username(
+    user_id: Uuid, 
+    state: &Data<AppState>,
+) -> Result<String, anyhow::Error> {
+    let row = sqlx::query!(
+        r#"
+        SELECT username
+        FROM users
+        WHERE id = $1
+        "#,
+        user_id,
+    )
+    .fetch_one(&state.db)
+    .await
+    .context("Failed to perform a query to retrieve a username.")?;
+    Ok(row.username)
 }

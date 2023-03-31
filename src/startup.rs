@@ -5,7 +5,6 @@ use actix_web::dev::Server;
 use sqlx::{Pool, PgPool, Postgres};
 use std::net::TcpListener;
 use sqlx::postgres::PgPoolOptions;
-use actix_cors::Cors;
 use crate::configuration::Settings;
 use crate::configuration::DatabaseSettings;
 use actix_session::SessionMiddleware;
@@ -67,22 +66,20 @@ pub async fn run(db_pool: PgPool, listener: TcpListener, base_url: String, redis
     let base_url = web::Data::new(ApplicationBaseUrl(base_url));
     let redis_store = RedisSessionStore::new(redis_uri.expose_secret()).await?;
     let secret_key = Key::from(hmac_secret.expose_secret().as_bytes());
-    println!("here");
     let server = HttpServer::new(move || {
-        let cors = Cors::permissive()
-            .allowed_origin("http://localhost:3000");
         App::new()
             .wrap(TracingLogger::default())
-            .wrap(cors)
             .wrap(SessionMiddleware::new(redis_store.clone(), secret_key.clone()))
             .app_data(web::Data::new(AppState { db: db_pool.clone(), hmac_secret: hmac_secret.clone() }))
             .app_data(base_url.clone())
             .service(health_check::health_check)
             .service(login::login)
+            .service(login::logout)
             .service(user::create)
             .service(user::get)
             .service(user::list)
             .service(user::delete)
+            .service(user::change_password)
             //.service(trade::create)
             .service(trade::list)
             .service(trade::index)

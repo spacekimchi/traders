@@ -163,7 +163,6 @@ async fn configure_database(config: &DatabaseSettings) -> Pool<Postgres> {
         .run(&connection_pool)
         .await
         .expect("failed to migrate the database");
-    println!("migrated the database");
 
     connection_pool
 }

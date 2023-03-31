@@ -4,13 +4,19 @@ use actix_web::{HttpResponse, HttpRequest, Responder, get, post, delete};
 use sqlx::{self, FromRow};
 use crate::startup::AppState;
 use secrecy::Secret;
+use crate::session_state::TypedSession;
+use crate::utils::e500;
 use anyhow::Context;
-use base64::{Engine as _, engine::general_purpose};
 use crate::domain::{NewUser, UserEmail, UserName};
 use actix_web::ResponseError;
+use secrecy::ExposeSecret;
 use actix_web::http::{StatusCode, header};
-use actix_web::http::header::{HeaderMap, HeaderValue};
-use crate::authentication::{validate_credentials, AuthError, Credentials};
+use actix_web::http::header::HeaderValue;
+use crate::authentication::{validate_credentials, AuthError, Credentials, compute_password_hash};
+use crate::routes::trade::get_username;
+use actix_web::error::InternalError;
+use crate::telemetry::spawn_blocking_with_tracing;
+use uuid::Uuid;
 
 impl TryFrom<UserRequest> for NewUser {
     type Error = String;
@@ -82,44 +88,18 @@ pub struct User {
     pub updated_at: chrono::DateTime<chrono::offset::Utc>,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize)]
 pub struct UserRequest {
     pub username: String,
     pub email: String,
+    pub password: Secret<String>,
 }
 
-fn basic_authentication(headers: &HeaderMap) -> Result<Credentials, anyhow::Error> {
-    // The header value, if present, must be a vlid UTF8 String
-    println!("entering credentials");
-    let header_value = headers
-        .get("Authorization")
-        .context("The 'Authorization' header was missing")?
-        .to_str()
-        .context("The 'Authorization' header was not a valid UTF8 string.")?;
-    let base64encoded_segment = header_value
-        .strip_prefix("Basic ")
-        .context("The authorization scheme was not 'Basic'.")?;
-    let decoded_bytes = general_purpose::STANDARD.decode(base64encoded_segment)
-        .context("Failed to base64-decode 'Basic' credentials.")?;
-    let decoded_credentials = String::from_utf8(decoded_bytes)
-        .context("The decoded credential string is not valid UTF8.")?;
-
-    // Split into two segments, using ':' as delimiter
-    let mut credentials = decoded_credentials.splitn(2, ':');
-    let username = credentials
-        .next()
-        .ok_or_else(|| anyhow::anyhow!("A username must be provided in 'Basic' auth."))?
-        .to_string();
-    let password = credentials
-        .next()
-        .ok_or_else(|| anyhow::anyhow!("A password must be provided in 'Basic' auth."))?
-        .to_string();
-    println!("returning credentials");
-
-    Ok(Credentials {
-        username,
-        password: Secret::new(password)
-    })
+#[derive(Debug, Deserialize)]
+pub struct ChangePasswordRequest {
+    pub current_password: Secret<String>,
+    pub new_password: Secret<String>,
+    pub new_password_check: Secret<String>,
 }
 
 #[tracing::instrument(
@@ -164,15 +144,6 @@ pub async fn create(
     body: Json<UserRequest>,
     request: HttpRequest,
 ) -> Result<HttpResponse, UserError> {
-    /*
-    let credentials = basic_authentication(request.headers()).map_err(UserError::AuthError)?;
-    let _user_id = validate_credentials(credentials, &state)
-        .await
-        .map_err(|e| match e {
-            AuthError::InvalidCredentials(_) => UserError::AuthError(e.into()),
-            AuthError::UnexpectedError(_) => UserError::UnexpectedError(e.into()),
-        })?;
-    */
     let user = insert_user(&state, &body).await.context("Failed to commit user to the database")?;
     /*
     match insert_user(&state, &body)
@@ -194,22 +165,24 @@ pub async fn create(
     name = "Saving new user in the database",
     skip(state, body),
 )]
-pub async fn insert_user(state: &Data<AppState>, body: &Json<UserRequest>) -> Result<User, StoreUserError> {
+pub async fn insert_user(state: &Data<AppState>, body: &Json<UserRequest>) -> Result<User, anyhow::Error> {
     let user_id = uuid::Uuid::new_v4();
-    let password_hash = "asdjflsajflsfls";
-    let created_at = chrono::offset::Utc::now();
-    println!("creating user: ");
+    let password = body.password.clone();
+    let password_hash = spawn_blocking_with_tracing(
+            move || compute_password_hash(password)
+        )
+        .await?
+        .context("Failed to hash password")?;
     sqlx::query_as::<_, User>(
-        "INSERT INTO users (id, username, email, password_hash, created_at) VALUES ($1, $2, $3, $4, $5) RETURNING id, username, email, visible, password_hash, created_at, updated_at"
+        "INSERT INTO users (id, username, email, password_hash) VALUES ($1, $2, $3, $4) RETURNING id, username, email, visible, password_hash, created_at, updated_at"
     )
     .bind(user_id)
     .bind(&body.username)
     .bind(&body.email)
-    .bind(password_hash)
-    .bind(created_at)
+    .bind(password_hash.expose_secret())
     .fetch_one(&state.db)
     .await
-    .map_err(StoreUserError)
+    .context("A database failure was encountered while trying to store the user")
 }
 
 pub struct StoreUserError(sqlx::Error);
@@ -260,3 +233,43 @@ pub async fn delete(_state: Data<AppState>, _path: Path<(String,)>) -> HttpRespo
         .unwrap()
 }
 
+#[post("/users/{user_id}")]
+pub async fn change_password(state: Data<AppState>, body: Json<ChangePasswordRequest>, session: TypedSession) -> Result<HttpResponse, actix_web::Error> {
+    let user_id = reject_anonymous_users(session).await?;
+    if body.new_password.expose_secret() != body.new_password_check.expose_secret() {
+        return Ok(HttpResponse::BadRequest().json("Passwords do not match"));
+    }
+    let username = get_username(user_id, &state).await.map_err(e500)?;
+    let credentials = Credentials {
+        username,
+        password: body.current_password.clone(),
+    };
+    if let Err(e) = validate_credentials(credentials, &state).await {
+        return match e {
+            AuthError::InvalidCredentials(_) => {
+                Ok(HttpResponse::BadRequest().json("The current password is incorrect"))
+            }
+            AuthError::UnexpectedError(_) => Err(e500(e)),
+        }
+    }
+    crate::authentication::change_password(user_id, body.new_password.clone(), &state)
+        .await
+        .map_err(e500)?;
+    /* TODO
+     * Add password strength checker
+     */
+    todo!();
+}
+
+async fn reject_anonymous_users(
+    session: TypedSession
+) -> Result<Uuid, actix_web::Error> {
+    match session.get_user_id().map_err(e500)? {
+        Some(user_id) => Ok(user_id),
+        None => {
+            let response = HttpResponse::Unauthorized().json("You are not authorized");
+            let e = anyhow::anyhow!("The user has not logged in");
+            Err(InternalError::from_response(e, response).into())
+        }
+    }
+}

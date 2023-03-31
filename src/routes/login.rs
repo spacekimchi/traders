@@ -8,10 +8,8 @@ use crate::authentication::AuthError;
 use crate::routes::user::error_chain_fmt;
 use actix_web::http::StatusCode;
 use actix_web::ResponseError;
-use actix_web::error::InternalError;
-use actix_session::Session;
-//use crate::routes::user::User;
-//use actix_web::cookie::{Cookie, time::Duration};
+use crate::session_state::TypedSession;
+use crate::utils::e500;
 
 #[derive(serde::Deserialize, Debug)]
 pub struct LoginForm {
@@ -23,8 +21,8 @@ pub struct LoginForm {
     skip(form, state, session),
     fields(username=tracing::field::Empty, id=tracing::field::Empty)
 )]
-#[post("/login")]
-pub async fn login(form: Json<LoginForm>, state: Data<AppState>, session: Session) -> Result<HttpResponse, LoginError> {
+#[post("/api/login")]
+pub async fn login(form: Json<LoginForm>, state: Data<AppState>, session: TypedSession) -> Result<HttpResponse, LoginError> {
     let credentials = Credentials {
         username: form.username.to_string(),
         password: form.password.clone(),
@@ -38,7 +36,7 @@ pub async fn login(form: Json<LoginForm>, state: Data<AppState>, session: Sessio
                 tracing::Span::current().record("user_id", &tracing::field::display(&user_id));
                 session.renew();
                 session
-                    .insert("user_id", user_id)
+                    .insert_user_id(user_id)
                     .map_err(|e| LoginError::UnexpectedError(e.into()))?;
                 // Set cookies with: 
                 // Ok(HttpResponse::Ok().cookie(Cookie::new("_flash", e.to_string)).json(user_id))
@@ -62,6 +60,15 @@ pub async fn login(form: Json<LoginForm>, state: Data<AppState>, session: Sessio
         }
 }
 
+#[post("/login")]
+pub async fn logout(session: TypedSession) -> Result<HttpResponse, actix_web::Error> {
+    if session.get_user_id().map_err(e500)?.is_none() {
+        return Ok(HttpResponse::Unauthorized().json("you are unauthorized"));
+    }
+    session.logout();
+    Ok(HttpResponse::Ok().finish())
+}
+
 #[derive(thiserror::Error)]
 pub enum LoginError {
     #[error("Authentication failed")]
@@ -80,6 +87,7 @@ impl ResponseError for LoginError {
     fn error_response(&self) -> HttpResponse {
         /* TODO
          * Replace this with a json error response
+         * it currently just redirects to /login
          */
         HttpResponse::build(self.status_code())
             .insert_header((LOCATION, "/login"))
