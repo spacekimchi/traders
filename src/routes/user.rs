@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use actix_web::web::{Data, Json, Path};
-use actix_web::{HttpResponse, HttpRequest, Responder, get, post, delete};
+use actix_web::{web, HttpResponse, HttpRequest, Responder, get, post, delete};
 use sqlx::{self, FromRow};
 use crate::startup::AppState;
 use secrecy::Secret;
@@ -17,6 +17,7 @@ use crate::routes::trade::get_username;
 use actix_web::error::InternalError;
 use crate::telemetry::spawn_blocking_with_tracing;
 use uuid::Uuid;
+use crate::authentication::UserId;
 
 impl TryFrom<UserRequest> for NewUser {
     type Error = String;
@@ -234,12 +235,16 @@ pub async fn delete(_state: Data<AppState>, _path: Path<(String,)>) -> HttpRespo
 }
 
 #[post("/users/{user_id}")]
-pub async fn change_password(state: Data<AppState>, body: Json<ChangePasswordRequest>, session: TypedSession) -> Result<HttpResponse, actix_web::Error> {
-    let user_id = reject_anonymous_users(session).await?;
+pub async fn change_password(
+    state: Data<AppState>,
+    body: Json<ChangePasswordRequest>,
+    user_id: web::ReqData<UserId>,
+) -> Result<HttpResponse, actix_web::Error> {
+    let user_id = user_id.into_inner();
     if body.new_password.expose_secret() != body.new_password_check.expose_secret() {
         return Ok(HttpResponse::BadRequest().json("Passwords do not match"));
     }
-    let username = get_username(user_id, &state).await.map_err(e500)?;
+    let username = get_username(*user_id, &state).await.map_err(e500)?;
     let credentials = Credentials {
         username,
         password: body.current_password.clone(),
@@ -252,7 +257,7 @@ pub async fn change_password(state: Data<AppState>, body: Json<ChangePasswordReq
             AuthError::UnexpectedError(_) => Err(e500(e)),
         }
     }
-    crate::authentication::change_password(user_id, body.new_password.clone(), &state)
+    crate::authentication::change_password(*user_id, body.new_password.clone(), &state)
         .await
         .map_err(e500)?;
     /* TODO

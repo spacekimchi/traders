@@ -11,6 +11,8 @@ use actix_session::SessionMiddleware;
 use actix_session::storage::RedisSessionStore;
 use secrecy::{Secret, ExposeSecret};
 use actix_web::cookie::Key;
+use crate::authentication::reject_anonymous_users;
+use actix_web_lab::middleware::from_fn;
 
 pub struct AppState {
     pub db: Pool<Postgres>,
@@ -67,7 +69,8 @@ pub async fn run(db_pool: PgPool, listener: TcpListener, base_url: String, redis
     let redis_store = RedisSessionStore::new(redis_uri.expose_secret()).await?;
     let secret_key = Key::from(hmac_secret.expose_secret().as_bytes());
     let server = HttpServer::new(move || {
-        App::new()
+        App::new().service(
+            web::scope("/api")
             .wrap(TracingLogger::default())
             .wrap(SessionMiddleware::new(redis_store.clone(), secret_key.clone()))
             .app_data(web::Data::new(AppState { db: db_pool.clone(), hmac_secret: hmac_secret.clone() }))
@@ -80,12 +83,15 @@ pub async fn run(db_pool: PgPool, listener: TcpListener, base_url: String, redis
             .service(user::list)
             .service(user::delete)
             .service(user::change_password)
+            .service(
+                web::scope("/trades")
+                .service(trade::list)
+                .service(trade::index)
+                .service(trade::delete)
+            )
             //.service(trade::create)
-            .service(trade::list)
-            .service(trade::index)
-            .service(trade::delete)
             .service(account::list)
-            .default_service(web::route().method(Method::GET))
+            .default_service(web::route().method(Method::GET)))
         })
         .listen(listener)?
         .run();

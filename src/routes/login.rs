@@ -21,7 +21,7 @@ pub struct LoginForm {
     skip(form, state, session),
     fields(username=tracing::field::Empty, id=tracing::field::Empty)
 )]
-#[post("/api/login")]
+#[post("/login")]
 pub async fn login(form: Json<LoginForm>, state: Data<AppState>, session: TypedSession) -> Result<HttpResponse, LoginError> {
     let credentials = Credentials {
         username: form.username.to_string(),

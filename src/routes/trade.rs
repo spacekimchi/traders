@@ -44,20 +44,6 @@ impl std::fmt::Display for TradeRequest {
     }
 }
 
-/* Converts excel date format to human readable
-fn to_date(xcell: &str) {
-    let daytime: Vec<&str> = xcell.split('.').collect();
-    let start = chrono::NaiveDate::from_ymd_opt(1900, 1, 1).expect("DATE");
-    let date = start.checked_add_signed(chrono::Duration::days(daytime[0].parse::<i64>().unwrap()));
-}
-
-fn to_xcell(year: i32, month: u32, day: u32) {
-    let start = chrono::NaiveDate::from_ymd_opt(1900, 1, 1).expect("DATE");
-    let today = chrono::NaiveDate::from_ymd_opt(year, month, day).expect("TODAY DATE");
-    let dur = chrono::NaiveDate::signed_duration_since(start, today);
-}
-*/
-
 #[derive(Debug, Deserialize)]
 pub struct GetTradesRequest {
     tail: Option<String>,
@@ -67,7 +53,7 @@ pub struct GetTradesRequest {
     name = "Index of trades without params",
     skip(state, session),
 )]
-#[get("/api/trades")]
+#[get("/")]
 pub async fn index(state: Data<AppState>, session: TypedSession) -> Result<impl Responder, actix_web::Error> {
     /* fill the "" below in with today's date */
     let username = if let Some(user_id) = session
@@ -80,13 +66,6 @@ pub async fn index(state: Data<AppState>, session: TypedSession) -> Result<impl 
         };
 
     let trades = get_trades(&state, "", 0, 0, 0).await.map_err(e500)?;
-        /*
-        .await
-        {
-            Ok(trades) => HttpResponse::Ok().content_type("application/json").json(trades),
-            Err(err) => HttpResponse::NotFound().json(format!("Error: {err}")),
-        }
-        */
     Ok(HttpResponse::Ok().content_type("application/json").json(trades))
 }
 
@@ -94,9 +73,10 @@ pub async fn index(state: Data<AppState>, session: TypedSession) -> Result<impl 
     name = "Listing trades with params",
     skip(state),
 )]
-#[get("/api/trades/{tail:.*}")]
+#[get("/{tail:.*}")]
 pub async fn list(state: Data<AppState>, query_params: Path<GetTradesRequest>) -> impl Responder {
     let tails: Vec<&str> = query_params.tail.as_ref().expect("asdf").split('/').collect();
+    set_config(&tails);
     let mut t_iter = tails.iter();
     let view = *t_iter.next().unwrap();
     /*
@@ -122,6 +102,14 @@ pub async fn get_trades(state: &Data<AppState>, view: &str, year: i32, month: u3
     sqlx::query_as::<_, Trade>("SELECT id, account_id, instrument, entry_time, exit_time, commission, pnl, short, created_at, updated_at from trades")
         .fetch_all(&state.db)
         .await
+}
+
+fn set_config(tail: &[&str]) {
+    println!("\n\n\n\n");
+    for val in tail.iter() {
+        println!("val: {}", val);
+    }
+    println!("\n\n\n\n");
 }
 
 /*
@@ -178,7 +166,7 @@ pub async fn insert_trades(state: &Data<AppState>, body: &Json<TradeRequest>) ->
  *
  */
 
-#[delete("/trades/{trade_id}")]
+#[delete("/{trade_id}")]
 pub async fn delete(_state: Data<AppState>, _path: Path<(String,)>) -> HttpResponse {
     // TODO: Delete trade by ID
     // in any case return status 204
@@ -205,6 +193,7 @@ pub async fn get_username(
     user_id: Uuid, 
     state: &Data<AppState>,
 ) -> Result<String, anyhow::Error> {
+    println!("user_id: {}", user_id);
     let row = sqlx::query!(
         r#"
         SELECT username
@@ -216,5 +205,6 @@ pub async fn get_username(
     .fetch_one(&state.db)
     .await
     .context("Failed to perform a query to retrieve a username.")?;
+    println!("row.username: {}", row.username);
     Ok(row.username)
 }

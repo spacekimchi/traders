@@ -8,6 +8,7 @@ use argon2::{
     PasswordHasher, PasswordVerifier, Version
 };
 use crate::startup::AppState;
+use crate::authentication::UserId;
 
 #[derive(thiserror::Error, Debug)]
 pub enum AuthError {
