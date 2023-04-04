@@ -23,15 +23,7 @@ impl TypedSession {
     }
 
     pub fn get_user_id(&self) -> Result<Option<Uuid>, SessionGetError> {
-        let a = self.0.get(Self::USER_ID_KEY);
-        match a {
-            Ok(val) => {
-                Ok(val)
-            },
-            Err(e) => {
-                Err(e)
-            }
-        }
+        self.0.get(Self::USER_ID_KEY)
     }
 }
 

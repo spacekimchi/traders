@@ -104,6 +104,21 @@ pub struct ChangePasswordRequest {
 }
 
 #[tracing::instrument(
+    name = "Getting current user",
+    skip(session),
+)]
+#[get("/current_user")]
+pub async fn current_user(session: TypedSession) -> Result<impl Responder, actix_web::Error> {
+    match session
+        .get_user_id()
+        .map_err(e500)?
+        {
+            Some(user_id) => Ok(HttpResponse::Ok().content_type("application/json").json(user_id)),
+            None => Ok(HttpResponse::Ok().content_type("application/json").json("0"))
+        }
+}
+
+#[tracing::instrument(
     name = "Listing users",
     skip(state),
 )]

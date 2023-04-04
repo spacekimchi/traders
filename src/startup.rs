@@ -11,8 +11,8 @@ use actix_session::SessionMiddleware;
 use actix_session::storage::RedisSessionStore;
 use secrecy::{Secret, ExposeSecret};
 use actix_web::cookie::Key;
-use crate::authentication::reject_anonymous_users;
 use actix_web_lab::middleware::from_fn;
+use crate::authentication::reject_anonymous_users;
 
 pub struct AppState {
     pub db: Pool<Postgres>,
@@ -79,12 +79,14 @@ pub async fn run(db_pool: PgPool, listener: TcpListener, base_url: String, redis
             .service(login::login)
             .service(login::logout)
             .service(user::create)
+            .service(user::current_user)
             .service(user::get)
             .service(user::list)
             .service(user::delete)
             .service(user::change_password)
             .service(
                 web::scope("/trades")
+                .wrap(from_fn(reject_anonymous_users))
                 .service(trade::list)
                 .service(trade::index)
                 .service(trade::delete)
