@@ -13,14 +13,13 @@ name = "traders"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-actix = "0.13.0"
-actix-web = { version = "4", features = ["openssl"] }
+actix-web = "4.0"
 actix-session = {version="0.7.2", features = ["redis-rs-tls-session"]}
 chrono = {version="0.4.23", features = ["serde"]}
 serde = {version = "1.0", features = ["derive"]}
 uuid = {version = "1.2.2", features = ["v4","fast-rng","macro-diagnostics","serde"]}
 dotenv = "0.15.0"
-sqlx = { version = "0.6.2", features = ["runtime-actix-rustls", "macros", "postgres", "chrono", "uuid", "migrate"] }
+sqlx = { version = "0.6.2", features = ["runtime-actix-rustls", "macros", "postgres", "chrono", "uuid", "migrate", "offline"] }
 time = {version="0.3.17", features=["serde"]}
 config = "0.13.3"
 tracing = { version = "0.1.37", features = ["log"] }
@@ -30,23 +29,19 @@ tracing-log = "0.1.3"
 once_cell = "1.17.1"
 secrecy = { version = "0.8.0", features = ["serde"] }
 tracing-actix-web = "0.7.2"
-actix-cors = "0.6.4"
 serde-aux = "4.1.2"
 anyhow = "1.0.70"
 base64 = "0.21.0"
 validator = "0.16.0"
 unicode-segmentation = "1.10.1"
 thiserror = "1.0.40"
-jsonwebtoken = "8.3.0"
 argon2 = { version = "0.5.0", features = ["std"] }
 rand_core = { version = "0.6.4", features = ["std"] }
-sha3 = "0.10.6"
 rand = { version = "0.8.5", features = ["std_rng"] }
 tokio = { version = "1.27.0", features = ["rt-multi-thread", "macros"] }
 reqwest = { version = "0.11.14", features = ["json", "cookies", "rustls-tls"] }
 hmac = { version = "0.12.1", features = ["std"] }
 serde_json = "1.0"
-openssl = "0.10.48"
 actix-web-lab = "0.19.1"
 
 [dev-dependencies]

@@ -53,7 +53,7 @@ pub struct GetTradesRequest {
     name = "Index of trades without params",
     skip(state, session),
 )]
-#[get("/")]
+#[get("")]
 pub async fn index(state: Data<AppState>, session: TypedSession) -> Result<impl Responder, actix_web::Error> {
     /* fill the "" below in with today's date */
     let username = if let Some(user_id) = session
@@ -105,66 +105,9 @@ pub async fn get_trades(state: &Data<AppState>, view: &str, year: i32, month: u3
 }
 
 fn set_config(tail: &[&str]) {
-    println!("\n\n\n\n");
     for val in tail.iter() {
-        println!("val: {}", val);
     }
-    println!("\n\n\n\n");
 }
-
-/*
- * xlsx file will be uploaded to backend. Don't need a post for trades
- * here just for example
- *
-
-#[tracing::instrument(
-    name = "Creating a new trade",
-    skip(state, body),
-    fields(
-        instrument = ?body.instrument,
-        action = ?body.action,
-        quantity = ?body.quantity,
-        price = ?body.price,
-        time = ?body.time,
-        commission = ?body.commission,
-        account_display_name = ?body.account_display_name,
-    )
-)]
-#[post("/trades")]
-pub async fn create(state: Data<AppState>, body: Json<TradeRequest>) -> HttpResponse {
-    match insert_trades(&state, &body)
-        .await
-        {
-            Ok(trades) => HttpResponse::Ok().json(trades),
-            Err(err) => HttpResponse::InternalServerError().json(format!("Failed to create trade: {err}")),
-        }
-}
-
-#[tracing::instrument(
-    name = "Inserting new trades into the database",
-    skip(state, body),
-)]
-pub async fn insert_trades(state: &Data<AppState>, body: &Json<TradeRequest>) -> Result<Vec<Trade>, sqlx::Error> {
-    let user_ids = ["c894a480-b3e2-41ea-af47-e9fdd8ff4d7b", "c894a480-b3e2-41ea-af47-e9fdd8ff4d7b"];
-    sqlx::query_as::<_, Trade>(
-        "
-            INSERT INTO trades (instrument, action, quantity, price, time, commission, account_display_name, user_id)
-            SELECT * FROM UNNEST($1::text[], $2::text[], $3::int4[], $4::float4[], $5::float8[], $6::float4[], $7::text[], $8::uuid[]) 
-        ")
-        .bind(&body.instrument[..])
-        .bind(&body.action[..])
-        .bind(&body.quantity[..])
-        .bind(&body.price[..])
-        .bind(&body.time[..])
-        .bind(&body.commission[..])
-        .bind(&body.account_display_name[..])
-        .bind(user_ids)
-        .fetch_all(&state.db)
-        .await
-}
-
- *
- */
 
 #[delete("/{trade_id}")]
 pub async fn delete(_state: Data<AppState>, _path: Path<(String,)>) -> HttpResponse {
@@ -193,7 +136,6 @@ pub async fn get_username(
     user_id: Uuid, 
     state: &Data<AppState>,
 ) -> Result<String, anyhow::Error> {
-    println!("user_id: {}", user_id);
     let row = sqlx::query!(
         r#"
         SELECT username
@@ -205,6 +147,5 @@ pub async fn get_username(
     .fetch_one(&state.db)
     .await
     .context("Failed to perform a query to retrieve a username.")?;
-    println!("row.username: {}", row.username);
     Ok(row.username)
 }
