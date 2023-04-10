@@ -94,6 +94,13 @@ pub async fn run(db_pool: PgPool, listener: TcpListener, base_url: String, redis
                 .service(journal_entry::index)
                 .service(journal_entry::delete)
             )
+            .service(
+                web::scope("/journal_entries")
+                .wrap(from_fn(reject_anonymous_users))
+                .service(journal_entry::list)
+                .service(journal_entry::index)
+                .service(journal_entry::delete)
+            )
             //.service(trade::create)
             .service(account::list)
             .default_service(web::route().method(Method::GET)))
