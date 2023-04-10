@@ -4,4 +4,7 @@ pub mod health_check;
 pub mod account;
 pub mod execution;
 pub mod login;
+pub mod journal_entry;
+pub mod tag;
+pub mod trade_tag;
 

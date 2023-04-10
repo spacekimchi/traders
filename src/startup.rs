@@ -1,4 +1,4 @@
-use crate::routes::{user, trade, health_check, account, login};
+use crate::routes::{user, trade, health_check, account, login, journal_entry};
 use actix_web::{App, web, HttpServer, http::Method};
 use tracing_actix_web::TracingLogger;
 use actix_web::dev::Server;
@@ -90,6 +90,9 @@ pub async fn run(db_pool: PgPool, listener: TcpListener, base_url: String, redis
                 .service(trade::list)
                 .service(trade::index)
                 .service(trade::delete)
+                .service(journal_entry::list)
+                .service(journal_entry::index)
+                .service(journal_entry::delete)
             )
             //.service(trade::create)
             .service(account::list)
