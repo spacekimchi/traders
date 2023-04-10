@@ -10,6 +10,7 @@ pub struct Account {
     user_id: uuid::Uuid,
     name: String,
     visible: bool,
+    sim: bool,
     #[serde(with = "chrono::serde::ts_seconds")]
     pub created_at: chrono::DateTime<chrono::offset::Utc>,
     #[serde(with = "chrono::serde::ts_seconds")]
@@ -38,7 +39,7 @@ pub async fn list(state: Data<AppState>, request: HttpRequest) -> impl Responder
 pub async fn get_accounts(state: &Data<AppState>, request: &HttpRequest) -> Result<Vec<Account>, sqlx::Error> {
     let query_string = request.query_string();
     println!("[account.rs:get_accounts] query_string: {}", query_string);
-    sqlx::query_as::<_, Account>("SELECT id, user_id, name, visible, created_at, updated_at FROM accounts")
+    sqlx::query_as::<_, Account>("SELECT id, user_id, name, visible, sim, created_at, updated_at FROM accounts")
         .fetch_all(&state.db)
         .await
 }
