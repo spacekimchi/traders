@@ -1,12 +1,16 @@
 use serde::{Deserialize, Serialize};
-use actix_web::web::{Data, Path};
-use actix_web::{HttpResponse, Responder, get, delete};
+use actix_session::SessionGetError;
+use actix_web::web::{Data, Path, Json};
+use actix_web::{HttpResponse, HttpRequest, Responder, get, delete, post};
 use sqlx::{self, FromRow};
 use crate::startup::AppState;
+use crate::utils::error_chain_fmt;
 use uuid::Uuid;
 use crate::utils::e500;
 use crate::session_state::TypedSession;
 use anyhow::Context;
+use actix_web::http::{StatusCode, header};
+use actix_web::ResponseError;
 
 #[derive(Debug, Deserialize, Serialize, FromRow)]
 pub struct JournalEntry {
@@ -23,7 +27,7 @@ pub struct JournalEntry {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct JournalEntryRequest {
-    pub entry_date: Option<i32>,
+    pub entry_date: i32,
     pub image_urls: Option<Vec<String>>,
     pub notes: Option<String>,
 }
@@ -76,7 +80,7 @@ pub async fn list(state: Data<AppState>, query_params: Path<GetJournalEntryReque
     match get_journal_entries(&state, view, year, month, day)
         .await
         {
-            Ok(trades) => HttpResponse::Ok().content_type("application/json").json(trades),
+            Ok(journal_entries) => HttpResponse::Ok().content_type("application/json").json(journal_entries),
             Err(err) => HttpResponse::NotFound().json(format!("Error: {err}")),
         }
 }
@@ -86,7 +90,7 @@ pub async fn list(state: Data<AppState>, query_params: Path<GetJournalEntryReque
     skip(state),
 )]
 pub async fn get_journal_entries(state: &Data<AppState>, view: &str, year: i32, month: u32, day: u32) -> Result<Vec<JournalEntry>, sqlx::Error> {
-    sqlx::query_as::<_, JournalEntry>("SELECT id, entry_date, image_urls, notes, created_at, updated_at from journal_entries")
+    sqlx::query_as::<_, JournalEntry>("SELECT id, user_id, entry_date, image_urls, notes, created_at, updated_at from journal_entries")
         .fetch_all(&state.db)
         .await
 }
@@ -107,6 +111,52 @@ pub async fn delete(_state: Data<AppState>, _path: Path<(String,)>) -> HttpRespo
         .unwrap()
 }
 
+#[tracing::instrument(
+    name = "Creating a new journal entry",
+    skip(state, body, session),
+    fields(
+        entry_date = ?body.entry_date,
+        image_urls = ?body.image_urls,
+        notes = ?body.notes,
+    )
+)]
+#[post("")]
+pub async fn create(
+    state: Data<AppState>,
+    body: Json<JournalEntryRequest>,
+    session: TypedSession,
+    request: HttpRequest,
+) -> Result<HttpResponse, JournalEntryError> {
+    let user_id = if let Some(user_id) = session.get_user_id().map_err(JournalEntryError::SessionError)? {
+        user_id
+    } else {
+        return Ok(HttpResponse::Unauthorized().json("you are not authorized"));
+    };
+
+    let user = insert_journal_entry(&state, &body, &user_id).await.context("Failed to commit user to the database")?;
+    Ok(HttpResponse::Ok().json(user))
+}
+
+#[tracing::instrument(
+    name = "Saving new journal entry in the database",
+    skip(state, body),
+)]
+pub async fn insert_journal_entry(state: &Data<AppState>, body: &Json<JournalEntryRequest>, user_id: &Uuid) -> Result<JournalEntry, anyhow::Error> {
+    let notes = body.notes.clone().unwrap_or_default();
+    let image_urls = body.image_urls.clone().unwrap_or_default();
+    println!("\n\n\n notes: {:?},\nimage_urls: {:?},\nuser_id: {:?}\n\n\n", notes, image_urls, user_id);
+    sqlx::query_as::<_, JournalEntry>(
+        "INSERT INTO journal_entries (user_id, entry_date, image_urls, notes) VALUES ($1, $2, $3, $4) RETURNING id, user_id, entry_date, image_urls, notes, created_at, updated_at"
+    )
+    .bind(user_id)
+    .bind(body.entry_date)
+    .bind(image_urls)
+    .bind(notes)
+    .fetch_one(&state.db)
+    .await
+    .context("A database failure was encountered while trying to store the journal entry")
+}
+
 pub struct GetJournalEntryError(sqlx::Error);
 
 impl std::fmt::Display for GetJournalEntryError {
@@ -117,3 +167,33 @@ impl std::fmt::Display for GetJournalEntryError {
         )
     }
 }
+
+#[derive(thiserror::Error)]
+pub enum JournalEntryError {
+    #[error("{0}")]
+    ValidationError(String),
+    #[error("Authentication failed.")]
+    AuthError(#[source] anyhow::Error),
+    #[error(transparent)]
+    UnexpectedError(#[from] anyhow::Error),
+    #[error("Session get error")]
+    SessionError(#[from] SessionGetError)
+}
+
+impl std::fmt::Debug for JournalEntryError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        error_chain_fmt(self, f)
+    }
+}
+
+impl ResponseError for JournalEntryError {
+    fn error_response(&self) -> HttpResponse {
+        match self {
+            JournalEntryError::ValidationError(_) => HttpResponse::new(StatusCode::BAD_REQUEST),
+            JournalEntryError::AuthError(_) => HttpResponse::new(StatusCode::UNAUTHORIZED),
+            JournalEntryError::SessionError(_) => HttpResponse::new(StatusCode::UNAUTHORIZED),
+            JournalEntryError::UnexpectedError(_) => HttpResponse::new(StatusCode::INTERNAL_SERVER_ERROR),
+        }
+    }
+}
+

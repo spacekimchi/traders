@@ -100,6 +100,7 @@ pub async fn run(db_pool: PgPool, listener: TcpListener, base_url: String, redis
                 .service(journal_entry::list)
                 .service(journal_entry::index)
                 .service(journal_entry::delete)
+                .service(journal_entry::create)
             )
             //.service(trade::create)
             .service(account::list)

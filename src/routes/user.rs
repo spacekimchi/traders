@@ -5,7 +5,7 @@ use sqlx::{self, FromRow};
 use crate::startup::AppState;
 use secrecy::Secret;
 use crate::session_state::TypedSession;
-use crate::utils::e500;
+use crate::utils::{e500, error_chain_fmt};
 use anyhow::Context;
 use crate::domain::{NewUser, UserEmail, UserName};
 use actix_web::ResponseError;
@@ -55,19 +55,6 @@ impl ResponseError for UserError {
             UserError::UnexpectedError(_) => HttpResponse::new(StatusCode::INTERNAL_SERVER_ERROR),
         }
     }
-}
-
-pub fn error_chain_fmt(
-    e: &impl std::error::Error,
-    f: &mut std::fmt::Formatter<'_>,
-) -> std::fmt::Result {
-    writeln!(f, "{}\n", e)?;
-    let mut current = e.source();
-    while let Some(cause) = current {
-        writeln!(f, "Caused by:\n\t{}", cause)?;
-        current = cause.source();
-    }
-    Ok(())
 }
 
 impl std::fmt::Debug for UserError {
@@ -161,19 +148,6 @@ pub async fn create(
     request: HttpRequest,
 ) -> Result<HttpResponse, UserError> {
     let user = insert_user(&state, &body).await.context("Failed to commit user to the database")?;
-    /*
-    match insert_user(&state, &body)
-        .await
-        {
-            Ok(user) => {
-                HttpResponse::Ok().json(user)
-            },
-            Err(err) => {
-                tracing::error!("Failed to save user to database with error: {:?}", err); /* use {:?} here for more debug info */
-                HttpResponse::InternalServerError().json(format!("Failed to create user: {err}"))
-            },
-        }
-    */
     Ok(HttpResponse::Ok().json(user))
 }
 

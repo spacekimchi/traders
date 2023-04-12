@@ -5,7 +5,7 @@ use actix_web::web::{Data, Json};
 use secrecy::Secret;
 use crate::startup::AppState;
 use crate::authentication::AuthError;
-use crate::routes::user::error_chain_fmt;
+use crate::utils::error_chain_fmt;
 use actix_web::http::StatusCode;
 use actix_web::ResponseError;
 use crate::session_state::TypedSession;
