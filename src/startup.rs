@@ -90,9 +90,7 @@ pub async fn run(db_pool: PgPool, listener: TcpListener, base_url: String, redis
                 .service(trade::list)
                 .service(trade::index)
                 .service(trade::delete)
-                .service(journal_entry::list)
-                .service(journal_entry::index)
-                .service(journal_entry::delete)
+                .service(trade::import_trade)
             )
             .service(
                 web::scope("/journal_entries")

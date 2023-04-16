@@ -43,6 +43,9 @@ reqwest = { version = "0.11.14", features = ["json", "cookies", "rustls-tls"] }
 hmac = { version = "0.12.1", features = ["std"] }
 serde_json = "1.0"
 actix-web-lab = "0.19.1"
+actix-multipart = "0.6.0"
+futures = "0.3.28"
+calamine = { version = "0.19.1", features = ["chrono", "dates"] }
 
 [dev-dependencies]
 claims = "0.7.1"

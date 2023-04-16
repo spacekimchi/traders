@@ -1,12 +1,16 @@
 use serde::{Deserialize, Serialize};
 use actix_web::web::{Data, Path};
-use actix_web::{HttpResponse, Responder, get, delete};
+use actix_web::{HttpResponse, HttpRequest, Responder, get, delete, post};
+use actix_multipart::Multipart;
 use sqlx::{self, FromRow};
 use crate::startup::AppState;
 use uuid::Uuid;
 use crate::utils::e500;
 use crate::session_state::TypedSession;
 use anyhow::Context;
+use calamine::{open_workbook, Error, Xlsx, Reader, RangeDeserializerBuilder, DataType};
+use std::collections::HashMap;
+use crate::telemetry::spawn_blocking_with_tracing;
 
 #[derive(Debug, Deserialize, Serialize, FromRow)]
 pub struct Trade {
@@ -22,6 +26,27 @@ pub struct Trade {
     pub created_at: chrono::DateTime<chrono::offset::Utc>,
     #[serde(with = "chrono::serde::ts_seconds")]
     pub updated_at: chrono::DateTime<chrono::offset::Utc>,
+}
+
+#[derive(Debug, Clone)]
+struct Execution {
+    time: String,
+    price: f64,
+    action: String,
+    quantity: u32,
+    commission: f64,
+    instrument: String,
+}
+
+#[derive(Debug, Clone)]
+struct ExcelTrade {
+    executions: Vec<Execution>,
+    pnl: f64,
+    commission: f64,
+    entry_time: String,
+    exit_time: String,
+    instrument: String,
+    long: bool,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -120,6 +145,39 @@ pub async fn delete(_state: Data<AppState>, _path: Path<(String,)>) -> HttpRespo
         .unwrap()
 }
 
+#[post("/import")]
+pub async fn import_trade(state: Data<AppState>, mut payload: Multipart, session: TypedSession) -> Result<HttpResponse, actix_web::Error> {
+    println!("\n\n\n saving file \n\n");
+    let u_id = if let Some(user_id) = session
+        .get_user_id()
+        .map_err(e500)?
+        {
+            user_id
+        } else {
+            return Ok(HttpResponse::Unauthorized().json("you are not authorized"));
+        };
+    let upload_status = files::save_file(payload, "/data/incoming".to_string(), u_id).await;
+
+
+
+    match upload_status {
+        Some(true) => {
+            // parse and save to database
+            /*
+            let queries = xcell_function(u_id, "./data/", &state).map_err(e500)?;
+            for q in queries {
+                sqlx::query(&q).execute(&state.db).await.map_err(e500)?;
+            }
+            */
+
+            Ok(HttpResponse::Ok().content_type("text/plain").body("update_succeeded"))
+        }
+        _ => Ok(HttpResponse::BadRequest()
+            .content_type("text/plain")
+            .body("update_failed")),
+    }
+}
+
 pub struct GetTradesError(sqlx::Error);
 
 impl std::fmt::Display for GetTradesError {
@@ -148,4 +206,42 @@ pub async fn get_username(
     .await
     .context("Failed to perform a query to retrieve a username.")?;
     Ok(row.username)
+}
+
+pub mod files {
+    use std::io::Write;
+    use actix_multipart::Multipart;
+    use actix_web::web;
+    use futures::{StreamExt, TryStreamExt};
+
+    pub async fn save_file(mut payload: Multipart, file_path: String, user_id: uuid::Uuid) -> Option<bool> {
+        // iterate over multipart stream
+        while let Ok(Some(mut field)) = payload.try_next().await {
+            let filename = match field.content_disposition().get_filename() {
+                Some(filename) => filename.replace(' ', "_").to_string(),
+                None => return None
+            };
+
+            let user_path = format!(".{}/{}", file_path, user_id);
+            let filepath = format!("{}/{}", user_path, filename);
+            // File::create is blocking operation, use threadpool
+            let mut f = web::block(move || {
+                    std::fs::create_dir_all(user_path)?;
+                    std::fs::File::create(filepath)
+                })
+                .await
+                .unwrap();
+
+            // Field in turn is stream of *Bytes* object
+            while let Some(chunk) = field.next().await {
+                let data = chunk.unwrap();
+                // filesystem operations are blocking, we have to use threadpool
+                f = web::block(move || f.as_ref().expect("file write error").write_all(&data).map(|_| f))
+                    .await
+                    .unwrap().unwrap();
+            }
+        }
+
+        Some(true)
+    }
 }
