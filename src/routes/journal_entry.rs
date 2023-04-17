@@ -9,7 +9,7 @@ use uuid::Uuid;
 use crate::utils::e500;
 use crate::session_state::TypedSession;
 use anyhow::Context;
-use actix_web::http::{StatusCode, header};
+use actix_web::http::StatusCode;
 use actix_web::ResponseError;
 
 #[derive(Debug, Deserialize, Serialize, FromRow)]
@@ -51,10 +51,10 @@ pub struct GetJournalEntryRequest {
 
 #[tracing::instrument(
     name = "Index of journal entries without params",
-    skip(state, session),
+    skip(state),
 )]
 #[get("")]
-pub async fn index(state: Data<AppState>, session: TypedSession) -> Result<impl Responder, actix_web::Error> {
+pub async fn index(state: Data<AppState>) -> Result<impl Responder, actix_web::Error> {
     /* fill the "" below in with today's date */
     let journal_entries = get_journal_entries(&state, "", 0, 0, 0).await.map_err(e500)?;
     Ok(HttpResponse::Ok().content_type("application/json").json(journal_entries))
@@ -96,7 +96,7 @@ pub async fn get_journal_entries(state: &Data<AppState>, view: &str, year: i32, 
 }
 
 fn set_config(tail: &[&str]) {
-    for val in tail.iter() {
+    for _val in tail.iter() {
     }
 }
 

@@ -8,7 +8,6 @@ use uuid::Uuid;
 use crate::utils::e500;
 use crate::session_state::TypedSession;
 use anyhow::Context;
-use crate::telemetry::spawn_blocking_with_tracing;
 
 #[derive(Debug, Deserialize, Serialize, FromRow)]
 pub struct Trade {
