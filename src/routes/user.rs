@@ -14,9 +14,7 @@ use actix_web::http::{StatusCode, header};
 use actix_web::http::header::HeaderValue;
 use crate::authentication::{validate_credentials, AuthError, Credentials, compute_password_hash};
 use crate::routes::trade::get_username;
-use actix_web::error::InternalError;
 use crate::telemetry::spawn_blocking_with_tracing;
-use uuid::Uuid;
 use crate::authentication::UserId;
 
 impl TryFrom<UserRequest> for NewUser {
@@ -110,7 +108,7 @@ pub async fn current_user(session: TypedSession) -> Result<impl Responder, actix
     skip(state),
 )]
 #[get("/users")]
-pub async fn list(state: Data<AppState>) -> impl Responder {
+pub async fn index(state: Data<AppState>) -> impl Responder {
     match get_users(&state)
         .await
         {
@@ -255,15 +253,3 @@ pub async fn change_password(
     todo!();
 }
 
-async fn reject_anonymous_users(
-    session: TypedSession
-) -> Result<Uuid, actix_web::Error> {
-    match session.get_user_id().map_err(e500)? {
-        Some(user_id) => Ok(user_id),
-        None => {
-            let response = HttpResponse::Unauthorized().json("You are not authorized");
-            let e = anyhow::anyhow!("The user has not logged in");
-            Err(InternalError::from_response(e, response).into())
-        }
-    }
-}

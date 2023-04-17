@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use actix_web::web::{Data, Path};
-use actix_web::{HttpResponse, HttpRequest, Responder, get, delete, post};
+use actix_web::{HttpResponse, Responder, get, delete, post};
 use actix_multipart::Multipart;
 use sqlx::{self, FromRow};
 use crate::startup::AppState;
@@ -8,8 +8,6 @@ use uuid::Uuid;
 use crate::utils::e500;
 use crate::session_state::TypedSession;
 use anyhow::Context;
-use calamine::{open_workbook, Error, Xlsx, Reader, RangeDeserializerBuilder, DataType};
-use std::collections::HashMap;
 use crate::telemetry::spawn_blocking_with_tracing;
 
 #[derive(Debug, Deserialize, Serialize, FromRow)]
@@ -26,27 +24,6 @@ pub struct Trade {
     pub created_at: chrono::DateTime<chrono::offset::Utc>,
     #[serde(with = "chrono::serde::ts_seconds")]
     pub updated_at: chrono::DateTime<chrono::offset::Utc>,
-}
-
-#[derive(Debug, Clone)]
-struct Execution {
-    time: String,
-    price: f64,
-    action: String,
-    quantity: u32,
-    commission: f64,
-    instrument: String,
-}
-
-#[derive(Debug, Clone)]
-struct ExcelTrade {
-    executions: Vec<Execution>,
-    pnl: f64,
-    commission: f64,
-    entry_time: String,
-    exit_time: String,
-    instrument: String,
-    long: bool,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -69,69 +46,25 @@ impl std::fmt::Display for TradeRequest {
     }
 }
 
-#[derive(Debug, Deserialize)]
-pub struct GetTradesRequest {
-    tail: Option<String>,
-}
-
 #[tracing::instrument(
     name = "Index of trades without params",
-    skip(state, session),
-)]
-#[get("")]
-pub async fn index(state: Data<AppState>, session: TypedSession) -> Result<impl Responder, actix_web::Error> {
-    /* fill the "" below in with today's date */
-    let username = if let Some(user_id) = session
-        .get_user_id()
-        .map_err(e500)?
-        {
-            get_username(user_id, &state).await.map_err(e500)?
-        } else {
-            return Ok(HttpResponse::Unauthorized().json("you are not authorized"));
-        };
-
-    let trades = get_trades(&state, "", 0, 0, 0).await.map_err(e500)?;
-    Ok(HttpResponse::Ok().content_type("application/json").json(trades))
-}
-
-#[tracing::instrument(
-    name = "Listing trades with params",
     skip(state),
 )]
-#[get("/{tail:.*}")]
-pub async fn list(state: Data<AppState>, query_params: Path<GetTradesRequest>) -> impl Responder {
-    let tails: Vec<&str> = query_params.tail.as_ref().expect("asdf").split('/').collect();
-    set_config(&tails);
-    let mut t_iter = tails.iter();
-    let view = *t_iter.next().unwrap();
-    /*
-     * TODO
-     * Replace 2023, 1, and 1 with either constants and some kind of get_current_year() function
-     */
-    let year = t_iter.next().unwrap_or(&"2023").parse::<i32>().unwrap();
-    let month = t_iter.next().unwrap_or(&"1").parse::<u32>().unwrap();
-    let day = t_iter.next().unwrap_or(&"1").parse::<u32>().unwrap();
-    match get_trades(&state, view, year, month, day)
-        .await
-        {
-            Ok(trades) => HttpResponse::Ok().content_type("application/json").json(trades),
-            Err(err) => HttpResponse::NotFound().json(format!("Error: {err}")),
-        }
+#[get("")]
+pub async fn index(state: Data<AppState>) -> Result<impl Responder, actix_web::Error> {
+    /* fill the "" below in with today's date */
+    let trades = get_trades(&state).await.map_err(e500)?;
+    Ok(HttpResponse::Ok().content_type("application/json").json(trades))
 }
 
 #[tracing::instrument(
     name = "Grabbing trades from the database",
     skip(state),
 )]
-pub async fn get_trades(state: &Data<AppState>, view: &str, year: i32, month: u32, day: u32) -> Result<Vec<Trade>, sqlx::Error> {
+pub async fn get_trades(state: &Data<AppState>) -> Result<Vec<Trade>, sqlx::Error> {
     sqlx::query_as::<_, Trade>("SELECT id, account_id, instrument, entry_time, exit_time, commission, pnl, short, created_at, updated_at from trades")
         .fetch_all(&state.db)
         .await
-}
-
-fn set_config(tail: &[&str]) {
-    for val in tail.iter() {
-    }
 }
 
 #[delete("/{trade_id}")]
@@ -146,35 +79,24 @@ pub async fn delete(_state: Data<AppState>, _path: Path<(String,)>) -> HttpRespo
 }
 
 #[post("/import")]
-pub async fn import_trade(state: Data<AppState>, mut payload: Multipart, session: TypedSession) -> Result<HttpResponse, actix_web::Error> {
-    println!("\n\n\n saving file \n\n");
-    let u_id = if let Some(user_id) = session
+pub async fn import_trade(payload: Multipart, session: TypedSession) -> Result<HttpResponse, actix_web::Error> {
+    let user_id = match session
         .get_user_id()
-        .map_err(e500)?
-        {
-            user_id
-        } else {
-            return Ok(HttpResponse::Unauthorized().json("you are not authorized"));
+        .map_err(e500)? {
+            Some(user_id) => user_id,
+            None => return Ok(HttpResponse::Unauthorized().json("You are not authorized"))
         };
-    let upload_status = files::save_file(payload, "/data/incoming".to_string(), u_id).await;
-
-
+    let upload_status = files::save_file(payload, "/data/incoming".to_string(), user_id).await;
 
     match upload_status {
         Some(true) => {
-            // parse and save to database
-            /*
-            let queries = xcell_function(u_id, "./data/", &state).map_err(e500)?;
-            for q in queries {
-                sqlx::query(&q).execute(&state.db).await.map_err(e500)?;
-            }
-            */
-
-            Ok(HttpResponse::Ok().content_type("text/plain").body("update_succeeded"))
+            Ok(HttpResponse::Ok()
+               .content_type("text/plain")
+               .body("update_succeeded"))
         }
         _ => Ok(HttpResponse::BadRequest()
-            .content_type("text/plain")
-            .body("update_failed")),
+                .content_type("text/plain")
+                .body("update_failed")),
     }
 }
 

@@ -62,7 +62,6 @@ pub async fn login(form: Json<LoginForm>, state: Data<AppState>, session: TypedS
 
 #[post("/logout")]
 pub async fn logout(session: TypedSession) -> Result<HttpResponse, actix_web::Error> {
-    println!("\n\n\nloggingout\n\n\n");
     if session.get_user_id().map_err(e500)?.is_none() {
         return Ok(HttpResponse::Unauthorized().json("you are unauthorized"));
     }

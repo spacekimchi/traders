@@ -38,7 +38,6 @@ pub async fn list(state: Data<AppState>, request: HttpRequest) -> impl Responder
 )]
 pub async fn get_accounts(state: &Data<AppState>, request: &HttpRequest) -> Result<Vec<Account>, sqlx::Error> {
     let query_string = request.query_string();
-    println!("[account.rs:get_accounts] query_string: {}", query_string);
     sqlx::query_as::<_, Account>("SELECT id, user_id, name, visible, sim, created_at, updated_at FROM accounts")
         .fetch_all(&state.db)
         .await
@@ -51,7 +50,6 @@ pub async fn get_accounts(state: &Data<AppState>, request: &HttpRequest) -> Resu
 #[get("/accounts/{account_id}")]
 pub async fn get(state: Data<AppState>, path: Path<u32>, request: HttpRequest) -> impl Responder {
     let account_id = path.into_inner();
-    println!("[account.rs] get: {:?}", account_id);
     match get_accounts(&state, &request)
         .await
         {

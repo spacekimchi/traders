@@ -144,7 +144,6 @@ pub async fn create(
 pub async fn insert_journal_entry(state: &Data<AppState>, body: &Json<JournalEntryRequest>, user_id: &Uuid) -> Result<JournalEntry, anyhow::Error> {
     let notes = body.notes.clone().unwrap_or_default();
     let image_urls = body.image_urls.clone().unwrap_or_default();
-    println!("\n\n\n notes: {:?},\nimage_urls: {:?},\nuser_id: {:?}\n\n\n", notes, image_urls, user_id);
     sqlx::query_as::<_, JournalEntry>(
         "INSERT INTO journal_entries (user_id, entry_date, image_urls, notes) VALUES ($1, $2, $3, $4) RETURNING id, user_id, entry_date, image_urls, notes, created_at, updated_at"
     )
