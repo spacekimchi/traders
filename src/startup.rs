@@ -76,11 +76,13 @@ pub async fn run(db_pool: PgPool, listener: TcpListener, base_url: String, redis
             .app_data(base_url.clone())
             .app_data(web::Data::new(AppState { db: db_pool.clone(), hmac_secret: hmac_secret.clone() }))
             .service(health_check::health_check)
+            .service(user::current_user)
             .service(login::login)
             .service(login::logout)
-            .service(user::current_user)
+            .service(account::list)
             .service(
                 web::scope("/users")
+                .wrap(from_fn(reject_anonymous_users))
                 .service(user::index)
                 .service(user::delete)
                 .service(user::change_password)
@@ -90,24 +92,23 @@ pub async fn run(db_pool: PgPool, listener: TcpListener, base_url: String, redis
             .service(
                 web::scope("/trades")
                 .service(trade::index)
-            )
-            .service(
-                web::scope("/trades")
-                .wrap(from_fn(reject_anonymous_users))
-                .service(trade::delete)
-                .service(trade::import_trade)
+                .service(
+                    web::scope("")
+                    .wrap(from_fn(reject_anonymous_users))
+                    .service(trade::delete)
+                    .service(trade::import_trade)
+                ) 
             )
             .service(
                 web::scope("/journal_entries")
                 .service(journal_entry::index)
+                .service(
+                    web::scope("")
+                    .wrap(from_fn(reject_anonymous_users))
+                    .service(journal_entry::delete)
+                    .service(journal_entry::create)
+                ) 
             )
-            .service(
-                web::scope("/journal_entries")
-                .wrap(from_fn(reject_anonymous_users))
-                .service(journal_entry::delete)
-                .service(journal_entry::create)
-            )
-            .service(account::list)
             .default_service(web::route().method(Method::GET)))
         })
         .listen(listener)?
