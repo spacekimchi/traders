@@ -27,6 +27,7 @@ pub struct JournalEntry {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct JournalEntryRequest {
+    pub id: Option<i64>,
     pub entry_date: i32,
     pub image_urls: Option<Vec<String>>,
     pub notes: Option<String>,
@@ -58,31 +59,6 @@ pub async fn index(state: Data<AppState>) -> Result<impl Responder, actix_web::E
     /* fill the "" below in with today's date */
     let journal_entries = get_journal_entries(&state, "", 0, 0, 0).await.map_err(e500)?;
     Ok(HttpResponse::Ok().content_type("application/json").json(journal_entries))
-}
-
-#[tracing::instrument(
-    name = "Listing journal entries with params",
-    skip(state),
-)]
-#[get("/{tail:.*}")]
-pub async fn list(state: Data<AppState>, query_params: Path<GetJournalEntryRequest>) -> impl Responder {
-    let tails: Vec<&str> = query_params.tail.as_ref().expect("asdf").split('/').collect();
-    set_config(&tails);
-    let mut t_iter = tails.iter();
-    let view = *t_iter.next().unwrap();
-    /*
-     * TODO
-     * Replace 2023, 1, and 1 with either constants and some kind of get_current_year() function
-     */
-    let year = t_iter.next().unwrap_or(&"2023").parse::<i32>().unwrap();
-    let month = t_iter.next().unwrap_or(&"1").parse::<u32>().unwrap();
-    let day = t_iter.next().unwrap_or(&"1").parse::<u32>().unwrap();
-    match get_journal_entries(&state, view, year, month, day)
-        .await
-        {
-            Ok(journal_entries) => HttpResponse::Ok().content_type("application/json").json(journal_entries),
-            Err(err) => HttpResponse::NotFound().json(format!("Error: {err}")),
-        }
 }
 
 #[tracing::instrument(
@@ -154,6 +130,28 @@ pub async fn insert_journal_entry(state: &Data<AppState>, body: &Json<JournalEnt
     .fetch_one(&state.db)
     .await
     .context("A database failure was encountered while trying to store the journal entry")
+}
+
+pub async fn update(
+    state: Data<AppState>,
+    body: Json<JournalEntryRequest>,
+    session: TypedSession,
+    request: HttpRequest,
+) -> Result<HttpResponse, JournalEntryError> {
+    let user_id = if let Some(user_id) = session.get_user_id().map_err(JournalEntryError::SessionError)? {
+        user_id
+    } else {
+        return Ok(HttpResponse::Unauthorized().json("you are not authorized"));
+    };
+    let journal_id = sqlx::query_as::<_, JournalEntry>(
+        "SELECT FROM journal_entries user_id WHERE id = $1 and entry_date = $2"
+        )
+        .bind(body.id)
+        .bind(body.entry_date)
+        .fetch_one(&state.db)
+        .await
+        .context("Getting journal Entry error")?;
+    Ok(HttpResponse::Ok().json(journal_id))
 }
 
 pub struct GetJournalEntryError(sqlx::Error);
