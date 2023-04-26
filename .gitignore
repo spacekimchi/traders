@@ -11,4 +11,5 @@ scripts/*
 notes.md
 migrations/*seed_data.sql
 configuration/*
+*.swp
 

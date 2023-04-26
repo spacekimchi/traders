@@ -13,9 +13,9 @@ use secrecy::ExposeSecret;
 use actix_web::http::{StatusCode, header};
 use actix_web::http::header::HeaderValue;
 use crate::authentication::{validate_credentials, AuthError, Credentials, compute_password_hash};
-use crate::routes::trade::get_username;
 use crate::telemetry::spawn_blocking_with_tracing;
 use crate::authentication::UserId;
+use uuid::Uuid;
 
 impl TryFrom<UserRequest> for NewUser {
     type Error = String;
@@ -253,3 +253,20 @@ pub async fn change_password(
     todo!();
 }
 
+#[tracing::instrument(name = "Get username", skip(state))]
+pub async fn get_username(
+    user_id: Uuid, 
+    state: &Data<AppState>,
+) -> Result<String, anyhow::Error> {
+    let row = sqlx::query!(
+        r#"
+        SELECT username
+        FROM users
+        WHERE id = $1
+        "#,
+        user_id,
+    ) .fetch_one(&state.db)
+    .await
+    .context("Failed to perform a query to retrieve a username.")?;
+    Ok(row.username)
+}

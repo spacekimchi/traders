@@ -1,13 +1,12 @@
 use serde::{Deserialize, Serialize};
-use actix_web::web::{Data, Path};
-use actix_web::{HttpResponse, Responder, get, delete, post};
+use actix_web::web::{Data, Path, Query};
+use actix_web::{HttpResponse, HttpRequest, Responder, get, delete, post};
 use actix_multipart::Multipart;
-use sqlx::{self, FromRow};
+use sqlx::{self, FromRow, postgres::PgArguments, Arguments};
 use crate::startup::AppState;
-use uuid::Uuid;
 use crate::utils::e500;
 use crate::session_state::TypedSession;
-use anyhow::Context;
+use std::collections::HashSet;
 
 #[derive(Debug, Deserialize, Serialize, FromRow)]
 pub struct Trade {
@@ -35,6 +34,76 @@ pub struct TradeRequest {
 	pub short: Vec<bool>,
 }
 
+#[derive(Deserialize)]
+pub struct TradeQuery {
+    pub id: Option<i64>,
+    pub instrument: Option<String>,
+    pub account_id: Option<i64>,
+    pub entry_time: Option<f64>,
+    pub exit_time: Option<f64>,
+    pub short: Option<bool>,
+}
+
+impl TradeQuery {
+    pub fn as_query(&self) -> String {
+        let mut query = String::from("SELECT id, account_id, instrument, entry_time, exit_time, commission, pnl, short, created_at, updated_at FROM trades");
+        let mut vals: Vec<&str> = Vec::new();
+        return query;
+    }
+
+    pub fn as_set(&self) -> HashSet<&'static str> {
+        let mut vals: HashSet<&'static str> = HashSet::new();
+        if self.id.is_some() {
+            vals.insert(&"id =");
+        }
+        if self.instrument.is_some() {
+            vals.insert(&"instrument =");
+        }
+        if self.account_id.is_some() {
+            vals.insert(&"account_id =");
+        }
+        if self.entry_time.is_some() {
+            vals.insert(&"entry_time >");
+        }
+        if self.exit_time.is_some() {
+            vals.insert(&"exit_time <");
+        }
+        if self.short.is_some() {
+            vals.insert(&"short =");
+        }
+        vals
+    }
+
+    pub fn pg_args(&self) -> PgArguments {
+        let mut args = PgArguments::default();
+        match &self.id {
+            Some(val) => { args.add(val); }
+            _ => {}
+        }
+        match &self.instrument {
+            Some(val) => { args.add(val) }
+            _ => {}
+        }
+        match &self.account_id {
+            Some(val) => { args.add(val) }
+            _ => {}
+        }
+        match &self.entry_time {
+            Some(val) => { args.add(val) }
+            _ => {}
+        }
+        match &self.exit_time {
+            Some(val) => { args.add(val) }
+            _ => {}
+        }
+        match &self.short {
+            Some(val) => { args.add(val) }
+            _ => {}
+        }
+        args
+    }
+}
+
 impl std::fmt::Display for TradeRequest {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(
@@ -46,22 +115,36 @@ impl std::fmt::Display for TradeRequest {
 }
 
 #[tracing::instrument(
-    name = "Index of trades without params",
-    skip(state),
+    name = "[route.trades:index]",
+    skip(state, session, tq),
 )]
 #[get("")]
-pub async fn index(state: Data<AppState>) -> Result<impl Responder, actix_web::Error> {
+pub async fn index(state: Data<AppState>, session: TypedSession, tq: Query<TradeQuery>) -> Result<impl Responder, actix_web::Error> {
     /* fill the "" below in with today's date */
-    let trades = get_trades(&state).await.map_err(e500)?;
+    let trades = get_trades(&state, &tq).await.map_err(e500)?;
     Ok(HttpResponse::Ok().content_type("application/json").json(trades))
 }
 
 #[tracing::instrument(
     name = "Grabbing trades from the database",
-    skip(state),
+    skip(state, tq),
 )]
-pub async fn get_trades(state: &Data<AppState>) -> Result<Vec<Trade>, sqlx::Error> {
-    sqlx::query_as::<_, Trade>("SELECT id, account_id, instrument, entry_time, exit_time, commission, pnl, short, created_at, updated_at from trades")
+pub async fn get_trades(state: &Data<AppState>, tq: &Query<TradeQuery>) -> Result<Vec<Trade>, sqlx::Error> {
+    let mut query = String::from("SELECT id, account_id, instrument, entry_time, exit_time, commission, pnl, short, created_at, updated_at from trades");
+    let query_strings = tq
+        .as_set()
+        .into_iter()
+        .enumerate()
+        .map(|(idx, val)| {
+            format!("{} ${}", val, idx + 1)
+        })
+        .collect::<Vec<String>>()
+        .join(", ");
+    if !query_strings.is_empty() {
+        query.push_str(format!(" WHERE {}", query_strings).as_str());
+    }
+
+    sqlx::query_as_with(&query, tq.pg_args())
         .fetch_all(&state.db)
         .await
 }
@@ -108,25 +191,6 @@ impl std::fmt::Display for GetTradesError {
             "A database failure was encountered while trying to get trades."
         )
     }
-}
-
-#[tracing::instrument(name = "Get username", skip(state))]
-pub async fn get_username(
-    user_id: Uuid, 
-    state: &Data<AppState>,
-) -> Result<String, anyhow::Error> {
-    let row = sqlx::query!(
-        r#"
-        SELECT username
-        FROM users
-        WHERE id = $1
-        "#,
-        user_id,
-    )
-    .fetch_one(&state.db)
-    .await
-    .context("Failed to perform a query to retrieve a username.")?;
-    Ok(row.username)
 }
 
 pub mod files {

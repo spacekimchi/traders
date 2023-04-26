@@ -57,7 +57,7 @@ pub struct GetJournalEntryRequest {
 #[get("")]
 pub async fn index(state: Data<AppState>) -> Result<impl Responder, actix_web::Error> {
     /* fill the "" below in with today's date */
-    let journal_entries = get_journal_entries(&state, "", 0, 0, 0).await.map_err(e500)?;
+    let journal_entries = get_journal_entries(&state).await.map_err(e500)?;
     Ok(HttpResponse::Ok().content_type("application/json").json(journal_entries))
 }
 
@@ -65,7 +65,7 @@ pub async fn index(state: Data<AppState>) -> Result<impl Responder, actix_web::E
     name = "Grabbing journal entries from the database",
     skip(state),
 )]
-pub async fn get_journal_entries(state: &Data<AppState>, view: &str, year: i32, month: u32, day: u32) -> Result<Vec<JournalEntry>, sqlx::Error> {
+pub async fn get_journal_entries(state: &Data<AppState>) -> Result<Vec<JournalEntry>, sqlx::Error> {
     sqlx::query_as::<_, JournalEntry>("SELECT id, user_id, entry_date, image_urls, notes, created_at, updated_at from journal_entries")
         .fetch_all(&state.db)
         .await
