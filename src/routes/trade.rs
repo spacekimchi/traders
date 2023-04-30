@@ -34,7 +34,7 @@ pub struct TradeRequest {
 	pub short: Vec<bool>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct TradeQuery {
     pub id: Option<i64>,
     pub instrument: Option<String>,
@@ -42,6 +42,8 @@ pub struct TradeQuery {
     pub entry_time: Option<f64>,
     pub exit_time: Option<f64>,
     pub short: Option<bool>,
+    pub start_time: Option<f64>,
+    pub end_time: Option<f64>,
 }
 
 impl TradeQuery {
@@ -51,25 +53,31 @@ impl TradeQuery {
         return query;
     }
 
-    pub fn as_set(&self) -> HashSet<&'static str> {
-        let mut vals: HashSet<&'static str> = HashSet::new();
+    pub fn as_vec(&self) -> Vec<&'static str> {
+        let mut vals: Vec<&'static str> = Vec::new();
         if self.id.is_some() {
-            vals.insert(&"id =");
+            vals.push(&"id =");
         }
         if self.instrument.is_some() {
-            vals.insert(&"instrument =");
+            vals.push(&"instrument =");
         }
         if self.account_id.is_some() {
-            vals.insert(&"account_id =");
+            vals.push(&"account_id =");
         }
         if self.entry_time.is_some() {
-            vals.insert(&"entry_time >");
+            vals.push(&"entry_time =");
         }
         if self.exit_time.is_some() {
-            vals.insert(&"exit_time <");
+            vals.push(&"exit_time =");
         }
         if self.short.is_some() {
-            vals.insert(&"short =");
+            vals.push(&"short =");
+        }
+        if self.start_time.is_some() {
+            vals.push(&"entry_time >");
+        }
+        if self.end_time.is_some() {
+            vals.push(&"entry_time <");
         }
         vals
     }
@@ -97,6 +105,14 @@ impl TradeQuery {
             _ => {}
         }
         match &self.short {
+            Some(val) => { args.add(val) }
+            _ => {}
+        }
+        match &self.start_time {
+            Some(val) => { args.add(val) }
+            _ => {}
+        }
+        match &self.end_time {
             Some(val) => { args.add(val) }
             _ => {}
         }
@@ -132,14 +148,14 @@ pub async fn index(state: Data<AppState>, session: TypedSession, tq: Query<Trade
 pub async fn get_trades(state: &Data<AppState>, tq: &Query<TradeQuery>) -> Result<Vec<Trade>, sqlx::Error> {
     let mut query = String::from("SELECT id, account_id, instrument, entry_time, exit_time, commission, pnl, short, created_at, updated_at from trades");
     let query_strings = tq
-        .as_set()
+        .as_vec()
         .into_iter()
         .enumerate()
         .map(|(idx, val)| {
             format!("{} ${}", val, idx + 1)
         })
         .collect::<Vec<String>>()
-        .join(", ");
+        .join(" AND ");
     if !query_strings.is_empty() {
         query.push_str(format!(" WHERE {}", query_strings).as_str());
     }
