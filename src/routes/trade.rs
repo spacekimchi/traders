@@ -1,12 +1,11 @@
 use serde::{Deserialize, Serialize};
 use actix_web::web::{Data, Path, Query};
-use actix_web::{HttpResponse, HttpRequest, Responder, get, delete, post};
+use actix_web::{HttpResponse, Responder, get, delete, post};
 use actix_multipart::Multipart;
 use sqlx::{self, FromRow, postgres::PgArguments, Arguments};
 use crate::startup::AppState;
 use crate::utils::e500;
 use crate::session_state::TypedSession;
-use std::collections::HashSet;
 
 #[derive(Debug, Deserialize, Serialize, FromRow)]
 pub struct Trade {
@@ -48,8 +47,8 @@ pub struct TradeQuery {
 
 impl TradeQuery {
     pub fn as_query(&self) -> String {
-        let mut query = String::from("SELECT id, account_id, instrument, entry_time, exit_time, commission, pnl, short, created_at, updated_at FROM trades");
-        let mut vals: Vec<&str> = Vec::new();
+        let query = String::from("SELECT id, account_id, instrument, entry_time, exit_time, commission, pnl, short, created_at, updated_at FROM trades");
+        let _vals: Vec<&str> = Vec::new();
         return query;
     }
 
@@ -132,10 +131,10 @@ impl std::fmt::Display for TradeRequest {
 
 #[tracing::instrument(
     name = "[route.trades:index]",
-    skip(state, session, tq),
+    skip(state, _session, tq),
 )]
 #[get("")]
-pub async fn index(state: Data<AppState>, session: TypedSession, tq: Query<TradeQuery>) -> Result<impl Responder, actix_web::Error> {
+pub async fn index(state: Data<AppState>, _session: TypedSession, tq: Query<TradeQuery>) -> Result<impl Responder, actix_web::Error> {
     /* fill the "" below in with today's date */
     let trades = get_trades(&state, &tq).await.map_err(e500)?;
     Ok(HttpResponse::Ok().content_type("application/json").json(trades))

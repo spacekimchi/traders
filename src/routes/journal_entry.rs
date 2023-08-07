@@ -47,7 +47,12 @@ impl std::fmt::Display for JournalEntryRequest {
 
 #[derive(Debug, Deserialize)]
 pub struct GetJournalEntryRequest {
-    tail: Option<String>,
+    _tail: Option<String>,
+}
+
+fn _set_config(tail: &[&str]) {
+    for _val in tail.iter() {
+    }
 }
 
 #[tracing::instrument(
@@ -65,15 +70,11 @@ pub async fn index(state: Data<AppState>) -> Result<impl Responder, actix_web::E
     name = "Grabbing journal entries from the database",
     skip(state),
 )]
-pub async fn get_journal_entries(state: &Data<AppState>) -> Result<Vec<JournalEntry>, sqlx::Error> {
+pub async fn get_journal_entries(state: &Data<AppState>) -> Result<Vec<JournalEntry>, GetJournalEntryError> {
     sqlx::query_as::<_, JournalEntry>("SELECT id, user_id, entry_date, image_urls, notes, created_at, updated_at from journal_entries")
         .fetch_all(&state.db)
         .await
-}
-
-fn set_config(tail: &[&str]) {
-    for _val in tail.iter() {
-    }
+        .map_err(GetJournalEntryError)
 }
 
 #[delete("/{journal_entry_id}")]
@@ -136,9 +137,9 @@ pub async fn update(
     state: Data<AppState>,
     body: Json<JournalEntryRequest>,
     session: TypedSession,
-    request: HttpRequest,
+    _request: HttpRequest,
 ) -> Result<HttpResponse, JournalEntryError> {
-    let user_id = if let Some(user_id) = session.get_user_id().map_err(JournalEntryError::SessionError)? {
+    let _user_id = if let Some(user_id) = session.get_user_id().map_err(JournalEntryError::SessionError)? {
         user_id
     } else {
         return Ok(HttpResponse::Unauthorized().json("you are not authorized"));
@@ -162,6 +163,18 @@ impl std::fmt::Display for GetJournalEntryError {
             f,
             "A database failure was encountered while trying to get journal entries."
         )
+    }
+}
+
+impl std::error::Error for GetJournalEntryError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        Some(&self.0)
+    }
+}
+
+impl std::fmt::Debug for GetJournalEntryError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        error_chain_fmt(self, f)
     }
 }
 

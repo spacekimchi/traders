@@ -83,11 +83,11 @@ pub async fn run(db_pool: PgPool, listener: TcpListener, base_url: String, redis
             .service(
                 web::scope("/users")
                 .wrap(from_fn(reject_anonymous_users))
-                .service(user::index)
+                .service(user::list_users)
                 .service(user::delete)
-                .service(user::change_password)
+                .service(user::change_user_password)
                 .service(user::create)
-                .service(user::get)
+                .service(user::get_user_by_id)
             )
             .service(
                 web::scope("/trades")
