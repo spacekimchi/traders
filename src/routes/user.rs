@@ -72,6 +72,7 @@ pub async fn get_users(state: &Data<AppState>) -> Result<Vec<User>, UserError> {
     sqlx::query_as::<_, User>("SELECT id, username, email, visible, created_at, updated_at FROM users")
         .fetch_all(&state.db)
         .await
+        .map_err(UserError::DatabaseError)
 }
 
 #[tracing::instrument(
@@ -113,7 +114,7 @@ pub async fn insert_user(state: &Data<AppState>, body: &Json<UserRequest>) -> Re
     .bind(password_hash.expose_secret())
     .fetch_one(&state.db)
     .await
-    //.map_err(|err| StoreUserError(anyhow::anyhow!(err)))?)
+    .map_err(|err| StoreUserError(err.into()))
 }
 
 #[get("/users/{user_id}")]

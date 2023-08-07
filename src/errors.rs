@@ -9,8 +9,8 @@ pub use self::UserError::*;
 
 /*
  * UserErrors
+ * 'transparent' inside of #[error()] means it will keep original error object
  */
-
 #[derive(thiserror::Error)]
 pub enum UserError {
     #[error("{0}")]
@@ -21,8 +21,8 @@ pub enum UserError {
     ServerError(#[from] actix_web::Error),
     #[error(transparent)]
     DatabaseError(#[from] sqlx::Error),
-    #[error("")]
-
+    #[error(transparent)]
+    StoreUserError(#[from] StoreUserError),
 }
 
 impl ResponseError for UserError {
@@ -31,6 +31,8 @@ impl ResponseError for UserError {
             UserError::ValidationError(_) => HttpResponse::new(StatusCode::BAD_REQUEST),
             UserError::AuthError(_) => HttpResponse::new(StatusCode::UNAUTHORIZED),
             UserError::DatabaseError(_) => HttpResponse::new(StatusCode::INTERNAL_SERVER_ERROR),
+            UserError::ServerError(_) => HttpResponse::new(StatusCode::INTERNAL_SERVER_ERROR),
+            UserError::StoreUserError(_) => HttpResponse::new(StatusCode::INTERNAL_SERVER_ERROR),
         }
     }
 }
@@ -70,19 +72,19 @@ impl std::fmt::Display for StoreUserError {
 
 impl From<anyhow::Error> for StoreUserError {
     fn from(err: anyhow::Error) -> StoreUserError {
-        StoreUserError::from(err)
+        StoreUserError(err.into())
     }
 }
 
 impl From<sqlx::Error> for StoreUserError {
     fn from(err: sqlx::Error) -> StoreUserError {
-        StoreUserError::from(err)
+        StoreUserError(err.into())
     }
 }
 
 impl From<JoinError> for StoreUserError {
     fn from(err: JoinError) -> StoreUserError {
-        StoreUserError::from(anyhow::anyhow!("Spawn blocking error: {}", err))
+        StoreUserError(anyhow::anyhow!("Spawn blocking error: {}", err))
     }
 }
 
