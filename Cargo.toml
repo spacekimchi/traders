@@ -32,7 +32,7 @@ tracing-actix-web = "0.7.2"
 serde-aux = "4.1.2"
 anyhow = "1.0.70"
 base64 = "0.21.0"
-validator = "0.16.0"
+validator = { version = "0.16.0", features = ["derive"] }
 unicode-segmentation = "1.10.1"
 thiserror = "1.0.40"
 argon2 = { version = "0.5.0", features = ["std"] }
@@ -46,6 +46,7 @@ actix-web-lab = "0.19.1"
 actix-multipart = "0.6.0"
 futures = "0.3.28"
 calamine = { version = "0.19.1", features = ["chrono", "dates"] }
+actix-web-validator = "5.0.1"
 
 [dev-dependencies]
 claims = "0.7.1"

@@ -1,4 +1,4 @@
-use actix_web::http::StatusCode;
+use serde::Serialize;
 use actix_web::HttpResponse;
 use actix_web::ResponseError;
 use actix_web::rt::task::JoinError;
@@ -6,6 +6,14 @@ use actix_web::rt::task::JoinError;
 use crate::utils::error_chain_fmt;
 
 pub use self::UserError::*;
+
+/**
+ * For retruning consistent JSON errors
+ */
+#[derive(Debug, Serialize)]
+pub struct ApiError {
+    pub message: String,
+}
 
 /*
  * UserErrors
@@ -27,12 +35,13 @@ pub enum UserError {
 
 impl ResponseError for UserError {
     fn error_response(&self) -> HttpResponse {
+        let error_message = format!("{}", self);
+        let error_response = ApiError { message: error_message };
+
         match self {
-            UserError::ValidationError(_) => HttpResponse::new(StatusCode::BAD_REQUEST),
-            UserError::AuthError(_) => HttpResponse::new(StatusCode::UNAUTHORIZED),
-            UserError::DatabaseError(_) => HttpResponse::new(StatusCode::INTERNAL_SERVER_ERROR),
-            UserError::ServerError(_) => HttpResponse::new(StatusCode::INTERNAL_SERVER_ERROR),
-            UserError::StoreUserError(_) => HttpResponse::new(StatusCode::INTERNAL_SERVER_ERROR),
+            UserError::ValidationError(_) => HttpResponse::BadRequest().json(error_response),
+            UserError::AuthError(_) => HttpResponse::Unauthorized().json(error_response),
+            UserError::DatabaseError(_) | UserError::ServerError(_) | UserError::StoreUserError(_) => HttpResponse::InternalServerError().json(error_response),
         }
     }
 }

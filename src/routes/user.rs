@@ -1,8 +1,11 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use actix_web::web::{Data, Json, Path};
 use actix_web::{web, HttpResponse, HttpRequest, Responder, get, post, delete};
 use secrecy::{Secret, ExposeSecret};
-use anyhow::Context;
+// use validator::{Validate, ValidationError, ValidationErrors};
+// ValidationError and ValidationErrors can be returned as the error type
+// when using the .validate() method on a struct that derives the Validate macro
+use validator::Validate;
 
 use crate::db::models::User;
 use crate::db::models::user::get_username;
@@ -15,6 +18,9 @@ use crate::authentication::{validate_credentials, AuthError, Credentials, comput
 use crate::telemetry::spawn_blocking_with_tracing;
 use crate::authentication::UserId;
 
+/**
+ * This runs validations on UserRequest
+ */
 impl TryFrom<UserRequest> for NewUser {
     type Error = String;
 
@@ -25,11 +31,43 @@ impl TryFrom<UserRequest> for NewUser {
     }
 }
 
-#[derive(Debug, Deserialize)]
+/**
+ * The Validate here is another way of running validations
+ * the validate in the UserRequeset struct doesn't do anything until
+ * .validate() is called
+ *
+ *  let user_request = UserRequest {
+ *      username: "".to_string(),
+ *      email: "not_an_email".to_string(),
+ *      password: "short".to_string(),
+ *  };
+ *
+ *  match user_request.validate() {
+ *      Ok(_) => {
+ *          // If validation passed, proceed with user creation.
+ *          // Or we can return some kind of HttpInvalidRequest Error
+ *          println!("User creation request is valid.");
+ *      }
+ *      Err(e) => {
+ *          // If validation failed, print the errors.
+ *          println!("User creation request validation failed: {:?}", e);
+ *      }
+ *  }
+ */
+#[derive(Debug, Deserialize, Validate)]
 pub struct UserRequest {
+    #[validate(length(min = 1))]
     pub username: String,
     pub email: String,
     pub password: Secret<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct UserResponse {
+    pub id: uuid::Uuid,
+    pub username: String,
+    pub email: String,
+    // other fields but no password
 }
 
 #[derive(Debug, Deserialize)]
@@ -44,7 +82,7 @@ pub struct ChangePasswordRequest {
     skip(session),
 )]
 #[get("/current_user")]
-pub async fn current_user(session: TypedSession) -> Result<impl Responder, actix_web::Error> {
+pub async fn current_user(session: TypedSession) -> Result<HttpResponse, actix_web::Error> {
     match session
         .get_user_id()
         .map_err(e500)?
@@ -86,32 +124,41 @@ pub async fn get_users(state: &Data<AppState>) -> Result<Vec<User>, UserError> {
 #[post("/users")]
 pub async fn create(
     state: Data<AppState>,
-    body: Json<UserRequest>,
+    body: actix_web_validator::Json<UserRequest>,
     request: HttpRequest,
 ) -> Result<HttpResponse, UserError> {
     let user = insert_user(&state, &body).await?;
-    Ok(HttpResponse::Ok().json(user))
+    let user_response = UserResponse {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        // copy other fields
+    };
+    Ok(HttpResponse::Ok().json(user_response))
 }
 
 #[tracing::instrument(
     name = "Saving new user in the database",
     skip(state, body),
 )]
-pub async fn insert_user(state: &Data<AppState>, body: &Json<UserRequest>) -> Result<User, StoreUserError> {
+pub async fn insert_user(state: &Data<AppState>, body: &actix_web_validator::Json<UserRequest>) -> Result<User, StoreUserError> {
     let user_id = uuid::Uuid::new_v4();
     let password = body.password.clone();
-    let password_hash = spawn_blocking_with_tracing(
-            move || compute_password_hash(password)
-        )
-        .await?
-        .context("Failed to hash password")?;
+
+    /* TODO: Study this pattern */
+    let password_hash_result = spawn_blocking_with_tracing(move || compute_password_hash(password)).await;
+    let password_hash = match password_hash_result {
+        Ok(hash) => hash,
+        Err(_) => return Err(StoreUserError(anyhow::anyhow!("Failed to hash password"))),
+    };
+
     sqlx::query_as::<_, User>(
         "INSERT INTO users (id, username, email, password_hash) VALUES ($1, $2, $3, $4) RETURNING id, username, email, visible, password_hash, created_at, updated_at"
     )
     .bind(user_id)
     .bind(&body.username)
     .bind(&body.email)
-    .bind(password_hash.expose_secret())
+    .bind(password_hash?.expose_secret())
     .fetch_one(&state.db)
     .await
     .map_err(|err| StoreUserError(err.into()))
