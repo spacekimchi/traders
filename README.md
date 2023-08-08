@@ -13,22 +13,22 @@
     - [ ] Email
 - [ ] Bring database changes from other repository and get at least homepage to show
 - [ ] Set up server to display homepage
-- [ ] Look into some best practice for database management
-  - [ ] Make a cron job for a nightly pg_dump for daily backups
 - [ ] Set up CI/CD
   - [ ] Set up a `master` branch for production and a `stage` branch for staging. Work off of `stage` branch
-  - [ ] Don't allow merging to `master` unless test suite passes in `stage`
-  - [ ] Don't allow direct merging to `master`, only `stage` should be able to merge to master
-- [ ] Implement remainder of routes
+  - [ ] Set up so `master` branch deploys to server whenever it is pushed to
+- [ ] Implement remainder of routes (Write tests simultaneously)
+  - [ ] User
   - [ ] Account
   - [ ] Trade
   - [ ] Execution
   - [ ] JournalEntry
   - [ ] Tag
+- [ ] Look into some best practice for database management
+  - [ ] Make a cron job for a nightly pg_dump for daily backups
 
 ## Current State
 
-I am currently working to stabilize the development experience and infrastructure. 
+I am currently working to stabilize the development experience and infrastructure.
 
 ## Purpose
 
