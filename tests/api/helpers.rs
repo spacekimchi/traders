@@ -117,6 +117,7 @@ pub async fn spawn_app() -> TestApp {
         c.application.port = 0;
         c
     };
+    println!("configuration: {:?}", configuration);
 
     let application = Application::build(configuration.clone())
         .await
