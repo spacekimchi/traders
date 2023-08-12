@@ -2,8 +2,8 @@
 
 ## TODO
 - [ ] DOCUMENTATION FOR ALL OF THESE TODOS IS A MUST
-- [ ] Bring database changes from other repository and get at least homepage to show
-- [ ] Set up server to display homepage
+- [x] Bring database changes from other repository and get at least homepage to show
+- [x] Set up server to display homepage
 - [ ] Set up CI/CD
   - [ ] Set up a `master` branch for production and a `stage` branch for staging. Work off of `stage` branch
   - [ ] Set up so `master` branch deploys to server whenever it is pushed to
@@ -26,12 +26,21 @@
 - [ ] Look into some best practice for database management
   - [ ] Make a cron job to do nightly pg_dumps for database backups and upload to some cloud server
 
+## Frontend
+
+This project will use HTML, SCSS, and JavaScript.
+
+The templating engine used here is the [handlebars-rust](https://github.com/sunng87/handlebars-rust) crate
+
+TODO:
+  [] Add Stimulus/Turbo with Hotwire
+
 ## Current State
 
 I am currently working to stabilize the development experience and infrastructure.
 
 The plan to achieve this is:
-1. Get the app in a minimal working state (have health_check and homepage showing)
+1. ~~Get the app in a minimal working state (have health_check and homepage showing)~~
 2. Set up CI/CD, and then write tests.
   - Start with tests for applicaiton setup files, health_check endpoint, and users endpoints
     - There is a lot of outdated code in the users routes. (the file also needs to be renamed to `src/routes/users`

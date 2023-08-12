@@ -7,4 +7,5 @@ pub mod login;
 pub mod journal_entry;
 pub mod tag;
 pub mod trade_tag;
+pub mod homepage;
 
