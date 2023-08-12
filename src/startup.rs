@@ -1,18 +1,21 @@
-use crate::routes::{user, trade, health_check, account, login, journal_entry};
-use actix_web::{App, web, HttpServer, http::Method};
-use tracing_actix_web::TracingLogger;
-use actix_web::dev::Server;
-use sqlx::{Pool, PgPool, Postgres};
 use std::net::TcpListener;
-use sqlx::postgres::PgPoolOptions;
-use crate::configuration::Settings;
-use crate::configuration::DatabaseSettings;
+
+use actix_web::{App, web, HttpServer, http::Method};
+use actix_web::dev::Server;
 use actix_session::SessionMiddleware;
 use actix_session::storage::RedisSessionStore;
-use secrecy::{Secret, ExposeSecret};
 use actix_web::cookie::Key;
 use actix_web_lab::middleware::from_fn;
+use tracing_actix_web::TracingLogger;
+use sqlx::{Pool, PgPool, Postgres};
+use sqlx::postgres::PgPoolOptions;
+use secrecy::{Secret, ExposeSecret};
+use handlebars::Handlebars;
+
+use crate::configuration::Settings;
+use crate::configuration::DatabaseSettings;
 use crate::authentication::reject_anonymous_users;
+use crate::routes::{user, trade, health_check, account, login, journal_entry, homepage};
 
 pub struct AppState {
     pub db: Pool<Postgres>,
@@ -68,48 +71,59 @@ pub async fn run(db_pool: PgPool, listener: TcpListener, base_url: String, redis
     let base_url = web::Data::new(ApplicationBaseUrl(base_url));
     let redis_store = RedisSessionStore::new(redis_uri.expose_secret()).await?;
     let secret_key = Key::from(hmac_secret.expose_secret().as_bytes());
+    let mut handlebars = Handlebars::new();
+
+    handlebars
+        .register_templates_directory(".html", "./static/templates")
+        .unwrap();
+
+    let handlebars_ref = web::Data::new(handlebars);
+
     let server = HttpServer::new(move || {
-        App::new().service(
-            web::scope("/api")
+        App::new()
             .wrap(TracingLogger::default())
             .wrap(SessionMiddleware::new(redis_store.clone(), secret_key.clone()))
             .app_data(base_url.clone())
             .app_data(web::Data::new(AppState { db: db_pool.clone(), hmac_secret: hmac_secret.clone() }))
-            .service(health_check::health_check)
-            .service(user::current_user)
-            .service(login::login)
-            .service(login::logout)
-            .service(account::list)
+            .app_data(handlebars_ref.clone())
+            .service(homepage::index)
             .service(
-                web::scope("/users")
-                .wrap(from_fn(reject_anonymous_users))
-                .service(user::list_users)
-                .service(user::delete)
-                .service(user::change_user_password)
-                .service(user::create)
-                .service(user::get_user_by_id)
-            )
-            .service(
-                web::scope("/trades")
-                .service(trade::index)
+                web::scope("/api")
+                .service(health_check::health_check)
+                .service(user::current_user)
+                .service(login::login)
+                .service(login::logout)
+                .service(account::list)
                 .service(
-                    web::scope("")
+                    web::scope("/users")
                     .wrap(from_fn(reject_anonymous_users))
-                    .service(trade::delete)
-                    .service(trade::import_trade)
-                ) 
-            )
-            .service(
-                web::scope("/journal_entries")
-                .service(journal_entry::index)
+                    .service(user::list_users)
+                    .service(user::delete)
+                    .service(user::change_user_password)
+                    .service(user::create)
+                    .service(user::get_user_by_id)
+                )
                 .service(
-                    web::scope("")
-                    .wrap(from_fn(reject_anonymous_users))
-                    .service(journal_entry::delete)
-                    .service(journal_entry::create)
-                ) 
-            )
-            .default_service(web::route().method(Method::GET)))
+                    web::scope("/trades")
+                    .service(trade::index)
+                    .service(
+                        web::scope("")
+                        .wrap(from_fn(reject_anonymous_users))
+                        .service(trade::delete)
+                        .service(trade::import_trade)
+                    ) 
+                )
+                .service(
+                    web::scope("/journal_entries")
+                    .service(journal_entry::index)
+                    .service(
+                        web::scope("")
+                        .wrap(from_fn(reject_anonymous_users))
+                        .service(journal_entry::delete)
+                        .service(journal_entry::create)
+                    ) 
+                )
+                .default_service(web::route().method(Method::GET)))
         })
         .listen(listener)?
         .run();

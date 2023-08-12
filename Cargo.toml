@@ -47,6 +47,7 @@ actix-multipart = "0.6.0"
 futures = "0.3.28"
 calamine = { version = "0.19.1", features = ["chrono", "dates"] }
 actix-web-validator = "5.0.1"
+handlebars = { version = "4.3.7", features = ["dir_source"] }
 
 [dev-dependencies]
 claims = "0.7.1"
