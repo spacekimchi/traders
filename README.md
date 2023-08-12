@@ -28,9 +28,9 @@
 
 ## Frontend
 
-This project will use HTML, SCSS, and JavaScript.
+Instead of using a frontend framework, this project will use SSR to serve HTML, SCSS, and JavaScript.
 
-The templating engine used here is the [handlebars-rust](https://github.com/sunng87/handlebars-rust) crate
+The templating engine used here is the [handlebars-rust](https://github.com/sunng87/handlebars-rust) crate.
 
 TODO:
   [] Add Stimulus/Turbo with Hotwire
