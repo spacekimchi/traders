@@ -1,3 +1,4 @@
+//! src/routes/users.rs
 use serde::{Deserialize, Serialize};
 use actix_web::web::{Data, Json, Path};
 use actix_web::{web, HttpResponse, HttpRequest, Responder, get, post, delete};

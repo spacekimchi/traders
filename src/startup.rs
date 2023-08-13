@@ -15,7 +15,7 @@ use handlebars::Handlebars;
 use crate::configuration::Settings;
 use crate::configuration::DatabaseSettings;
 use crate::authentication::reject_anonymous_users;
-use crate::routes::{user, trade, health_check, account, login, journal_entry, homepage};
+use crate::routes::{users, trades, health_check, accounts, login, journal_entries, homepage};
 
 pub struct AppState {
     pub db: Pool<Postgres>,
@@ -90,37 +90,37 @@ pub async fn run(db_pool: PgPool, listener: TcpListener, base_url: String, redis
             .service(
                 web::scope("/api")
                 .service(health_check::health_check)
-                .service(user::current_user)
+                .service(users::current_user)
                 .service(login::login)
                 .service(login::logout)
-                .service(account::list)
+                .service(accounts::list)
                 .service(
                     web::scope("/users")
                     .wrap(from_fn(reject_anonymous_users))
-                    .service(user::list_users)
-                    .service(user::delete)
-                    .service(user::change_user_password)
-                    .service(user::create)
-                    .service(user::get_user_by_id)
+                    .service(users::list_users)
+                    .service(users::delete)
+                    .service(users::change_user_password)
+                    .service(users::create)
+                    .service(users::get_user_by_id)
                 )
                 .service(
                     web::scope("/trades")
-                    .service(trade::index)
+                    .service(trades::index)
                     .service(
                         web::scope("")
                         .wrap(from_fn(reject_anonymous_users))
-                        .service(trade::delete)
-                        .service(trade::import_trade)
+                        .service(trades::delete)
+                        .service(trades::import_trade)
                     ) 
                 )
                 .service(
                     web::scope("/journal_entries")
-                    .service(journal_entry::index)
+                    .service(journal_entries::index)
                     .service(
                         web::scope("")
                         .wrap(from_fn(reject_anonymous_users))
-                        .service(journal_entry::delete)
-                        .service(journal_entry::create)
+                        .service(journal_entries::delete)
+                        .service(journal_entries::create)
                     ) 
                 )
                 .default_service(web::route().method(Method::GET)))
