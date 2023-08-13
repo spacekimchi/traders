@@ -25,6 +25,7 @@ jobs:
     - name: Deploy to VPS
       env:
         DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
         SERVER_USER: ${{ secrets.SERVER_USER }}
         SERVER_IP: ${{ secrets.SERVER_IP }}
       run: |
@@ -32,5 +33,6 @@ jobs:
         mkdir -p ~/.ssh/
         echo "$DEPLOY_SSH_KEY" > ~/.ssh/traders-deploy
         chmod 600 ~/.ssh/traders-deploy
+        echo "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
         scp target/release/traders $SERVER:/home/jhg/workspace/traders/target/release/
         ssh $SERVER 'sudo systemctl restart traders'
