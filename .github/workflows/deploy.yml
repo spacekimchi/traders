@@ -1,0 +1,41 @@
+name: CI/CD Pipeline for Traders
+
+on:
+  push:
+    branches:
+      - master # or the name of your default branch
+
+jobs:
+  build_and_deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+        override: true
+
+    - name: Build
+      uses: actions-rs/cargo@v1
+      with:
+        command: build
+        args: --release
+
+    - name: Deploy to VPS
+      env:
+        DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        SERVER_USER: ${{ secrets.SERVER_USER }}
+        SERVER_IP: ${{ secrets.SERVER_IP }}
+      run: |
+        SERVER="${SERVER_USER}@${SERVER_IP}"
+        mkdir -p ~/.ssh/
+        echo "$DEPLOY_SSH_KEY" > ~/.ssh/traders_ghdeploy
+        chmod 600 ~/.ssh/traders_ghdeploy
+        scp target/release/traders $SERVER:/home/jhg/workspace/traders/target/release/traders
+        ssh $SERVER 'systemctl restart traders'
+
