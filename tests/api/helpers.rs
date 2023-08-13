@@ -76,8 +76,7 @@ pub struct TestApp {
 impl TestApp {
     pub async fn post_login(&self, body: &serde_json::Value) -> reqwest::Response {
         self.api_client
-            .post(&format!("{}/login", &self.address))
-            //.basic_auth(&self.test_user.username, Some(&self.test_user.password))
+            .post(&format!("{}/api/login", &self.address))
             .json(&body)
             .send()
             .await
@@ -86,8 +85,7 @@ impl TestApp {
 
     pub async fn post_users(&self, body: &serde_json::Value) -> reqwest::Response {
         self.api_client
-            .post(&format!("{}/users", &self.address))
-            .basic_auth(&self.test_user.username, Some(&self.test_user.password))
+            .post(&format!("{}/api/users", &self.address))
             .json(&body)
             .send()
             .await
@@ -117,7 +115,6 @@ pub async fn spawn_app() -> TestApp {
         c.application.port = 0;
         c
     };
-    println!("configuration: {:?}", configuration);
 
     let application = Application::build(configuration.clone())
         .await

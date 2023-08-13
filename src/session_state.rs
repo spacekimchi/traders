@@ -1,12 +1,17 @@
-use actix_session::{Session, SessionGetError, SessionInsertError};
-use uuid::Uuid;
-use actix_session::SessionExt;
-use actix_web::dev::Payload;
-use actix_web::{FromRequest, HttpRequest};
+//! src/session_state.rs
+//! This file is a wrapper to actix_session::Session
 use std::future::{Ready, ready};
 
+use actix_session::{Session, SessionGetError, SessionInsertError, SessionExt};
+use actix_web::dev::Payload;
+use actix_web::{FromRequest, HttpRequest};
+use uuid::Uuid;
+
+/// wrapper on Session
 pub struct TypedSession(Session);
 
+/// TypedSession
+/// storing key "user_id" as the current user's session
 impl TypedSession {
     const USER_ID_KEY: &'static str = "user_id";
 

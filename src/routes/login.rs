@@ -38,17 +38,6 @@ pub async fn login(form: Json<LoginForm>, state: Data<AppState>, session: TypedS
                 session
                     .insert_user_id(user_id)
                     .map_err(|e| LoginError::UnexpectedError(e.into()))?;
-                // Set cookies with: 
-                // Ok(HttpResponse::Ok().cookie(Cookie::new("_flash", e.to_string)).json(user_id))
-                // unset cookies with: add_removal_cookie() method
-                // let mut response = HttpResponse::Ok()
-                //      .content_type(ContentType::html())
-                //      .body(/* */);
-                //  response
-                //      .add_removal_cookie(&Cookie::new("_flash", ""))
-                //      .unwrap();
-                //  response
-                //
                 Ok(HttpResponse::Ok().json(user_id))
             }
             Err(e) => {

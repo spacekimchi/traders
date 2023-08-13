@@ -39,6 +39,7 @@ Create a systemd service to run the application.
 - [x] Set up CI/CD
   - [x] Set up a `master` branch for production and a `development` branch for development. Work off of `development` branch
   - [x] Set up so `master` branch deploys to server whenever it is pushed to
+- [ ] Set up separate repository with a minimal production ready app with user login and a homepage
 - [ ] Fix the test suite
   - [ ] Routes:
     - [x] HealthCheck
