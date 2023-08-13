@@ -34,5 +34,4 @@ jobs:
         echo "$DEPLOY_SSH_KEY" > ~/.ssh/traders-deploy
         chmod 600 ~/.ssh/traders-deploy
         echo "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
-        scp target/release/traders $SERVER:/home/jhg/workspace/traders/target/release/
-        ssh $SERVER 'sudo systemctl restart traders'
+        scp -i ~/.ssh/traders-deploy target/release/traders $SERVER:/home/jhg/workspace/traders/target/release/
