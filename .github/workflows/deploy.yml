@@ -11,20 +11,17 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
     - name: Set up Rust
-      uses: actions-rs/toolchain@v1
+      uses: dtolnay/rust-toolchain@stable
+    - uses: Swatinem/rust-cache@v2
       with:
-        profile: minimal
-        toolchain: stable
-        override: true
+        key: sqlx
 
     - name: Build
-      uses: actions-rs/cargo@v1
-      with:
-        command: build
-        args: --release
+      run: cargo build
+           --release
 
     - name: Deploy to VPS
       env:
