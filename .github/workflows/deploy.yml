@@ -38,4 +38,3 @@ jobs:
         chmod 600 ~/.ssh/traders_ghdeploy
         scp target/release/traders $SERVER:/home/jhg/workspace/traders/target/release/
         ssh $SERVER 'sudo systemctl restart traders'
-
