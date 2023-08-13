@@ -1,5 +1,37 @@
 # Traders
 
+## Setting up the project
+
+### Rust
+
+The recommended way of [installing Rust](https://www.rust-lang.org/tools/install) is through rustup
+
+`curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
+
+### PostgreSQL
+
+The project is using [PostgreSQL](https://www.postgresql.org/). You can install PostgreSQL for whatever machine you are using.
+
+### Redis
+
+[Redis](https://github.com/redis/redis) is required for some features like keeping user sessions.
+You can also install Redis for whatever machine you are using.
+
+### sqlx
+
+I use [sqlx-cli](https://github.com/launchbadge/sqlx/tree/main/sqlx-cli) to manage the database. The following command will install for only postgres
+
+`cargo install sqlx-cli --no-default-features --features native-tls,postgres`
+
+## When deploying to server
+
+Remember to get a copy of the `configuration/local.yaml`, `configuration/base.yaml`, and `configuration/production.yaml`.
+
+`base_url` needs to be set in the `configuration/production.yaml`. This can be set to the domain the project
+will be hosted on.
+
+Create a systemd service to run the application.
+
 ## TODO
 - [ ] DOCUMENTATION FOR ALL OF THESE TODOS IS A MUST
 - [x] Bring database changes from other repository and get at least homepage to show
