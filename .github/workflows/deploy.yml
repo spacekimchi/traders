@@ -36,6 +36,5 @@ jobs:
         mkdir -p ~/.ssh/
         echo "$DEPLOY_SSH_KEY" > ~/.ssh/traders_ghdeploy
         chmod 600 ~/.ssh/traders_ghdeploy
-        scp target/release/traders $SERVER:/home/jhg/workspace/traders/target/release/traders
-        ssh $SERVER 'systemctl restart traders'
-
+        scp target/release/traders $SERVER:/home/jhg/workspace/traders/target/release/
+        ssh $SERVER 'sudo systemctl restart traders'
