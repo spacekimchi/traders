@@ -36,9 +36,9 @@ Create a systemd service to run the application.
 - [ ] DOCUMENTATION FOR ALL OF THESE TODOS IS A MUST
 - [x] Bring database changes from other repository and get at least homepage to show
 - [x] Set up server to display homepage
-- [ ] Set up CI/CD
+- [x] Set up CI/CD
   - [x] Set up a `master` branch for production and a `development` branch for development. Work off of `development` branch
-  - [ ] Set up so `master` branch deploys to server whenever it is pushed to
+  - [x] Set up so `master` branch deploys to server whenever it is pushed to
 - [ ] Fix the test suite
   - [ ] Routes:
     - [x] HealthCheck
