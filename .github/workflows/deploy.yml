@@ -20,8 +20,7 @@ jobs:
         key: sqlx
 
     - name: Build
-      run: cargo build
-           --release
+      run: cargo build --release
 
     - name: Deploy to VPS
       env:
@@ -31,8 +30,8 @@ jobs:
       run: |
         SERVER="${SERVER_USER}@${SERVER_IP}"
         mkdir -p ~/.ssh/
-        echo "$DEPLOY_SSH_KEY" > ~/.ssh/traders_ghdeploy
-        chmod 600 ~/.ssh/traders_ghdeploy
-        scp target/release/traders $SERVER:/home/jhg/workspace/traders/target/release/traders
-        ssh $SERVER 'systemctl restart traders'
+        echo "$DEPLOY_SSH_KEY" > ~/.ssh/traders-deploy
+        chmod 600 ~/.ssh/traders-deploy
+        scp target/release/traders $SERVER:/home/jhg/workspace/traders/target/release/
+        ssh $SERVER 'sudo systemctl restart traders'
 
