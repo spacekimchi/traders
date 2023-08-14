@@ -39,7 +39,6 @@ will be hosted on.
 Create a systemd service to run the application.
 
 ## TODO
-- [ ] DOCUMENTATION FOR ALL OF THESE TODOS IS A MUST
 - [x] Bring database changes from other repository and get at least homepage to show
 - [x] Set up server to display homepage
 - [x] Set up CI/CD
@@ -49,7 +48,7 @@ Create a systemd service to run the application.
 - [ ] Fix the test suite
   - [ ] Routes:
     - [x] HealthCheck
-    - [ ] Users
+    - [x] Users
   - [ ] Models:
     - [ ] Users
   - [ ] Domain:
