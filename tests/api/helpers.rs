@@ -1,7 +1,7 @@
 use sqlx::{PgConnection, Executor, Connection};
 use traders::configuration::{get_configuration, DatabaseSettings};
 use traders::telemetry::{get_subscriber, init_subscriber};
-use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
+use sqlx::{PgPool, Pool, Postgres};
 use once_cell::sync::Lazy;
 use traders::startup::Application;
 use uuid::Uuid;
@@ -39,7 +39,7 @@ impl TestUser {
         }
     }
 
-    async fn store(&self, pool: &Pool<Postgres>) {
+    async fn store(&self, pool: &PgPool) {
         let email = SafeEmail().fake::<String>();
         let salt = SaltString::generate(&mut rand::thread_rng());
         let password_hash = Argon2::new(
@@ -68,7 +68,7 @@ impl TestUser {
 pub struct TestApp {
     pub address: String,
     pub port: u16,
-    pub db_pool: Pool<Postgres>,
+    pub db_pool: PgPool,
     pub test_user: TestUser,
     pub api_client: reqwest::Client,
 }
@@ -85,6 +85,10 @@ impl Drop for TestApp {
 }
 
 impl TestApp {
+    async fn close(&self) {
+        self.db_pool.close().await;
+    }
+
     pub async fn post_login<Body>(&self, body: &Body) -> reqwest::Response
     where
         Body: serde::Serialize
@@ -141,6 +145,10 @@ pub async fn spawn_app() -> TestApp {
         c
     };
 
+    /* Session */
+    let db_pool = configure_database(&configuration.database).await;
+    //let db_pool = ensure_or_configure_database(&configuration.database).await;
+
     let application = Application::build(configuration.clone())
         .await
         .expect("Failed to build application");
@@ -148,73 +156,60 @@ pub async fn spawn_app() -> TestApp {
     let application_port = application.port();
     let address = format!("http://127.0.0.1:{}", application_port);
 
-    /* Session */
-    let db_pool = configure_database(&configuration.database).await;
-    
-    //let db_pool = match check_database_exists(&configuration.database) {
-        //true => configure_database(&configuration.database).await,
-        //false => 
-    //};
-
-    //let database_exists = check_database_exists(&configuration.database).await;
-
-    //if !database_exists {
-        //configure_database(&configuration.database).await;
-    //}
-
     let _ = actix_web::rt::spawn(application.run_until_stopped());
     let client = reqwest::Client::builder()
         .redirect(reqwest::redirect::Policy::none())
         .cookie_store(true)
         .build()
         .unwrap();
-    let test_app = TestApp {
+    let mut test_app = TestApp {
         address,
         db_pool,
         port: application_port,
         test_user: TestUser::generate(),
         api_client: client,
     };
-    test_app.test_user.store(&test_app.db_pool).await;
+    test_app.test_user.store(&mut test_app.db_pool).await;
     test_app
 }
 
-async fn ensure_or_configure_database(config: &DatabaseSettings) -> Pool<Postgres> {
-    let mut connection = PgConnection::connect_with(&config.without_db())
-        .await
-        .expect("Failed to connect to Postgres");
+/// This funciton checks if the test_traders database exists
+//async fn ensure_or_configure_database(config: &DatabaseSettings) -> Pool<Postgres> {
+    //let mut connection = PgConnection::connect_with(&config.without_db())
+        //.await
+        //.expect("Failed to connect to Postgres");
 
-    match check_database_exists(config, &mut connection).await {
-        true => {
-            // The database exists. Connect to it.
-            let connection_pool = PgPoolOptions::new()
-                .max_connections(5)
-                .connect_with(config.with_db())
-                .await
-                .expect("Error building a connection pool");
-            connection_pool
-        }
-        false => {
-            // The database doesn't exist. Configure a new one.
-            configure_database(config).await
-        }
-    }
-}
+    //match check_database_exists(config, &mut connection).await {
+        //true => {
+            //// The database exists. Connect to it.
+            //let connection_pool = PgPoolOptions::new()
+                //.max_connections(5)
+                //.connect_with(config.with_db())
+                //.await
+                //.expect("Error building a connection pool");
+            //connection_pool
+        //}
+        //false => {
+            //// The database doesn't exist. Configure a new one.
+            //configure_database(config).await
+        //}
+    //}
+//}
 
-async fn check_database_exists(config: &DatabaseSettings, connection: &mut PgConnection) -> bool {
-    // Connect to the default database to check if your test database exists
-    let result: (i64,) = sqlx::query_as("SELECT COUNT(datname) FROM pg_database WHERE datname = $1")
-        .bind(&config.database_name)
-        .fetch_one(connection)
-        .await
-        .unwrap();
+//async fn check_database_exists(config: &DatabaseSettings, connection: &mut PgConnection) -> bool {
+    //// Connect to the default database to check if your test database exists
+    //let result: (i64,) = sqlx::query_as("SELECT COUNT(datname) FROM pg_database WHERE datname = $1")
+        //.bind(&config.database_name)
+        //.fetch_one(connection)
+        //.await
+        //.unwrap();
+    //println!("CHECK_DATABASE_EXISTS: {:?}", result);
 
-    result.0 > 0
-}
+    //result.0 > 0
+//}
 
-async fn configure_database(config: &DatabaseSettings) -> Pool<Postgres> {
+async fn configure_database(config: &DatabaseSettings) -> PgPool {
     /* Create database to use for testing */
-    println!("\n\n\nDATABASE_NAME: {:?}\n\n\n", config.database_name);
     let mut connection = PgConnection::connect_with(&config.without_db())
         .await
         .expect("Failed to connect to Postgres");
@@ -223,11 +218,14 @@ async fn configure_database(config: &DatabaseSettings) -> Pool<Postgres> {
         .await
         .expect("Failed to create database.");
 
-    let connection_pool = PgPoolOptions::new()
-        .max_connections(5)
-        .connect_with(config.with_db())
+    let connection_pool = PgPool::connect_with(config.with_db())
         .await
-        .expect("Error building a conneciton pool");
+        .expect("Failed to connect to Postgres.");
+    //let connection_pool = PgPoolOptions::new()
+        //.max_connections(5)
+        //.connect_with(config.with_db())
+        //.await
+        //.expect("Error building a conneciton pool");
     sqlx::migrate!("./migrations")
         .run(&connection_pool)
         .await

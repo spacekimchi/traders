@@ -39,16 +39,3 @@ async fn login_is_a_success() {
     assert_is_redirect_to(&response, "/");
 }
 
-/*
-use reqwest::header::HeaderValue;
-use std::collections::HashSet;
-
-// testing that cookies set properly
-//
-#[tokio::test]
-async fn an_error_flash_message_is_set_on_failure() {
-    // [...]
-    let flash_cookie = response.cookies().find(|c| c.name() == "_flash").unwrap();
-    assert_eq!(flash_cookie.value(), "Authentication failed");
-}
-*/
