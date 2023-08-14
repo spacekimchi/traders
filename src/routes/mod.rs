@@ -1,11 +1,11 @@
-pub mod trade;
-pub mod user;
+pub mod trades;
+pub mod users;
 pub mod health_check;
-pub mod account;
-pub mod execution;
+pub mod accounts;
+pub mod executions;
 pub mod login;
-pub mod journal_entry;
-pub mod tag;
-pub mod trade_tag;
+pub mod journal_entries;
+pub mod tags;
+pub mod trade_tags;
 pub mod homepage;
 

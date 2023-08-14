@@ -1,26 +1,24 @@
+//! src/routes/users.rs
+//!
+//! Routes for actions on users
 use serde::{Deserialize, Serialize};
 use actix_web::web::{Data, Json, Path};
 use actix_web::{web, HttpResponse, HttpRequest, Responder, get, post, delete};
 use secrecy::{Secret, ExposeSecret};
-// use validator::{Validate, ValidationError, ValidationErrors};
-// ValidationError and ValidationErrors can be returned as the error type
-// when using the .validate() method on a struct that derives the Validate macro
-use validator::Validate;
 
+use crate::errors::*;
+use crate::utils::e500;
 use crate::db::models::User;
 use crate::db::models::user::get_username;
-use crate::errors::*;
 use crate::session_state::TypedSession;
 use crate::startup::AppState;
-use crate::utils::e500;
 use crate::domain::{NewUser, UserEmail, UserName};
 use crate::authentication::{validate_credentials, AuthError, Credentials, compute_password_hash, change_password};
 use crate::telemetry::spawn_blocking_with_tracing;
 use crate::authentication::UserId;
 
-/**
- * This runs validations on UserRequest
- */
+/// This runs validations on UserRequest. It tries to create the NewUser
+/// for when creating a new user
 impl TryFrom<UserRequest> for NewUser {
     type Error = String;
 
@@ -31,32 +29,8 @@ impl TryFrom<UserRequest> for NewUser {
     }
 }
 
-/**
- * The Validate here is another way of running validations
- * the validate in the UserRequeset struct doesn't do anything until
- * .validate() is called
- *
- *  let user_request = UserRequest {
- *      username: "".to_string(),
- *      email: "not_an_email".to_string(),
- *      password: "short".to_string(),
- *  };
- *
- *  match user_request.validate() {
- *      Ok(_) => {
- *          // If validation passed, proceed with user creation.
- *          // Or we can return some kind of HttpInvalidRequest Error
- *          println!("User creation request is valid.");
- *      }
- *      Err(e) => {
- *          // If validation failed, print the errors.
- *          println!("User creation request validation failed: {:?}", e);
- *      }
- *  }
- */
-#[derive(Debug, Deserialize, Validate)]
+#[derive(Debug, Deserialize)]
 pub struct UserRequest {
-    #[validate(length(min = 1))]
     pub username: String,
     pub email: String,
     pub password: Secret<String>,
@@ -77,6 +51,8 @@ pub struct ChangePasswordRequest {
     pub new_password_check: Secret<String>,
 }
 
+/// This endpoint is used for grabbing the current user_id in the session
+/// If there is no user in the session, it will return 0
 #[tracing::instrument(
     name = "Getting current user",
     skip(session),
@@ -98,7 +74,7 @@ pub async fn current_user(session: TypedSession) -> Result<HttpResponse, actix_w
 )]
 #[get("/users")]
 pub async fn list_users(state: Data<AppState>) -> Result<impl Responder, UserError> {
-    let users = get_users(&state).await.map_err(e500)?;
+    let users = get_users_from_database(&state).await.map_err(e500)?;
     Ok(HttpResponse::Ok().content_type("application/json").json(users))
 }
 
@@ -106,7 +82,7 @@ pub async fn list_users(state: Data<AppState>) -> Result<impl Responder, UserErr
     name = "Grabbing users from the database",
     skip(state),
 )]
-pub async fn get_users(state: &Data<AppState>) -> Result<Vec<User>, UserError> {
+pub async fn get_users_from_database(state: &Data<AppState>) -> Result<Vec<User>, UserError> {
     sqlx::query_as::<_, User>("SELECT id, username, email, visible, created_at, updated_at FROM users")
         .fetch_all(&state.db)
         .await
@@ -115,16 +91,17 @@ pub async fn get_users(state: &Data<AppState>) -> Result<Vec<User>, UserError> {
 
 #[tracing::instrument(
     name = "Creating a new user",
-    skip(state, body),
+    skip(state, body, _session),
     fields(
         email = %body.email,
         username = %body.username,
     )
 )]
 #[post("/users")]
-pub async fn create(
+pub async fn create_user(
     state: Data<AppState>,
-    body: actix_web_validator::Json<UserRequest>,
+    body: Json<UserRequest>,
+    _session: TypedSession,
     request: HttpRequest,
 ) -> Result<HttpResponse, UserError> {
     let user = insert_user(&state, &body).await?;
@@ -134,14 +111,14 @@ pub async fn create(
         email: user.email,
         // copy other fields
     };
-    Ok(HttpResponse::Ok().json(user_response))
+    Ok(HttpResponse::Created().json(user_response))
 }
 
 #[tracing::instrument(
     name = "Saving new user in the database",
     skip(state, body),
 )]
-pub async fn insert_user(state: &Data<AppState>, body: &actix_web_validator::Json<UserRequest>) -> Result<User, StoreUserError> {
+pub async fn insert_user(state: &Data<AppState>, body: &Json<UserRequest>) -> Result<User, StoreUserError> {
     let user_id = uuid::Uuid::new_v4();
     let password = body.password.clone();
 

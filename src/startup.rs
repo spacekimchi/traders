@@ -6,6 +6,8 @@ use actix_session::SessionMiddleware;
 use actix_session::storage::RedisSessionStore;
 use actix_web::cookie::Key;
 use actix_web_lab::middleware::from_fn;
+use actix_web_flash_messages::storage::CookieMessageStore;
+use actix_web_flash_messages::FlashMessagesFramework;
 use tracing_actix_web::TracingLogger;
 use sqlx::{Pool, PgPool, Postgres};
 use sqlx::postgres::PgPoolOptions;
@@ -15,7 +17,7 @@ use handlebars::Handlebars;
 use crate::configuration::Settings;
 use crate::configuration::DatabaseSettings;
 use crate::authentication::reject_anonymous_users;
-use crate::routes::{user, trade, health_check, account, login, journal_entry, homepage};
+use crate::routes::{users, trades, health_check, accounts, login, journal_entries, homepage};
 
 pub struct AppState {
     pub db: Pool<Postgres>,
@@ -71,6 +73,8 @@ pub async fn run(db_pool: PgPool, listener: TcpListener, base_url: String, redis
     let base_url = web::Data::new(ApplicationBaseUrl(base_url));
     let redis_store = RedisSessionStore::new(redis_uri.expose_secret()).await?;
     let secret_key = Key::from(hmac_secret.expose_secret().as_bytes());
+    let message_store = CookieMessageStore::builder(secret_key.clone()).build();
+    let message_framework = FlashMessagesFramework::builder(message_store).build();
     let mut handlebars = Handlebars::new();
 
     handlebars
@@ -82,6 +86,7 @@ pub async fn run(db_pool: PgPool, listener: TcpListener, base_url: String, redis
     let server = HttpServer::new(move || {
         App::new()
             .wrap(TracingLogger::default())
+            .wrap(message_framework.clone())
             .wrap(SessionMiddleware::new(redis_store.clone(), secret_key.clone()))
             .app_data(base_url.clone())
             .app_data(web::Data::new(AppState { db: db_pool.clone(), hmac_secret: hmac_secret.clone() }))
@@ -90,37 +95,38 @@ pub async fn run(db_pool: PgPool, listener: TcpListener, base_url: String, redis
             .service(
                 web::scope("/api")
                 .service(health_check::health_check)
-                .service(user::current_user)
+                .service(users::current_user)
                 .service(login::login)
+                .service(login::get_login_page)
                 .service(login::logout)
-                .service(account::list)
+                .service(accounts::list)
                 .service(
-                    web::scope("/users")
+                    web::scope("")
                     .wrap(from_fn(reject_anonymous_users))
-                    .service(user::list_users)
-                    .service(user::delete)
-                    .service(user::change_user_password)
-                    .service(user::create)
-                    .service(user::get_user_by_id)
+                    .service(users::list_users)
+                    .service(users::delete)
+                    .service(users::change_user_password)
+                    .service(users::create_user)
+                    .service(users::get_user_by_id)
                 )
                 .service(
                     web::scope("/trades")
-                    .service(trade::index)
+                    .service(trades::index)
                     .service(
                         web::scope("")
                         .wrap(from_fn(reject_anonymous_users))
-                        .service(trade::delete)
-                        .service(trade::import_trade)
+                        .service(trades::delete)
+                        .service(trades::import_trade)
                     ) 
                 )
                 .service(
                     web::scope("/journal_entries")
-                    .service(journal_entry::index)
+                    .service(journal_entries::index)
                     .service(
                         web::scope("")
                         .wrap(from_fn(reject_anonymous_users))
-                        .service(journal_entry::delete)
-                        .service(journal_entry::create)
+                        .service(journal_entries::delete)
+                        .service(journal_entries::create)
                     ) 
                 )
                 .default_service(web::route().method(Method::GET)))

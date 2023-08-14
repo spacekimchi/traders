@@ -12,6 +12,12 @@ The recommended way of [installing Rust](https://www.rust-lang.org/tools/install
 
 The project is using [PostgreSQL](https://www.postgresql.org/). You can install PostgreSQL for whatever machine you are using.
 
+There is a docker script for starting a PostgreSQL database.
+
+Use this command to connect to the PostgreSQL docker container.
+
+`psql -h 127.0.0.1 -p 5432 -U postgres`
+
 ### Redis
 
 [Redis](https://github.com/redis/redis) is required for some features like keeping user sessions.
@@ -39,6 +45,7 @@ Create a systemd service to run the application.
 - [x] Set up CI/CD
   - [x] Set up a `master` branch for production and a `development` branch for development. Work off of `development` branch
   - [x] Set up so `master` branch deploys to server whenever it is pushed to
+- [ ] Set up separate repository with a minimal production ready app with user login and a homepage
 - [ ] Fix the test suite
   - [ ] Routes:
     - [x] HealthCheck

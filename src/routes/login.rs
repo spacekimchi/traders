@@ -1,15 +1,19 @@
+use std::fmt::Write;
+
 use actix_web::http::header::LOCATION;
-use crate::authentication::{validate_credentials, Credentials};
-use actix_web::{HttpResponse, post};
-use actix_web::web::{Data, Json};
+use actix_web::web::{Data, Form};
+use actix_web::error::InternalError;
+use actix_web::{HttpResponse, post, get};
+use actix_web_flash_messages::{FlashMessage, IncomingFlashMessages};
+use handlebars::Handlebars;
+use serde_json::json;
 use secrecy::Secret;
+
+use crate::utils::{e500, error_chain_fmt};
 use crate::startup::AppState;
 use crate::authentication::AuthError;
-use crate::utils::error_chain_fmt;
-use actix_web::http::StatusCode;
-use actix_web::ResponseError;
 use crate::session_state::TypedSession;
-use crate::utils::e500;
+use crate::authentication::{validate_credentials, Credentials};
 
 #[derive(serde::Deserialize, Debug)]
 pub struct LoginForm {
@@ -17,15 +21,33 @@ pub struct LoginForm {
     password: Secret<String>,
 }
 
+/// This route is for displaying the login page
+///
+#[get("/login")]
+async fn get_login_page(hb: Data<Handlebars<'_>>, flash_messages: IncomingFlashMessages) -> HttpResponse {
+    let mut error_html = String::new();
+    for m in flash_messages.iter() {
+        writeln!(error_html, "<p><i>{}</i></p>", m.content()).unwrap();
+    }
+
+    // Since we want to display that error_html as a raw html,
+    // we can use {{{error_html}}} in the html file
+    let data = json!({
+        "error_html": error_html,
+    });
+    let body = hb.render("login", &data).unwrap();
+    HttpResponse::Ok().body(body)
+}
+
 #[tracing::instrument(
     skip(form, state, session),
     fields(username=tracing::field::Empty, id=tracing::field::Empty)
 )]
 #[post("/login")]
-pub async fn login(form: Json<LoginForm>, state: Data<AppState>, session: TypedSession) -> Result<HttpResponse, LoginError> {
+pub async fn login(form: Form<LoginForm>, state: Data<AppState>, session: TypedSession) -> Result<HttpResponse, InternalError<LoginError>> {
     let credentials = Credentials {
-        username: form.username.to_string(),
-        password: form.password.clone(),
+        username: form.0.username,
+        password: form.0.password,
     };
     tracing::Span::current()
         .record("username", &tracing::field::display(&credentials.username));
@@ -37,25 +59,17 @@ pub async fn login(form: Json<LoginForm>, state: Data<AppState>, session: TypedS
                 session.renew();
                 session
                     .insert_user_id(user_id)
-                    .map_err(|e| LoginError::UnexpectedError(e.into()))?;
-                // Set cookies with: 
-                // Ok(HttpResponse::Ok().cookie(Cookie::new("_flash", e.to_string)).json(user_id))
-                // unset cookies with: add_removal_cookie() method
-                // let mut response = HttpResponse::Ok()
-                //      .content_type(ContentType::html())
-                //      .body(/* */);
-                //  response
-                //      .add_removal_cookie(&Cookie::new("_flash", ""))
-                //      .unwrap();
-                //  response
-                //
-                Ok(HttpResponse::Ok().json(user_id))
+                    .map_err(|e| login_redirect(LoginError::UnexpectedError(e.into())))?;
+                Ok(HttpResponse::SeeOther()
+                   .insert_header((LOCATION, "/"))
+                   .finish())
             }
             Err(e) => {
-                match e {
-                    AuthError::InvalidCredentials(_) => Err(LoginError::AuthError(e.into())),
-                    AuthError::UnexpectedError(_) => Err(LoginError::UnexpectedError(e.into())),
-                }
+                let e = match e {
+                    AuthError::InvalidCredentials(_) => LoginError::AuthError(e.into()),
+                    AuthError::UnexpectedError(_) => LoginError::UnexpectedError(e.into()),
+                };
+                Err(login_redirect(e))
             }
         }
 }
@@ -67,6 +81,14 @@ pub async fn logout(session: TypedSession) -> Result<HttpResponse, actix_web::Er
     }
     session.logout();
     Ok(HttpResponse::Ok().finish())
+}
+
+fn login_redirect(e: LoginError) -> InternalError<LoginError> {
+    FlashMessage::error(e.to_string()).send();
+    let response = HttpResponse::SeeOther()
+        .insert_header((LOCATION, "/api/login"))
+        .finish();
+    InternalError::from_response(e, response)
 }
 
 #[derive(thiserror::Error)]
@@ -83,21 +105,3 @@ impl std::fmt::Debug for LoginError {
     }
 }
 
-impl ResponseError for LoginError {
-    fn error_response(&self) -> HttpResponse {
-        /* TODO
-         * Replace this with a json error response
-         * it currently just redirects to /login
-         */
-        HttpResponse::build(self.status_code())
-            .insert_header((LOCATION, "/login"))
-            .finish()
-    }
-
-    fn status_code(&self) -> StatusCode {
-        match self {
-            LoginError::UnexpectedError(_) => StatusCode::INTERNAL_SERVER_ERROR,
-            LoginError::AuthError(_) => StatusCode::UNAUTHORIZED,
-        }
-    }
-}
