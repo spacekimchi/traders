@@ -71,24 +71,10 @@ pub struct TestApp {
     pub db_pool: PgPool,
     pub test_user: TestUser,
     pub api_client: reqwest::Client,
-}
-
-impl Drop for TestApp {
-    fn drop(&mut self) {
-        // Shutdown application
-        // For example, if your application has a shutdown method, call it here
-        // self.application.shutdown();
-
-        // Close the database pool (if required)
-        self.db_pool.close();
-    }
+    pub db_settings: DatabaseSettings,
 }
 
 impl TestApp {
-    async fn close(&self) {
-        self.db_pool.close().await;
-    }
-
     pub async fn post_login<Body>(&self, body: &Body) -> reqwest::Response
     where
         Body: serde::Serialize
@@ -121,7 +107,7 @@ impl TestApp {
             .unwrap()
     }
 
-    pub async fn test_user(&self) -> (String, String) {
+    pub async fn _test_user(&self) -> (String, String) {
         let row = sqlx::query!("SELECT username, password_hash FROM users limit 1",)
             .fetch_one(&self.db_pool)
             .await
@@ -147,7 +133,6 @@ pub async fn spawn_app() -> TestApp {
 
     /* Session */
     let db_pool = configure_database(&configuration.database).await;
-    //let db_pool = ensure_or_configure_database(&configuration.database).await;
 
     let application = Application::build(configuration.clone())
         .await
@@ -168,45 +153,11 @@ pub async fn spawn_app() -> TestApp {
         port: application_port,
         test_user: TestUser::generate(),
         api_client: client,
+        db_settings: configuration.database
     };
     test_app.test_user.store(&mut test_app.db_pool).await;
     test_app
 }
-
-/// This funciton checks if the test_traders database exists
-//async fn ensure_or_configure_database(config: &DatabaseSettings) -> Pool<Postgres> {
-    //let mut connection = PgConnection::connect_with(&config.without_db())
-        //.await
-        //.expect("Failed to connect to Postgres");
-
-    //match check_database_exists(config, &mut connection).await {
-        //true => {
-            //// The database exists. Connect to it.
-            //let connection_pool = PgPoolOptions::new()
-                //.max_connections(5)
-                //.connect_with(config.with_db())
-                //.await
-                //.expect("Error building a connection pool");
-            //connection_pool
-        //}
-        //false => {
-            //// The database doesn't exist. Configure a new one.
-            //configure_database(config).await
-        //}
-    //}
-//}
-
-//async fn check_database_exists(config: &DatabaseSettings, connection: &mut PgConnection) -> bool {
-    //// Connect to the default database to check if your test database exists
-    //let result: (i64,) = sqlx::query_as("SELECT COUNT(datname) FROM pg_database WHERE datname = $1")
-        //.bind(&config.database_name)
-        //.fetch_one(connection)
-        //.await
-        //.unwrap();
-    //println!("CHECK_DATABASE_EXISTS: {:?}", result);
-
-    //result.0 > 0
-//}
 
 async fn configure_database(config: &DatabaseSettings) -> PgPool {
     /* Create database to use for testing */
@@ -234,7 +185,9 @@ async fn configure_database(config: &DatabaseSettings) -> PgPool {
     connection_pool
 }
 
-async fn add_test_user(pool: &Pool<Postgres>) {
+
+
+async fn _add_test_user(pool: &Pool<Postgres>) {
     sqlx::query!(
         "INSERT INTO users (id, username, password_hash)
         VALUES ($1, $2, $3)",
