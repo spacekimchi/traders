@@ -73,11 +73,25 @@ pub struct TestApp {
     pub api_client: reqwest::Client,
 }
 
+impl Drop for TestApp {
+    fn drop(&mut self) {
+        // Shutdown application
+        // For example, if your application has a shutdown method, call it here
+        // self.application.shutdown();
+
+        // Close the database pool (if required)
+        self.db_pool.close();
+    }
+}
+
 impl TestApp {
-    pub async fn post_login(&self, body: &serde_json::Value) -> reqwest::Response {
+    pub async fn post_login<Body>(&self, body: &Body) -> reqwest::Response
+    where
+        Body: serde::Serialize
+    {
         self.api_client
             .post(&format!("{}/api/login", &self.address))
-            .json(&body)
+            .form(&body)
             .send()
             .await
             .expect("Failed to execute request.")
@@ -90,6 +104,17 @@ impl TestApp {
             .send()
             .await
             .expect("Failed to execute request.")
+    }
+
+    pub async fn get_login_html(&self) -> String {
+        self.api_client
+            .get(&format!("{}/api/login", &self.address))
+            .send()
+            .await
+            .expect("Failed to execute request.")
+            .text()
+            .await
+            .unwrap()
     }
 
     pub async fn test_user(&self) -> (String, String) {
@@ -125,6 +150,18 @@ pub async fn spawn_app() -> TestApp {
 
     /* Session */
     let db_pool = configure_database(&configuration.database).await;
+    
+    //let db_pool = match check_database_exists(&configuration.database) {
+        //true => configure_database(&configuration.database).await,
+        //false => 
+    //};
+
+    //let database_exists = check_database_exists(&configuration.database).await;
+
+    //if !database_exists {
+        //configure_database(&configuration.database).await;
+    //}
+
     let _ = actix_web::rt::spawn(application.run_until_stopped());
     let client = reqwest::Client::builder()
         .redirect(reqwest::redirect::Policy::none())
@@ -142,8 +179,42 @@ pub async fn spawn_app() -> TestApp {
     test_app
 }
 
+async fn ensure_or_configure_database(config: &DatabaseSettings) -> Pool<Postgres> {
+    let mut connection = PgConnection::connect_with(&config.without_db())
+        .await
+        .expect("Failed to connect to Postgres");
+
+    match check_database_exists(config, &mut connection).await {
+        true => {
+            // The database exists. Connect to it.
+            let connection_pool = PgPoolOptions::new()
+                .max_connections(5)
+                .connect_with(config.with_db())
+                .await
+                .expect("Error building a connection pool");
+            connection_pool
+        }
+        false => {
+            // The database doesn't exist. Configure a new one.
+            configure_database(config).await
+        }
+    }
+}
+
+async fn check_database_exists(config: &DatabaseSettings, connection: &mut PgConnection) -> bool {
+    // Connect to the default database to check if your test database exists
+    let result: (i64,) = sqlx::query_as("SELECT COUNT(datname) FROM pg_database WHERE datname = $1")
+        .bind(&config.database_name)
+        .fetch_one(connection)
+        .await
+        .unwrap();
+
+    result.0 > 0
+}
+
 async fn configure_database(config: &DatabaseSettings) -> Pool<Postgres> {
     /* Create database to use for testing */
+    println!("\n\n\nDATABASE_NAME: {:?}\n\n\n", config.database_name);
     let mut connection = PgConnection::connect_with(&config.without_db())
         .await
         .expect("Failed to connect to Postgres");
@@ -176,4 +247,9 @@ async fn add_test_user(pool: &Pool<Postgres>) {
     .execute(pool)
     .await
     .expect("Failed to create test users.");
+}
+
+pub fn assert_is_redirect_to(response: &reqwest::Response, location: &str) {
+    assert_eq!(response.status().as_u16(), 303);
+    assert_eq!(response.headers().get("Location").unwrap(), location);
 }

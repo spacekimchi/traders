@@ -5,10 +5,6 @@ use serde::{Deserialize, Serialize};
 use actix_web::web::{Data, Json, Path};
 use actix_web::{web, HttpResponse, HttpRequest, Responder, get, post, delete};
 use secrecy::{Secret, ExposeSecret};
-// use validator::{Validate, ValidationError, ValidationErrors};
-// ValidationError and ValidationErrors can be returned as the error type
-// when using the .validate() method on a struct that derives the Validate macro
-use validator::Validate;
 
 use crate::errors::*;
 use crate::utils::e500;
@@ -33,29 +29,6 @@ impl TryFrom<UserRequest> for NewUser {
     }
 }
 
-/**
- * The Validate here is another way of running validations
- * the validate in the UserRequeset struct doesn't do anything until
- * .validate() is called
- *
- *  let user_request = UserRequest {
- *      username: "".to_string(),
- *      email: "not_an_email".to_string(),
- *      password: "short".to_string(),
- *  };
- *
- *  match user_request.validate() {
- *      Ok(_) => {
- *          // If validation passed, proceed with user creation.
- *          // Or we can return some kind of HttpInvalidRequest Error
- *          println!("User creation request is valid.");
- *      }
- *      Err(e) => {
- *          // If validation failed, print the errors.
- *          println!("User creation request validation failed: {:?}", e);
- *      }
- *  }
- */
 #[derive(Debug, Deserialize)]
 pub struct UserRequest {
     pub username: String,

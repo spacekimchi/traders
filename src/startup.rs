@@ -6,6 +6,8 @@ use actix_session::SessionMiddleware;
 use actix_session::storage::RedisSessionStore;
 use actix_web::cookie::Key;
 use actix_web_lab::middleware::from_fn;
+use actix_web_flash_messages::storage::CookieMessageStore;
+use actix_web_flash_messages::FlashMessagesFramework;
 use tracing_actix_web::TracingLogger;
 use sqlx::{Pool, PgPool, Postgres};
 use sqlx::postgres::PgPoolOptions;
@@ -71,6 +73,8 @@ pub async fn run(db_pool: PgPool, listener: TcpListener, base_url: String, redis
     let base_url = web::Data::new(ApplicationBaseUrl(base_url));
     let redis_store = RedisSessionStore::new(redis_uri.expose_secret()).await?;
     let secret_key = Key::from(hmac_secret.expose_secret().as_bytes());
+    let message_store = CookieMessageStore::builder(secret_key.clone()).build();
+    let message_framework = FlashMessagesFramework::builder(message_store).build();
     let mut handlebars = Handlebars::new();
 
     handlebars
@@ -82,6 +86,7 @@ pub async fn run(db_pool: PgPool, listener: TcpListener, base_url: String, redis
     let server = HttpServer::new(move || {
         App::new()
             .wrap(TracingLogger::default())
+            .wrap(message_framework.clone())
             .wrap(SessionMiddleware::new(redis_store.clone(), secret_key.clone()))
             .app_data(base_url.clone())
             .app_data(web::Data::new(AppState { db: db_pool.clone(), hmac_secret: hmac_secret.clone() }))
@@ -92,6 +97,7 @@ pub async fn run(db_pool: PgPool, listener: TcpListener, base_url: String, redis
                 .service(health_check::health_check)
                 .service(users::current_user)
                 .service(login::login)
+                .service(login::get_login_page)
                 .service(login::logout)
                 .service(accounts::list)
                 .service(

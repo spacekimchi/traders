@@ -1,4 +1,4 @@
-use crate::helpers::spawn_app;
+use crate::helpers::{spawn_app, assert_is_redirect_to};
 
 #[actix_web::test]
 async fn invalid_user_is_unable_to_login() {
@@ -11,7 +11,17 @@ async fn invalid_user_is_unable_to_login() {
     let response = app.post_login(&body).await;
 
     // Assert
-    assert_eq!(401, response.status().as_u16());
+    assert_eq!(303, response.status().as_u16());
+    assert_is_redirect_to(&response, "/api/login");
+
+    // Act - Part 2 - Follow the redirect
+    let html_page = app.get_login_html().await;
+    println!("HTML_PAGE: {:?}", html_page);
+    assert!(html_page.contains("<p><i>Authentication failed</i></p>"));
+
+    // Act - Part 3 - Reload the login page
+    let html_page = app.get_login_html().await;
+    assert!(!html_page.contains("Authentication failed"));
 }
 
 #[actix_web::test]
@@ -25,10 +35,8 @@ async fn login_is_a_success() {
 
     let response = app.post_login(&login_body).await;
 
-    assert_eq!(200, response.status().as_u16());
-    // Act - Part 2 - Follow the redirect
-    //let html_page = app.get_admin_dashboard().await;
-    //assert!(html_page.contains(&format!("Welcome {}", app.test_user.username)));
+    assert_eq!(303, response.status().as_u16());
+    assert_is_redirect_to(&response, "/");
 }
 
 /*

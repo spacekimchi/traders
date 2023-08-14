@@ -13,40 +13,67 @@ name = "traders"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+# actix-web crates
 actix-web = "4.0"
+actix-web-lab = "0.19.1"
+actix-multipart = "0.6.0"
 actix-session = {version="0.7.2", features = ["redis-rs-tls-session"]}
-chrono = {version="0.4.23", features = ["serde"]}
-serde = {version = "1.0", features = ["derive"]}
-uuid = {version = "1.2.2", features = ["v4","fast-rng","macro-diagnostics","serde"]}
-dotenv = "0.15.0"
+actix-web-flash-messages = { version = "0.4.2", features = ["cookies"] }
+
+# reqwest crates
+reqwest = { version = "0.11.14", features = ["json", "cookies", "rustls-tls"] }
+
+# fututes crates
+futures = "0.3.28"
+
+# sqlx  crate
 sqlx = { version = "0.6.2", features = ["runtime-actix-rustls", "macros", "postgres", "chrono", "uuid", "migrate", "offline"] }
+
+# used for user_id
+uuid = {version = "1.2.2", features = ["v4","fast-rng","macro-diagnostics","serde"]}
+
+# time crates
+chrono = {version="0.4.23", features = ["serde"]}
 time = {version="0.3.17", features=["serde"]}
+
+# randomizing crate
+rand = { version = "0.8.5", features = ["std_rng"] }
+rand_core = { version = "0.6.4", features = ["std"] }
+
+# configuration crates
+dotenv = "0.15.0"
 config = "0.13.3"
+hmac = { version = "0.12.1", features = ["std"] }
+
+# Tracing crates
 tracing = { version = "0.1.37", features = ["log"] }
+tracing-actix-web = "0.7.2"
 tracing-subscriber = { version = "0.3.16", features = ["registry", "env-filter"] }
 tracing-bunyan-formatter = "0.3.6"
 tracing-log = "0.1.3"
 once_cell = "1.17.1"
-secrecy = { version = "0.8.0", features = ["serde"] }
-tracing-actix-web = "0.7.2"
-serde-aux = "4.1.2"
+
+# Crates for errors
 anyhow = "1.0.70"
-base64 = "0.21.0"
+thiserror = "1.0.40"
+
+# tokio crates
+tokio = { version = "1.27.0", features = ["rt-multi-thread", "macros"] }
+
+# authentication crates
+argon2 = { version = "0.5.0", features = ["std"] }
+secrecy = { version = "0.8.0", features = ["serde"] }
+
+# input validation crates
 validator = { version = "0.16.0", features = ["derive"] }
 unicode-segmentation = "1.10.1"
-thiserror = "1.0.40"
-argon2 = { version = "0.5.0", features = ["std"] }
-rand_core = { version = "0.6.4", features = ["std"] }
-rand = { version = "0.8.5", features = ["std_rng"] }
-tokio = { version = "1.27.0", features = ["rt-multi-thread", "macros"] }
-reqwest = { version = "0.11.14", features = ["json", "cookies", "rustls-tls"] }
-hmac = { version = "0.12.1", features = ["std"] }
+
+# serde crates
+serde = {version = "1.0", features = ["derive"]}
 serde_json = "1.0"
-actix-web-lab = "0.19.1"
-actix-multipart = "0.6.0"
-futures = "0.3.28"
-calamine = { version = "0.19.1", features = ["chrono", "dates"] }
-actix-web-validator = "5.0.1"
+serde-aux = "4.1.2"
+
+# templating engine crate
 handlebars = { version = "4.3.7", features = ["dir_source"] }
 
 [dev-dependencies]
