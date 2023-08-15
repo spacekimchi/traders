@@ -13,4 +13,5 @@ migrations/*seed_data.sql
 configuration/*
 *.swp
 .DS_Store*
+.prettierrc
 

@@ -73,8 +73,13 @@ Instead of using a frontend framework, this project will use SSR to serve HTML, 
 
 The templating engine used here is the [handlebars-rust](https://github.com/sunng87/handlebars-rust) crate.
 
+Some quick tips for using handlebars:
+ - `{{}}` for interpolation with escaped characters
+ - `{{{}}}` for interpolation with raw html (nothing is escaped)
+ - `{{> _partial_name}` for rendering partials
+
 TODO:
-  [] Add Stimulus/Turbo with Hotwire
+  [ ] Add Stimulus/Turbo with Hotwire
 
 ## Current State
 

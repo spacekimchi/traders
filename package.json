@@ -1,0 +1,22 @@
+{
+  "name": "traders",
+  "version": "1.0.0",
+  "description": "Trading tracker",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/spacekimchi/traders.git"
+  },
+  "author": "jhg",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/spacekimchi/traders/issues"
+  },
+  "homepage": "https://github.com/spacekimchi/traders#readme"
+}
