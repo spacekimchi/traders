@@ -96,6 +96,7 @@ pub async fn run(db_pool: PgPool, listener: TcpListener, base_url: String, redis
                 web::scope("/api")
                 .service(health_check::health_check)
                 .service(users::current_user)
+                .service(users::new_user_page)
                 .service(login::login)
                 .service(login::get_login_page)
                 .service(login::logout)
@@ -105,8 +106,8 @@ pub async fn run(db_pool: PgPool, listener: TcpListener, base_url: String, redis
                     .wrap(from_fn(reject_anonymous_users))
                     .service(users::list_users)
                     .service(users::delete)
-                    .service(users::change_user_password)
                     .service(users::create_user)
+                    .service(users::change_user_password)
                     .service(users::get_user_by_id)
                 )
                 .service(
