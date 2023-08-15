@@ -1,0 +1,22 @@
+// this file should go in /etc/systemd/system/your_app.service
+// the above place is where systemd services go
+// The service can be enabled with sudo systemctl enable your_app.service
+// You will want to edit the user_to_run_app or whoever the user you deploy with
+// to have permission to run sudo systemctl [start, stop, restart] your_app.service without a password
+// You can run `sudo visudo` to open the file that will allow you to set these permissions
+
+[Unit]
+Description=Actix Web Application
+After=network.target
+
+[Service]
+WorkingDirectory=/path/of/starting/directory/traders/
+EnvironmentFile=/path/to/.env
+ExecStart=/path/to/binary/traders
+User=user_to_run_app
+Restart=always
+RestartSec=5
+TimeoutStartSec=300
+
+[Install]
+WantedBy=multi-user.target
