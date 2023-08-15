@@ -38,18 +38,20 @@ will be hosted on.
 
 Create a systemd service to run the application.
 
+The systemd service loads environment variables using a path. Be sure to restrict reading access to this file
+in order to protect secrets
+
 ## TODO
-- [ ] DOCUMENTATION FOR ALL OF THESE TODOS IS A MUST
 - [x] Bring database changes from other repository and get at least homepage to show
 - [x] Set up server to display homepage
 - [x] Set up CI/CD
   - [x] Set up a `master` branch for production and a `development` branch for development. Work off of `development` branch
   - [x] Set up so `master` branch deploys to server whenever it is pushed to
-- [ ] Set up separate repository with a minimal production ready app with user login and a homepage
+- [x] Set up separate repository with a minimal production ready app with user login and a homepage
 - [ ] Fix the test suite
   - [ ] Routes:
     - [x] HealthCheck
-    - [ ] Users
+    - [x] Users
   - [ ] Models:
     - [ ] Users
   - [ ] Domain:
@@ -80,12 +82,12 @@ I am currently working to stabilize the development experience and infrastructur
 
 The plan to achieve this is:
 1. ~~Get the app in a minimal working state (have health_check and homepage showing)~~
-2. Set up CI/CD, and then write tests.
-  - Start with tests for applicaiton setup files, health_check endpoint, and users endpoints
-    - There is a lot of outdated code in the users routes. (the file also needs to be renamed to `src/routes/users`
-    - Write documentaiton along the way
-4. Copy this point of the project to a new repository
-  - This will make starting a new project with actix-web a breeze as there will be a great starting point
+2. ~~Set up CI/CD, and then write tests.~~
+  - ~~Start with tests for applicaiton setup files, health_check endpoint, and users endpoints~~
+    - ~~There is a lot of outdated code in the users routes. (the file also needs to be renamed to `src/routes/users`~~
+    - ~~Write documentaiton along the way~~
+4. ~~Copy this point of the project to a new repository~~
+  - ~~This will make starting a new project with actix-web a breeze as there will be a great starting point~~
 
 ## Testing
 
