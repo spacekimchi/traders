@@ -15,13 +15,11 @@ use secrecy::{Secret, ExposeSecret};
 
 use crate::errors::*;
 use crate::utils::e500;
-use crate::db::models::User;
-use crate::db::models::user::get_username;
+use crate::db::models::user::{get_username, get_users_from_database, get_user_from_database, save_user_to_database};
 use crate::session_state::TypedSession;
 use crate::startup::AppState;
 use crate::domain::{NewUser, UserEmail, UserName};
-use crate::authentication::{validate_credentials, AuthError, Credentials, compute_password_hash, change_password};
-use crate::telemetry::spawn_blocking_with_tracing;
+use crate::authentication::{validate_credentials, AuthError, Credentials, change_password};
 use crate::authentication::UserId;
 
 /// This runs validations on UserForm. It tries to create the NewUser
@@ -109,17 +107,6 @@ pub async fn list_users(state: Data<AppState>) -> Result<impl Responder, UserErr
 }
 
 #[tracing::instrument(
-    name = "Grabbing users from the database",
-    skip(state),
-)]
-pub async fn get_users_from_database(state: &Data<AppState>) -> Result<Vec<User>, UserError> {
-    sqlx::query_as::<_, User>("SELECT id, username, email, visible, created_at, updated_at FROM users")
-        .fetch_all(&state.db)
-        .await
-        .map_err(UserError::DatabaseError)
-}
-
-#[tracing::instrument(
     name = "Creating a new user",
     skip(state, body, _session),
     fields(
@@ -136,7 +123,7 @@ pub async fn create_user(
     hb: Data<Handlebars<'_>>,
 ) -> Result<HttpResponse, InternalError<StoreUserError>> {
     //let user = insert_user(&state, &body).await?;
-    match insert_user(&state, &body).await {
+    match save_user_to_database(&state, &body).await {
         Ok(_user) => {
             // We need some kind of flash message to alert of a successful creation
 
@@ -159,50 +146,13 @@ pub async fn create_user(
             return Err(InternalError::from_response(e, response));
         }
     }
-    //let user_response = UserResponse {
-        //id: user.id,
-        //username: user.username,
-        //email: user.email,
-        //// copy other fields
-    //};
-    //Ok(HttpResponse::Created().json(user_response))
-}
-
-#[tracing::instrument(
-    name = "Saving new user in the database",
-    skip(state, body),
-)]
-pub async fn insert_user(state: &Data<AppState>, body: &Form<UserForm>) -> Result<User, StoreUserError> {
-    let user_id = uuid::Uuid::new_v4();
-    let password = body.0.password.clone();
-
-    /* TODO: Study this pattern */
-    let password_hash_result = spawn_blocking_with_tracing(move || compute_password_hash(password)).await;
-    let password_hash = match password_hash_result {
-        Ok(hash) => hash,
-        Err(_) => return Err(StoreUserError(anyhow::anyhow!("Failed to hash password"))),
-    };
-
-    sqlx::query_as::<_, User>(
-        "INSERT INTO users (id, username, email, password_hash) VALUES ($1, $2, $3, $4) RETURNING id, username, email, visible, password_hash, created_at, updated_at"
-    )
-    .bind(user_id)
-    .bind(&body.0.username)
-    .bind(&body.0.email)
-    .bind(password_hash?.expose_secret())
-    .fetch_one(&state.db)
-    .await
-    .map_err(|err| StoreUserError(err.into()))
 }
 
 #[get("/users/{user_id}")]
 pub async fn get_user_by_id(state: Data<AppState>, path: Path<String>) -> impl Responder {
     // TODO: Get user by ID. This will discard query params
     let user_id = path.into_inner();
-    match sqlx::query_as::<_, User>("SELECT id, username, email, created_at FROM users WHERE id = $1")
-        .bind(user_id)
-        .fetch_all(&state.db)
-        .await
+    match get_user_from_database(&state, &user_id).await
         {
             Ok(user) => HttpResponse::Ok().json(user),
             Err(_) => HttpResponse::NotFound().json("No user found"),
@@ -220,6 +170,8 @@ pub async fn delete(_state: Data<AppState>, _path: Path<(String,)>) -> HttpRespo
         .unwrap()
 }
 
+/// TODO
+///   - We need some kind of password strength checker
 #[post("/users/{user_id}")]
 pub async fn change_user_password(
     state: Data<AppState>,
@@ -230,6 +182,7 @@ pub async fn change_user_password(
     if body.new_password.expose_secret() != body.new_password_check.expose_secret() {
         return Ok(HttpResponse::BadRequest().json("Passwords do not match"));
     }
+
     let username = get_username(*user_id, &state).await.map_err(e500)?;
     let credentials = Credentials {
         username,
@@ -246,9 +199,6 @@ pub async fn change_user_password(
     change_password(*user_id, body.new_password.clone(), &state)
         .await
         .map_err(e500)?;
-    /* TODO
-     * Add password strength checker
-     */
     todo!();
 }
 

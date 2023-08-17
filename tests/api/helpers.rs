@@ -96,6 +96,18 @@ impl TestApp {
             .expect("Failed to execute request.")
     }
 
+    pub async fn post_users_form<Body>(&self, body: &Body) -> reqwest::Response
+    where
+        Body: serde::Serialize
+    {
+        self.api_client
+            .post(&format!("{}/api/users", &self.address))
+            .form(&body)
+            .send()
+            .await
+            .expect("Failed to execute request.")
+    }
+
     pub async fn get_login_html(&self) -> String {
         self.api_client
             .get(&format!("{}/api/login", &self.address))
@@ -105,6 +117,14 @@ impl TestApp {
             .text()
             .await
             .unwrap()
+    }
+
+    pub async fn login_test_user(&self) -> reqwest::Response {
+        let login_body = serde_json::json!({
+            "username": &self.test_user.username,
+            "password": &self.test_user.password
+        });
+        self.post_login(&login_body).await
     }
 
     pub async fn _test_user(&self) -> (String, String) {

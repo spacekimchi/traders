@@ -1,9 +1,14 @@
 use anyhow::Context;
 use sqlx::{self, FromRow};
-use actix_web::web::Data;
+use actix_web::web::{Data, Form};
 use serde::{Deserialize, Serialize};
+use secrecy::ExposeSecret;
 
+use crate::errors::*;
 use crate::startup::AppState;
+use crate::routes::users::UserForm;
+use crate::authentication::compute_password_hash;
+use crate::telemetry::spawn_blocking_with_tracing;
 
 #[derive(Debug, Deserialize, Serialize, FromRow)]
 pub struct User {
@@ -34,5 +39,52 @@ pub async fn get_username(
     .await
     .context("Failed to perform a query to retrieve a username.")?;
     Ok(row.username)
+}
+
+#[tracing::instrument(
+    name = "Grabbing users from the database",
+    skip(state),
+)]
+pub async fn get_users_from_database(state: &Data<AppState>) -> Result<Vec<User>, UserError> {
+    sqlx::query_as::<_, User>("SELECT id, username, email, visible, created_at, updated_at FROM users")
+        .fetch_all(&state.db)
+        .await
+        .map_err(UserError::DatabaseError)
+}
+
+pub async fn get_user_from_database(state: &Data<AppState>, user_id: &String) -> Result<User, UserError> {
+    // TODO: Get user by ID. This will discard query params
+    sqlx::query_as::<_, User>("SELECT id, username, email, created_at FROM users WHERE id = $1")
+        .bind(user_id)
+        .fetch_one(&state.db)
+        .await
+        .map_err(UserError::DatabaseError)
+}
+
+#[tracing::instrument(
+    name = "Saving new user in the database",
+    skip(state, body),
+)]
+pub async fn save_user_to_database(state: &Data<AppState>, body: &Form<UserForm>) -> Result<User, StoreUserError> {
+    let user_id = uuid::Uuid::new_v4();
+    let password = body.0.password.clone();
+
+    /* TODO: Study this pattern */
+    let password_hash_result = spawn_blocking_with_tracing(move || compute_password_hash(password)).await;
+    let password_hash = match password_hash_result {
+        Ok(hash) => hash,
+        Err(_) => return Err(StoreUserError(anyhow::anyhow!("Failed to hash password"))),
+    };
+
+    sqlx::query_as::<_, User>(
+        "INSERT INTO users (id, username, email, password_hash) VALUES ($1, $2, $3, $4) RETURNING id, username, email, visible, password_hash, created_at, updated_at"
+    )
+    .bind(user_id)
+    .bind(&body.0.username)
+    .bind(&body.0.email)
+    .bind(password_hash?.expose_secret())
+    .fetch_one(&state.db)
+    .await
+    .map_err(|err| StoreUserError(err.into()))
 }
 
