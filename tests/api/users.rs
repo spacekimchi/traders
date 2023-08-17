@@ -1,4 +1,10 @@
-//! tests/users.rs
+//! tests/api/users.rs
+//!
+//! Current tests
+//!   1. unauthorized_user_creation
+//!   2. authorized_user_creationg
+//!
+
 use crate::helpers::spawn_app;
 
 #[actix_web::test]
@@ -23,7 +29,7 @@ async fn authorized_user_creation() {
             "email": "test1@email.com",
             "password": "newpassword",
         });
-    let response = app.post_users(&body).await;
+    let response = app.post_users_form(&body).await;
 
     assert_eq!(401, response.status().as_u16());
 
@@ -32,24 +38,10 @@ async fn authorized_user_creation() {
         "password": &app.test_user.password
     });
     let _response = app.post_login(&login_body).await;
-    let response = app.post_users(&body).await;
+    let response = app.post_users_form(&body).await;
 
-    assert_eq!(201, response.status().as_u16(), "Login failed.");
-}
-
-#[actix_web::test]
-async fn non_existing_user_is_rejected() {
-    let app = spawn_app().await;
-
-    let username = uuid::Uuid::new_v4().to_string();
-    let password = uuid::Uuid::new_v4().to_string();
-
-    let login_body = serde_json::json!({
-        "username": &username,
-        "password": &password
-    });
-    let response = app.post_login(&login_body).await;
-
-    assert_eq!(303, response.status().as_u16());
+    assert_eq!(303, response.status().as_u16(), "Login failed.");
+    let html_page = app.get_login_html().await;
+    assert!(html_page.contains("User creation successful!"));
 }
 
