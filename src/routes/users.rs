@@ -21,6 +21,7 @@ use crate::startup::AppState;
 use crate::domain::{NewUser, UserEmail, UserName};
 use crate::authentication::{validate_credentials, AuthError, Credentials, change_password};
 use crate::authentication::UserId;
+use crate::template_helpers;
 
 /// This runs validations on UserForm. It tries to create the NewUser
 /// for when creating a new user
@@ -67,17 +68,16 @@ pub async fn new_user_page(hb: Data<Handlebars<'_>>, flash_messages: IncomingFla
     for m in flash_messages.iter() {
         writeln!(flash_html, "<div>{}<div>", m.content()).unwrap();
     }
-    //let top_nav = hb.render("partials/_top_nav", &json!({})).unwrap();
-    let content = hb.render("users/new", &json!({})).unwrap();
-    let data = json!({
-        "content": content,
-        //"top_nav": top_nav
-    });
-    let body = hb.render("base", &data).unwrap();
+    let body = template_helpers::render_content(
+        &template_helpers::RenderTemplateParams {
+            template: &"users/new",
+            handlebar: &hb,
+            incoming_flash_messages: Some(&flash_messages)
+        })?;
+    
 
     Ok(HttpResponse::Ok().body(body))
 }
-
 
 /// This endpoint is used for grabbing the current user_id in the session
 /// If there is no user in the session, it will return 0
