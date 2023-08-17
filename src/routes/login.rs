@@ -30,8 +30,6 @@ async fn get_login_page(hb: Data<Handlebars<'_>>, flash_messages: IncomingFlashM
         writeln!(error_html, "<p><i>{}</i></p>", m.content()).unwrap();
     }
 
-    // Since we want to display that error_html as a raw html,
-    // we can use {{{error_html}}} in the html file
     let data = json!({
         "error_html": error_html,
     });
