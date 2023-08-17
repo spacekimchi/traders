@@ -68,12 +68,17 @@ pub async fn new_user_page(hb: Data<Handlebars<'_>>, flash_messages: IncomingFla
     for m in flash_messages.iter() {
         writeln!(flash_html, "<div>{}<div>", m.content()).unwrap();
     }
-    let body = template_helpers::render_content(
+
+    // TODO Can we just return .err(e500)? here?
+    let body = match template_helpers::render_content(
         &template_helpers::RenderTemplateParams {
             template: &"users/new",
             handlebar: &hb,
             incoming_flash_messages: Some(&flash_messages)
-        })?;
+        }) {
+        Ok(new_user_page_template) => new_user_page_template,
+        Err(_) => template_helpers::err_500_template(&hb)
+    };
     
 
     Ok(HttpResponse::Ok().body(body))
