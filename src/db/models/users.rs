@@ -75,6 +75,7 @@ pub async fn save_user_to_database(state: &Data<AppState>, body: &Form<UserForm>
         Ok(hash) => hash,
         Err(_) => return Err(StoreUserError(anyhow::anyhow!("Failed to hash password"))),
     };
+    let exposed_s = password_hash?.expose_secret().to_string();
 
     sqlx::query_as::<_, User>(
         "INSERT INTO users (id, username, email, password_hash) VALUES ($1, $2, $3, $4) RETURNING id, username, email, visible, password_hash, created_at, updated_at"
@@ -82,7 +83,7 @@ pub async fn save_user_to_database(state: &Data<AppState>, body: &Form<UserForm>
     .bind(user_id)
     .bind(&body.0.username)
     .bind(&body.0.email)
-    .bind(password_hash?.expose_secret())
+    .bind(exposed_s)
     .fetch_one(&state.db)
     .await
     .map_err(|err| StoreUserError(err.into()))

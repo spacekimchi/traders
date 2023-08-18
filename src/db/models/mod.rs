@@ -1,4 +1,6 @@
-pub mod user;
+pub mod users;
+pub mod trades;
 
-pub use user::*;
+pub use users::*;
+pub use trades::*;
 
