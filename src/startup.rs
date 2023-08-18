@@ -99,6 +99,7 @@ pub async fn run(db_pool: PgPool, listener: TcpListener, base_url: String, redis
                 .service(users::new_user_page)
                 .service(login::login)
                 .service(login::get_login_page)
+                .service(users::create_user)
                 .service(login::logout)
                 .service(accounts::list)
                 .service(
@@ -106,7 +107,6 @@ pub async fn run(db_pool: PgPool, listener: TcpListener, base_url: String, redis
                     .wrap(from_fn(reject_anonymous_users))
                     .service(users::list_users)
                     .service(users::delete)
-                    .service(users::create_user)
                     .service(users::change_user_password)
                     .service(users::get_user_by_id)
                 )

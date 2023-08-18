@@ -39,6 +39,7 @@ impl TestUser {
         }
     }
 
+    /// This function will store the built test user into the db pool passed in
     async fn store(&self, pool: &PgPool) {
         let email = SafeEmail().fake::<String>();
         let salt = SaltString::generate(&mut rand::thread_rng());
@@ -62,6 +63,15 @@ impl TestUser {
         .execute(pool)
         .await
         .expect("Failed to store test user.");
+    }
+
+    async fn add_account(&self, pool: &PgPool) {
+    }
+
+    async fn add_trade(&self, pool: &PgPool) {
+    }
+
+    async fn add_execution(&self, pool: &PgPool) {
     }
 }
 
@@ -125,6 +135,9 @@ impl TestApp {
             "password": &self.test_user.password
         });
         self.post_login(&login_body).await
+    }
+
+    pub async fn create_trade_for_user(&self) -> reqwest::Response {
     }
 
     pub async fn _test_user(&self) -> (String, String) {
