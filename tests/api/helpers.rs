@@ -137,8 +137,8 @@ impl TestApp {
         self.post_login(&login_body).await
     }
 
-    pub async fn create_trade_for_user(&self) -> reqwest::Response {
-    }
+    //pub async fn create_trade_for_user(&self) -> reqwest::Response {
+    //}
 
     pub async fn _test_user(&self) -> (String, String) {
         let row = sqlx::query!("SELECT username, password_hash FROM users limit 1",)

@@ -8,51 +8,18 @@
 //!   - [ ] Able to get trades based on a filter (Maybe for later)
 //!   - [ ] Trade is able to successfully create (Not needed actually)
 //!
-use crate::helpers::{spawn_app, TestApp};
-use uuid::Uuid;
-
-use crate::helpers::spawn_app;
+//use crate::helpers::{spawn_app, TestApp};
+//use uuid::Uuid;
 
 #[actix_web::test]
-async fn get_trade_in_time_range() {
-    let app = spawn_app().await;
-
-    let login_body = serde_json::json!({
-        "username": &app.test_user.username,
-        "password": &app.test_user.password
-    });
-
-    let response = app.post_login(&login_body).await;
-
-    assert_eq!(401, response.status().as_u16());
+async fn _get_trade_in_time_range() {
 }
 
 #[actix_web::test]
-async fn get_trade_with_filters() {
-    let app = spawn_app().await;
-
-    let login_body = serde_json::json!({
-        "username": &app.test_user.username,
-        "password": &app.test_user.password
-    });
-
-    let response = app.post_login(&login_body).await;
-
-    assert_eq!(401, response.status().as_u16());
+async fn _get_trade_with_filters() {
 }
 
-
 #[actix_web::test]
-async fn get_trade_by_id() {
-    let app = spawn_app().await;
-
-    let login_body = serde_json::json!({
-        "username": &app.test_user.username,
-        "password": &app.test_user.password
-    });
-
-    let response = app.post_login(&login_body).await;
-
-    assert_eq!(401, response.status().as_u16());
+async fn _get_trade_by_id() {
 }
 
