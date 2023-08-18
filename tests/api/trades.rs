@@ -12,7 +12,8 @@
 //use uuid::Uuid;
 
 #[actix_web::test]
-async fn _get_trade_in_time_range() {
+async fn get_trade_in_time_range() {
+
 }
 
 #[actix_web::test]
