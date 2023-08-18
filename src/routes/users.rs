@@ -15,7 +15,7 @@ use secrecy::{Secret, ExposeSecret};
 
 use crate::errors::*;
 use crate::utils::e500;
-use crate::db::models::user::{get_username, get_users_from_database, get_user_from_database, save_user_to_database};
+use crate::db::models::users::{get_username, get_users_from_database, get_user_from_database, save_user_to_database};
 use crate::session_state::TypedSession;
 use crate::startup::AppState;
 use crate::domain::{NewUser, UserEmail, UserName};
