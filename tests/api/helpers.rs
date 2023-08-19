@@ -90,7 +90,7 @@ impl TestApp {
         Body: serde::Serialize
     {
         self.api_client
-            .post(&format!("{}/api/login", &self.address))
+            .post(&format!("{}/login", &self.address))
             .form(&body)
             .send()
             .await
@@ -120,7 +120,7 @@ impl TestApp {
 
     pub async fn get_login_html(&self) -> String {
         self.api_client
-            .get(&format!("{}/api/login", &self.address))
+            .get(&format!("{}/login", &self.address))
             .send()
             .await
             .expect("Failed to execute request.")

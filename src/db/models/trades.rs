@@ -6,7 +6,7 @@ use secrecy::ExposeSecret;
 
 use crate::errors::*;
 use crate::startup::AppState;
-use crate::routes::users::UserForm;
+use crate::routes::api::users::UserForm;
 use crate::authentication::compute_password_hash;
 use crate::telemetry::spawn_blocking_with_tracing;
 
