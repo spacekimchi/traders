@@ -7,6 +7,7 @@ use actix_web::web::{Data, Json, Path, Form};
 use actix_web::http::header::LOCATION;
 use actix_web::{web, HttpResponse, HttpRequest, Responder, get, post, delete};
 use actix_web_flash_messages::{FlashMessage, IncomingFlashMessages};
+// InternalError is similar to us returning e500;
 use actix_web::error::InternalError;
 use handlebars::Handlebars;
 use serde::{Deserialize, Serialize};
@@ -62,26 +63,11 @@ pub struct ChangePasswordRequest {
     skip(hb, flash_messages),
 )]
 #[get("/new")]
-pub async fn new_user_page(hb: Data<Handlebars<'_>>, flash_messages: IncomingFlashMessages) -> Result<HttpResponse, actix_web::Error> {
-    println!("GETTING NEW_USER_PAGE");
-    let mut flash_html = String::new();
-    for m in flash_messages.iter() {
-        writeln!(flash_html, "<div>{}<div>", m.content()).unwrap();
+pub async fn new_user_page(hb: Data<Handlebars<'_>>, flash_messages: IncomingFlashMessages) -> HttpResponse {
+    match template_helpers::render_content(&template_helpers::RenderTemplateParams::new("users/new", &hb).with_flash_messages(&flash_messages)) {
+        Ok(new_user_page_template) => HttpResponse::Ok().body(new_user_page_template),
+        Err(e) => HttpResponse::InternalServerError().body(template_helpers::err_500_template(&hb, e))
     }
-
-    // TODO Can we just return .err(e500)? here?
-    let body = match template_helpers::render_content(
-        &template_helpers::RenderTemplateParams {
-            template: &"users/new",
-            handlebar: &hb,
-            incoming_flash_messages: Some(&flash_messages)
-        }) {
-        Ok(new_user_page_template) => new_user_page_template,
-        Err(_) => template_helpers::err_500_template(&hb)
-    };
-    
-
-    Ok(HttpResponse::Ok().body(body))
 }
 
 /// This endpoint is used for grabbing the current user_id in the session
