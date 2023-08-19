@@ -12,7 +12,7 @@ async fn invalid_user_is_unable_to_login() {
 
     // Assert
     assert_eq!(303, response.status().as_u16());
-    assert_is_redirect_to(&response, "/api/login");
+    assert_is_redirect_to(&response, "/login");
 
     // Act - Part 2 - Follow the redirect
     let html_page = app.get_login_html().await;
