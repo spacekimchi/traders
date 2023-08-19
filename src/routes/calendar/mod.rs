@@ -5,19 +5,23 @@
 //!
 
 use actix_web::{HttpResponse, get};
-use actix_web::web::Data;
+use actix_web::web::{Data, Query};
 use handlebars::Handlebars;
+use serde_json::json;
 
 use crate::session_state::TypedSession;
-use crate::template_helpers;
+use crate::startup::AppState;
+use crate::template_helpers::{render_content, RenderTemplateParams, err_500_template};
+use crate::db::models::{trades, TradeQuery};
 
 /// https://traders.jinz.co/calendar
 #[get("")]
-async fn get_calendar_root(hb: Data<Handlebars<'_>>, _session: TypedSession) -> HttpResponse {
-
-
-    match template_helpers::render_content(&template_helpers::RenderTemplateParams::new("calendar", &hb)) {
+async fn get_calendar_root(hb: Data<Handlebars<'_>>, _session: TypedSession, state: Data<AppState>, tq: Query<TradeQuery>) -> HttpResponse {
+    let trades = trades::get_trades(&state, &tq).await;
+    println!("\n\n\nTRADES: {:#?}\n\n\n", trades);
+    let calendar_root_data = json!({});
+    match render_content(&RenderTemplateParams::new("calendar/index", &hb)) {
         Ok(calendar_template) => HttpResponse::Ok().body(calendar_template),
-        Err(e) => HttpResponse::InternalServerError().body(template_helpers::err_500_template(&hb, e))
+        Err(e) => HttpResponse::InternalServerError().body(err_500_template(&hb, e))
     }
 }

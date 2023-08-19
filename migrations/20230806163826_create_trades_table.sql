@@ -12,3 +12,6 @@ CREATE TABLE IF NOT EXISTS trades
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+CREATE INDEX idx_trades_accountid_entry_exit_time
+ON trades(account_id, entry_time, exit_time);
