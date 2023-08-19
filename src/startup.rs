@@ -17,7 +17,7 @@ use handlebars::Handlebars;
 use crate::configuration::Settings;
 use crate::configuration::DatabaseSettings;
 use crate::authentication::reject_anonymous_users;
-use crate::routes::{trades, login, homepage};
+use crate::routes::{users, trades, login, homepage, calendar};
 use crate::routes::api;
 
 pub struct AppState {
@@ -97,6 +97,15 @@ pub async fn run(db_pool: PgPool, listener: TcpListener, base_url: String, redis
             .service(login::login)
             .service(login::logout)
             .service(
+                web::scope("/users")
+                .wrap(from_fn(reject_anonymous_users))
+                .service(users::new_user_page)
+            )
+            .service(
+                web::scope("/calendar")
+                .service(calendar::get_calendar_root)
+            )
+            .service(
                 web::scope("/api")
                 .service(api::health_check::health_check)
                 .service(api::accounts::list)
@@ -107,7 +116,6 @@ pub async fn run(db_pool: PgPool, listener: TcpListener, base_url: String, redis
                     .service(api::users::list_users)
                     .service(api::users::delete)
                     .service(api::users::create_user)
-                    .service(api::users::new_user_page)
                     .service(api::users::change_user_password)
                     .service(api::users::get_user_by_id)
                 )

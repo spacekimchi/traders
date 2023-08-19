@@ -9,10 +9,10 @@ use handlebars::Handlebars;
 use serde_json::json;
 use secrecy::Secret;
 
+use crate::session_state::TypedSession;
 use crate::utils::{e500, error_chain_fmt};
 use crate::startup::AppState;
 use crate::authentication::AuthError;
-use crate::session_state::TypedSession;
 use crate::authentication::{validate_credentials, Credentials};
 
 #[derive(serde::Deserialize, Debug)]
@@ -84,7 +84,7 @@ pub async fn logout(session: TypedSession) -> Result<HttpResponse, actix_web::Er
 fn login_redirect(e: LoginError) -> InternalError<LoginError> {
     FlashMessage::error(e.to_string()).send();
     let response = HttpResponse::SeeOther()
-        .insert_header((LOCATION, "/api/login"))
+        .insert_header((LOCATION, "/login"))
         .finish();
     InternalError::from_response(e, response)
 }
