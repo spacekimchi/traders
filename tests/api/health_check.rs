@@ -12,6 +12,6 @@ async fn health_check_works() {
         .await
         .expect("Failed to execute request.");
 
-    assert!(response.status().is_success());
+    assert_eq!(200, response.status());
     assert_eq!(Some(0), response.content_length());
 }
