@@ -10,18 +10,28 @@ use handlebars::Handlebars;
 use serde_json::json;
 
 use crate::session_state::TypedSession;
+use crate::excel_helpers;
 use crate::startup::AppState;
 use crate::template_helpers::{render_content, RenderTemplateParams, err_500_template};
-use crate::db::models::{trades, TradeQuery};
+use crate::db::models::{trades, TradeQuery, TradeInfoByDay};
 
 /// https://traders.jinz.co/calendar
 #[get("")]
 async fn get_calendar_root(hb: Data<Handlebars<'_>>, _session: TypedSession, state: Data<AppState>, tq: Query<TradeQuery>) -> HttpResponse {
-    let trades = trades::get_trades(&state, &tq).await;
-    println!("\n\n\nTRADES: {:#?}\n\n\n", trades);
-    let calendar_root_data = json!({});
-    match render_content(&RenderTemplateParams::new("calendar/index", &hb)) {
-        Ok(calendar_template) => HttpResponse::Ok().body(calendar_template),
+    let this_year = excel_helpers::get_current_year();
+
+    match trades::get_trades_by_day_in_year(&state, this_year).await {
+        Ok(trades_by_day) => {
+            println!("\n\n\nTRADES_BY_DAY: {:?}\n\n\n", trades_by_day);
+            // Do something with trades_by_day if needed
+            let calendar_index_data = json!({
+                "trades": trades_by_day,
+            });
+            match render_content(&RenderTemplateParams::new("calendar/index", &hb).with_data(&calendar_index_data)) {
+                Ok(calendar_template) => HttpResponse::Ok().body(calendar_template),
+                Err(e) => HttpResponse::InternalServerError().body(err_500_template(&hb, e))
+            }
+        },
         Err(e) => HttpResponse::InternalServerError().body(err_500_template(&hb, e))
     }
 }
