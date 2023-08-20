@@ -92,6 +92,7 @@ pub async fn run(db_pool: PgPool, listener: TcpListener, base_url: String, redis
             .app_data(base_url.clone())
             .app_data(web::Data::new(AppState { db: db_pool.clone(), hmac_secret: hmac_secret.clone() }))
             .app_data(handlebars_ref.clone())
+            .service(actix_files::Files::new("/static", "./static/"))
             .service(homepage::index)
             .service(login::get_login_page)
             .service(login::login)
