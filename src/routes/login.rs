@@ -1,19 +1,46 @@
-use std::fmt::Write;
-
 use actix_web::http::header::LOCATION;
 use actix_web::web::{Data, Form};
 use actix_web::error::InternalError;
 use actix_web::{HttpResponse, post, get};
 use actix_web_flash_messages::{FlashMessage, IncomingFlashMessages};
-use handlebars::Handlebars;
-use serde_json::json;
 use secrecy::Secret;
 
+use crate::errors;
 use crate::session_state::TypedSession;
+use crate::template_helpers::{RenderTemplateParams, render_content};
 use crate::utils::{e500, error_chain_fmt};
 use crate::startup::AppState;
 use crate::authentication::AuthError;
 use crate::authentication::{validate_credentials, Credentials};
+
+#[derive(thiserror::Error)]
+pub enum LoginError {
+    #[error("Authentication failed")]
+    AuthError(#[source] anyhow::Error),
+    #[error("Something went wrong")]
+    UnexpectedError(#[from] anyhow::Error),
+    #[error(transparent)]
+    Error(#[from] actix_web::Error),
+}
+
+impl actix_web::ResponseError for LoginError {
+    fn error_response(&self) -> HttpResponse {
+        let error_message = format!("{}", self);
+        let error_response = errors::ApiError { message: error_message };
+
+        match self {
+            LoginError::AuthError(_) => HttpResponse::BadRequest().json(error_response),
+            LoginError::UnexpectedError(_) => HttpResponse::Unauthorized().json(error_response),
+            LoginError::Error(_) => HttpResponse::InternalServerError().json(error_response),
+        }
+    }
+}
+
+impl std::fmt::Debug for LoginError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        error_chain_fmt(self, f)
+    }
+}
 
 #[derive(serde::Deserialize, Debug)]
 pub struct LoginForm {
@@ -22,19 +49,14 @@ pub struct LoginForm {
 }
 
 /// This route is for displaying the login page
-///
 #[get("/login")]
-async fn get_login_page(hb: Data<Handlebars<'_>>, flash_messages: IncomingFlashMessages) -> HttpResponse {
-    let mut error_html = String::new();
-    for m in flash_messages.iter() {
-        writeln!(error_html, "<p><i>{}</i></p>", m.content()).unwrap();
-    }
+async fn get_login_page(tera_store: Data<tera::Tera>, flash_messages: IncomingFlashMessages) -> Result<HttpResponse, LoginError> {
+    println!("\n\n\n INSIDE GET_LOGIN_PAGE \n\n\n");
+    let context = tera::Context::new();
 
-    let data = json!({
-        "error_html": error_html,
-    });
-    let body = hb.render("login", &data).unwrap();
-    HttpResponse::Ok().body(body)
+    let content = render_content(&RenderTemplateParams::new(&"login.html", &tera_store).with_flash_messages(&flash_messages).with_context(&context))?;
+
+    Ok(HttpResponse::Ok().content_type("text/html").body(content))
 }
 
 #[tracing::instrument(
@@ -58,6 +80,7 @@ pub async fn login(form: Form<LoginForm>, state: Data<AppState>, session: TypedS
                 session
                     .insert_user_id(user_id)
                     .map_err(|e| login_redirect(LoginError::UnexpectedError(e.into())))?;
+                FlashMessage::info("Login success!").send();
                 Ok(HttpResponse::SeeOther()
                    .insert_header((LOCATION, "/"))
                    .finish())
@@ -88,18 +111,3 @@ fn login_redirect(e: LoginError) -> InternalError<LoginError> {
         .finish();
     InternalError::from_response(e, response)
 }
-
-#[derive(thiserror::Error)]
-pub enum LoginError {
-    #[error("Authentication failed")]
-    AuthError(#[source] anyhow::Error),
-    #[error("Something went wrong")]
-    UnexpectedError(#[from] anyhow::Error),
-}
-
-impl std::fmt::Debug for LoginError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        error_chain_fmt(self, f)
-    }
-}
-

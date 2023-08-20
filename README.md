@@ -51,22 +51,32 @@ To get scss to autocompile during developent, install: `npm install nodemon --sa
 
 After installing, run `npm run watch:scss`
 
-The templating engine used here is the [handlebars-rust](https://github.com/sunng87/handlebars-rust) crate.
+The project uses [tera](https://github.com/Keats/tera) for templating.
 
-Some quick tips for using handlebars:
- - `{{}}` for interpolation with escaped characters
- - `{{{}}}` for interpolation with raw html (nothing is escaped)
- - `{{> _partial_name}` for rendering partials
- - ```
-        {{#each trades}}
-        <li class="red">{{this.trade_day}}</li>
-        <li class="red">{{this.total_pnl}}</li>
-        <li class="red">{{this.pct_winning_trades}}</li>
-        {{/each}}
-```
+<!--The templating engine used here is the [handlebars-rust](https://github.com/sunng87/handlebars-rust) crate.-->
+
+<!--Some quick tips for using handlebars:-->
+ <!--- `{{}}` for interpolation with escaped characters-->
+ <!--- `{{{}}}` for interpolation with raw html (nothing is escaped)-->
+ <!--- `{{> _partial_name}` for rendering partials-->
+ <!--- ```-->
+        <!--{{#each trades}}-->
+        <!--<li class="red">{{this.trade_day}}</li>-->
+        <!--<li class="red">{{this.total_pnl}}</li>-->
+        <!--<li class="red">{{this.pct_winning_trades}}</li>-->
+        <!--{{/each}}-->
+<!--```-->
 
 TODO:
   [ ] Add Stimulus/Turbo with Hotwire
+
+## Routes and returning from them
+
+For simple routes it is fine to return with something simple like `fn simple_endpoint() -> HttpResponse {}`
+
+For other routes, we can return a Result: `fn other_route() -> Result<HttpResponse, actix_web::Error> {}`
+ - Actix-web will automatically convert `actix_web::Error`s into an HttpResponse
+ - We can create an error enum to convert errors and implement the `actix_web::ResponseError` trait to define our own HttpResponse for errors
 
 ## TODO
 - [x] Bring database changes from other repository and get at least homepage to show

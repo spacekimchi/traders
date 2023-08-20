@@ -1,12 +1,15 @@
-<!DOCTYPE html>
-<html>
+{% extends "base.html" %}
 
-	<head>
-		<title>{{name}}</title>
-	</head>
+{% block content %}
+    <html>
 
-	<body>
-		<h1>Welcome to {{name}}</h1>
-		<p>Coming very soon. CI/CD success!</p>
-	</body>
-</html>
+        <head>
+            <title>{{name}}</title>
+        </head>
+
+        <body>
+            <h1>Welcome to {{name}}</h1>
+            <p>Coming very soon. CI/CD success!</p>
+        </body>
+    </html>
+{% endblock content %}

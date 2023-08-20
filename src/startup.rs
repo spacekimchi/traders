@@ -12,12 +12,11 @@ use tracing_actix_web::TracingLogger;
 use sqlx::{Pool, PgPool, Postgres};
 use sqlx::postgres::PgPoolOptions;
 use secrecy::{Secret, ExposeSecret};
-use handlebars::Handlebars;
 
 use crate::configuration::Settings;
 use crate::configuration::DatabaseSettings;
 use crate::authentication::reject_anonymous_users;
-use crate::routes::{users, trades, login, homepage, calendar};
+use crate::routes::{users, login, homepage, calendar};
 use crate::routes::api;
 
 pub struct AppState {
@@ -76,13 +75,7 @@ pub async fn run(db_pool: PgPool, listener: TcpListener, base_url: String, redis
     let secret_key = Key::from(hmac_secret.expose_secret().as_bytes());
     let message_store = CookieMessageStore::builder(secret_key.clone()).build();
     let message_framework = FlashMessagesFramework::builder(message_store).build();
-    let mut handlebars = Handlebars::new();
-
-    handlebars
-        .register_templates_directory(".html", "./static/templates")
-        .unwrap();
-
-    let handlebars_ref = web::Data::new(handlebars);
+    let tera = web::Data::new(tera::Tera::new("./static/templates/**/*html").unwrap());
 
     let server = HttpServer::new(move || {
         App::new()
@@ -91,7 +84,7 @@ pub async fn run(db_pool: PgPool, listener: TcpListener, base_url: String, redis
             .wrap(SessionMiddleware::new(redis_store.clone(), secret_key.clone()))
             .app_data(base_url.clone())
             .app_data(web::Data::new(AppState { db: db_pool.clone(), hmac_secret: hmac_secret.clone() }))
-            .app_data(handlebars_ref.clone())
+            .app_data(tera.clone())
             .service(actix_files::Files::new("/static", "./static/"))
             .service(homepage::index)
             .service(login::get_login_page)

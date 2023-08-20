@@ -1,14 +1,9 @@
+{% extends "base.html" %}
+
 <div>
-    {{# each mini_months }}
-    {{> mini_calendar/mini_calendar }}
-    {{/ each }}
     This is the calendar root page
     asdlfasjdlfajl
     <ul>
-        {{#each trades}}
-        <li class="red">{{this.trade_day}}</li>
-        <li class="red">{{this.total_pnl}}</li>
-        <li class="red">{{this.pct_winning_trades}}</li>
-        {{/each}}
+
     </ul>
 </div>
