@@ -1,14 +1,9 @@
-use anyhow::Context;
 use sqlx::{self, FromRow, postgres::PgArguments, Arguments};
 use actix_web::web::{Data, Form, Query};
 use serde::{Deserialize, Serialize};
-use secrecy::ExposeSecret;
 
-use crate::errors::*;
+use crate::excel_helpers;
 use crate::startup::AppState;
-use crate::routes::api::users::UserForm;
-use crate::authentication::compute_password_hash;
-use crate::telemetry::spawn_blocking_with_tracing;
 
 #[derive(Debug, Deserialize, Serialize, FromRow)]
 pub struct Trade {
@@ -112,54 +107,83 @@ impl TradeQuery {
     }
 }
 
-/// A query for getting all the trades made by a user, selecting trade.id, trade.pnl, and instrument.name
 ///
-/// WITH account_id AS (select id from accounts WHERE accounts.user_id = '6982c6df-3d03-4583-8fa9-07386cf25f80')
-/// SELECT trades.id, trades.pnl, (SELECT code FROM instruments WHERE instruments.id = trades.instrument_id)
-/// FROM trades WHERE trades.account_id IN (SELECT id FROM account_id)
-/// AND trades.entry_time > ?
-/// AND trades.exit_time < ?;
-///
-/// A similar query but with a JOIN instead
-///
+/// This query is good for displaying a calendar view of the trades
+/// An additional WHERE clause can easily be added to grab within a time range
+///   - WHERE trades.entry_time > $0 AND trades.exit_time < $1
 ///
 /// SELECT
-///     trade_id,
-///     total_price,
-///     avg_difference,
-///     first_is_buy AS is_long,
-///     CASE
-///         WHEN first_is_buy THEN avg_difference
-///         ELSE -avg_difference
-///     END * instruments.price_per_point AS adjusted_avg_difference,
-///     entry_time,
-///     exit_time
-/// FROM (
-///     SELECT
-///         trades.id as trade_id,
-///         sum(executions.price) AS total_price,
-///         -- Calculate average for each trade's executions where is_buy = true minus where is_buy = false
-///         (sum(CASE WHEN executions.is_buy = true THEN executions.price ELSE 0 END) / count(CASE WHEN executions.is_buy = true THEN 1 END)) -
-///         (sum(CASE WHEN executions.is_buy = false THEN executions.price ELSE 0 END) / count(CASE WHEN executions.is_buy = false THEN 1 END)) AS avg_difference,
-///         bool_or(executions.fill_time = min_fill_time AND executions.is_buy = false) AS first_is_buy, -- Check if the execution with the min fill_time has is_buy = false
-///         min(executions.fill_time) AS entry_time,
-///         max(executions.fill_time) AS exit_time,
-///         trades.instrument_id
-///     FROM trades
-///     JOIN accounts ON trades.account_id = accounts.id
-///     JOIN executions ON trades.id = executions.trade_id
-///     LEFT JOIN (
-///         SELECT trade_id, min(fill_time) AS min_fill_time
-///         FROM executions
-///         GROUP BY trade_id
-///     ) AS min_time ON executions.trade_id = min_time.trade_id
-///     WHERE accounts.user_id = '6982c6df-3d03-4583-8fa9-07386cf25f80'
-///     GROUP BY trades.id, trades.instrument_id
-/// ) AS subquery
-/// JOIN instruments ON subquery.instrument_id = instruments.id
-/// ORDER BY entry_time;
+///     FLOOR(trades.entry_time) AS trade_day,
+///     COUNT(trades.id) AS number_of_trades,
+///     COUNT(DISTINCT accounts.id) AS accounts_traded,
+///     SUM(trades.pnl) - SUM(trades.commissions) AS total_pnl,
+///     SUM(CASE WHEN trades.pnl - trades.commissions > 0 THEN 1 ELSE 0 END) / COUNT(trades.id) * 100 AS pct_winning_trades
+/// FROM trades
+/// JOIN accounts ON trades.account_id = accounts.id
+/// JOIN instruments ON instruments.id = trades.instrument_id
+/// WHERE accounts.user_id = '6982c6df-3d03-4583-8fa9-07386cf25f80'
+/// AND accounts.sim != true
+/// GROUP BY FLOOR(trades.entry_time)
+/// ORDER BY trade_day;
 ///
 ///
+/// trade_day | number_of_trades | accounts_traded | total_pnl | pct_winning_trades
+///-----------+------------------+-----------------+-----------+-------------------------
+///     44973 |               10 |               2 |     98.00 |                   40.00
+///     44978 |                3 |               1 |    125.26 |                  100.00
+///     44984 |               10 |               1 |    -53.30 |                   70.00
+///     44985 |                4 |               1 |   -153.82 |                   25.00
+///     44999 |                8 |               2 |     13.54 |                   75.00
+///     45000 |                2 |               2 |     90.52 |                  100.00
+///     45001 |                3 |               3 |     16.51 |                  100.00
+///     45002 |                9 |               3 |  -1152.27 |                   66.67
+///     45005 |               18 |               3 |    146.88 |                  100.00
+///     45006 |               15 |               3 |     15.45 |                   60.00
+///     45007 |               33 |               3 |   -282.80 |                   42.42
+///     45008 |               28 |               3 |    200.91 |                   82.14
+///     45009 |               11 |               3 |    105.66 |                  100.00
+///     45012 |               25 |               3 |   -243.64 |                   64.00
+///     45013 |               32 |               3 |      2.82 |                   96.88
+///     45014 |               10 |               3 |    121.67 |                   70.00
+///
+
+#[derive(Debug, Deserialize, Serialize, FromRow)]
+pub struct TradeInfoByDay {
+    trade_day: f64,
+    number_of_trades: i64,
+    accounts_traded: i64,
+    total_pnl: f32,
+    pct_winning_trades: f64,
+}
+
+pub async fn get_trades_by_day_in_year(state: &Data<AppState>, year: i32) -> Result<Vec<TradeInfoByDay>, sqlx::Error> {
+    let first_of_year = excel_helpers::year_to_excel(year);
+    let end_of_year = first_of_year + 365 + (if excel_helpers::is_leap_year(year) { 1 } else { 0 });
+    let query = String::from(
+format!(
+"SELECT
+    FLOOR(trades.entry_time) AS trade_day,
+    COUNT(trades.id) AS number_of_trades,
+    COUNT(DISTINCT accounts.id) AS accounts_traded,
+    SUM(trades.pnl) - SUM(trades.commissions) AS total_pnl,
+    CAST(
+        SUM(CASE WHEN trades.pnl - trades.commissions > 0.0 THEN 1.0 ELSE 0.0 END) / COUNT(trades.id) * 100
+        AS double precision
+    ) AS pct_winning_trades
+FROM trades
+JOIN accounts ON trades.account_id = accounts.id
+JOIN instruments ON instruments.id = trades.instrument_id
+WHERE accounts.user_id = '6982c6df-3d03-4583-8fa9-07386cf25f80'
+AND trades.entry_time > {}
+AND trades.exit_time < {}
+AND accounts.sim != true
+GROUP BY FLOOR(trades.entry_time)
+ORDER BY trade_day", first_of_year, end_of_year)
+        );
+    sqlx::query_as::<_, TradeInfoByDay>(&query)
+        .fetch_all(&state.db)
+        .await
+}
 
 #[tracing::instrument(
     name = "Grabbing trades from the database",
