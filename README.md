@@ -41,6 +41,33 @@ Create a systemd service to run the application.
 The systemd service loads environment variables using a path. Be sure to restrict reading access to this file
 in order to protect secrets
 
+## Frontend
+
+Instead of using a frontend framework, this project will use SSR to serve HTML, SCSS, and JavaScript.
+
+Compile the .scss files using the `npm run build:scss` command. (Located under `scripts:` in `package.json`)
+
+To get scss to autocompile during developent, install: `npm install nodemon --save-dev`
+
+After installing, run `npm run watch:scss`
+
+The templating engine used here is the [handlebars-rust](https://github.com/sunng87/handlebars-rust) crate.
+
+Some quick tips for using handlebars:
+ - `{{}}` for interpolation with escaped characters
+ - `{{{}}}` for interpolation with raw html (nothing is escaped)
+ - `{{> _partial_name}` for rendering partials
+ - ```
+        {{#each trades}}
+        <li class="red">{{this.trade_day}}</li>
+        <li class="red">{{this.total_pnl}}</li>
+        <li class="red">{{this.pct_winning_trades}}</li>
+        {{/each}}
+```
+
+TODO:
+  [ ] Add Stimulus/Turbo with Hotwire
+
 ## TODO
 - [x] Bring database changes from other repository and get at least homepage to show
 - [x] Set up server to display homepage
@@ -66,20 +93,6 @@ in order to protect secrets
   - [ ] Tag
 - [ ] Look into some best practice for database management
   - [ ] Make a cron job to do nightly pg_dumps for database backups and upload to some cloud server
-
-## Frontend
-
-Instead of using a frontend framework, this project will use SSR to serve HTML, SCSS, and JavaScript.
-
-The templating engine used here is the [handlebars-rust](https://github.com/sunng87/handlebars-rust) crate.
-
-Some quick tips for using handlebars:
- - `{{}}` for interpolation with escaped characters
- - `{{{}}}` for interpolation with raw html (nothing is escaped)
- - `{{> _partial_name}` for rendering partials
-
-TODO:
-  [ ] Add Stimulus/Turbo with Hotwire
 
 ## Current State
 

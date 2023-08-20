@@ -1,3 +1,13 @@
+.mini-calendar-container {
+  color: blue;
+  font-size: 50px;
+  font-weight: 800;
+  border: solid 1px black;
+  display: inline-block; }
+
+.mini-week-container {
+  color: green; }
+
 .red {
   color: red;
   font-size: 25px;

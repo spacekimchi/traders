@@ -23,9 +23,11 @@ async fn get_calendar_root(hb: Data<Handlebars<'_>>, _session: TypedSession, sta
     match trades::get_trades_by_day_in_year(&state, this_year).await {
         Ok(trades_by_day) => {
             println!("\n\n\nTRADES_BY_DAY: {:?}\n\n\n", trades_by_day);
+            let mini_months = vec!([1, 2, 3, 4, 5, 6]);
             // Do something with trades_by_day if needed
             let calendar_index_data = json!({
                 "trades": trades_by_day,
+                "mini_months": mini_months
             });
             match render_content(&RenderTemplateParams::new("calendar/index", &hb).with_data(&calendar_index_data)) {
                 Ok(calendar_template) => HttpResponse::Ok().body(calendar_template),
