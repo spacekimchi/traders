@@ -11,4 +11,5 @@ pub mod session_state;
 pub mod errors;
 pub mod db;
 pub mod template_helpers;
+pub mod excel_helpers;
 

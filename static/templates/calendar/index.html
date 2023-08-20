@@ -1,3 +1,12 @@
 <div>
+    {{> partials/_mini_calendar }}
     This is the calendar root page
+    asdlfasjdlfajl
+    <ul>
+        {{#each trades}}
+        <li>{{this.trade_day}}</li>
+        <li>{{this.total_pnl}}</li>
+        <li>{{this.pct_winning_trades}}</li>
+        {{/each}}
+    </ul>
 </div>
