@@ -27,7 +27,6 @@ pub struct Credentials {
 pub async fn validate_credentials(
     credentials: Credentials,
     state: &Data<AppState>,
-    //pool: &PgPool,
 ) -> Result<uuid::Uuid, AuthError> {
     let mut user_id = None;
     let mut expected_password_hash = Secret::new(

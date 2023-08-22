@@ -1,28 +1,21 @@
 //! src/routes/users.rs
 //!
 //! Routes for actions on users
-use std::fmt::Write;
-
 use actix_web::web::{Data, Json, Path, Form};
-use actix_web::http::header::LOCATION;
 use actix_web::{web, HttpResponse, HttpRequest, Responder, get, post, delete};
-use actix_web_flash_messages::{FlashMessage, IncomingFlashMessages};
 // InternalError is similar to us returning e500;
 use actix_web::error::InternalError;
-use handlebars::Handlebars;
 use serde::{Deserialize, Serialize};
-use serde_json::json;
 use secrecy::{Secret, ExposeSecret};
 
+use crate::startup::AppState;
 use crate::errors::*;
 use crate::utils::e500;
-use crate::db::models::users::{get_username, get_users_from_database, get_user_from_database, save_user_to_database};
+use crate::db::models::users::{get_username, get_users_from_database, get_user_from_database, save_user_to_database, UserForm};
 use crate::session_state::TypedSession;
-use crate::startup::AppState;
 use crate::domain::{NewUser, UserEmail, UserName};
 use crate::authentication::{validate_credentials, AuthError, Credentials, change_password};
 use crate::authentication::UserId;
-use crate::template_helpers;
 
 /// This runs validations on UserForm. It tries to create the NewUser
 /// for when creating a new user
@@ -34,13 +27,6 @@ impl TryFrom<UserForm> for NewUser {
         let email = UserEmail::parse(value.email)?;
         Ok(Self { email, username })
     }
-}
-
-#[derive(Debug, Deserialize)]
-pub struct UserForm {
-    pub username: String,
-    pub email: String,
-    pub password: Secret<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -56,18 +42,6 @@ pub struct ChangePasswordRequest {
     pub current_password: Secret<String>,
     pub new_password: Secret<String>,
     pub new_password_check: Secret<String>,
-}
-
-#[tracing::instrument(
-    name = "New user page",
-    skip(hb, flash_messages),
-)]
-#[get("/new")]
-pub async fn new_user_page(hb: Data<Handlebars<'_>>, flash_messages: IncomingFlashMessages) -> HttpResponse {
-    match template_helpers::render_content(&template_helpers::RenderTemplateParams::new("users/new", &hb).with_flash_messages(&flash_messages)) {
-        Ok(new_user_page_template) => HttpResponse::Ok().body(new_user_page_template),
-        Err(e) => HttpResponse::InternalServerError().body(template_helpers::err_500_template(&hb, e))
-    }
 }
 
 /// This endpoint is used for grabbing the current user_id in the session
@@ -110,31 +84,15 @@ pub async fn create_user(
     state: Data<AppState>,
     body: Form<UserForm>,
     _session: TypedSession,
-    request: HttpRequest,
-    hb: Data<Handlebars<'_>>,
+    request: HttpRequest
 ) -> Result<HttpResponse, InternalError<StoreUserError>> {
-    //let user = insert_user(&state, &body).await?;
     match save_user_to_database(&state, &body).await {
-        Ok(_user) => {
-            // We need some kind of flash message to alert of a successful creation
-
-            FlashMessage::success("User creation successful!").send();
-            Ok(HttpResponse::SeeOther()
-               .insert_header((LOCATION, "/"))
-               .finish())
+        Ok(user) => {
+            Ok(HttpResponse::Created().json(user))
         }
         Err(e) => {
-            // Needs some kind of setting errors up here
-            let content = hb.render("users/new", &json!({})).unwrap();
-            let data = json!({
-                "content": content,
-                //"create_errors": top_nav
-            });
-            let body = hb.render("base", &data).unwrap();
-
-            let response = HttpResponse::BadRequest().body(body);
-
-            return Err(InternalError::from_response(e, response));
+            let response  = HttpResponse::BadRequest().json("Failed to create user");
+            Err(InternalError::from_response(e, response))
         }
     }
 }

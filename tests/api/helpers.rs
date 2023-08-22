@@ -65,13 +65,13 @@ impl TestUser {
         .expect("Failed to store test user.");
     }
 
-    async fn add_account(&self, pool: &PgPool) {
+    async fn _add_account(&self, _pool: &PgPool) {
     }
 
-    async fn add_trade(&self, pool: &PgPool) {
+    async fn _add_trade(&self, _pool: &PgPool) {
     }
 
-    async fn add_execution(&self, pool: &PgPool) {
+    async fn _add_execution(&self, _pool: &PgPool) {
     }
 }
 
@@ -129,7 +129,7 @@ impl TestApp {
             .unwrap()
     }
 
-    pub async fn login_test_user(&self) -> reqwest::Response {
+    pub async fn _login_test_user(&self) -> reqwest::Response {
         let login_body = serde_json::json!({
             "username": &self.test_user.username,
             "password": &self.test_user.password

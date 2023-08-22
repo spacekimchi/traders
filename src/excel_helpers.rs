@@ -1,4 +1,4 @@
-use chrono::{Datelike, NaiveDate, Duration};
+use chrono::{Datelike, NaiveDate, Duration, DateTime, Utc, TimeZone};
 
 pub fn excel_to_date(excel_date: i32) -> Option<NaiveDate> {
     let start_date_opt = NaiveDate::from_ymd_opt(1899, 12, 31); // Excel's epoch starts a day earlier
@@ -20,6 +20,14 @@ pub fn get_current_year() -> i32 {
     let current_date = chrono::Utc::now();
     current_date.year()
 }
+
+/// Convert a NaiveDate to an Excel serial date
+pub fn date_to_excel(date: &DateTime<Utc>) -> i32 {
+    let excel_base_date = Utc.with_ymd_and_hms(1899, 12, 31, 0, 0, 0).unwrap(); // Using Dec 31, 1899 since Excel considers Jan 1, 1900 as day 1.
+    let duration = *date - excel_base_date;
+    duration.num_days() as i32
+}
+
 
 /// For converting year value into the excel value for the first day of the year
 pub fn year_to_excel(year: i32) -> i32 {
