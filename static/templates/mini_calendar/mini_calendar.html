@@ -1,8 +1,10 @@
 <span class="mini-calendar-container">
     <div class="mini-calendar-header">
-        I am mini-calendar header
+        mini calendar header
     </div>
     <div class="mini-calendar-weeks-container">
-        I am mini-calendar body
+        {#{% for trade in trades_in_week %}#}
+            {{trade}}
+        {#{% endfor %}#}
     </div>
 </span>

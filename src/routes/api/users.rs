@@ -88,7 +88,7 @@ pub async fn create_user(
 ) -> Result<HttpResponse, InternalError<StoreUserError>> {
     match save_user_to_database(&state, &body).await {
         Ok(user) => {
-            Ok(HttpResponse::Ok().json(user))
+            Ok(HttpResponse::Created().json(user))
         }
         Err(e) => {
             let response  = HttpResponse::BadRequest().json("Failed to create user");

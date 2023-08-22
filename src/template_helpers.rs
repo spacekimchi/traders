@@ -33,17 +33,13 @@ impl<'a> RenderTemplateParams<'a> {
 }
 
 pub fn render_content(render_template_params: &RenderTemplateParams<'_>) -> Result<String, actix_web::Error> {
-    println!("\n\n\n TEMPLATE_HELPERS/RENDER_CONTENT \n\n\n");
-
     // First set the context data
-    println!("SETTING THE CONTEXT");
     let mut context: tera::Context;
     if let Some(data) = render_template_params.template_context {
         context = data.clone(); // assuming `tera::Context` implements the Clone trait
     } else {
         context = tera::Context::new();
     }
-    println!("CONTEXT SET context: {:?}", context);
 
     // Setting the flash message can be extracted out into it's own method
     let mut flash_html = String::new();
@@ -54,7 +50,6 @@ pub fn render_content(render_template_params: &RenderTemplateParams<'_>) -> Resu
             writeln!(flash_html, "<div>{}<div>", m.content()).map_err(e500)?;
         }
     }
-    println!("\n\n\n INSIDE RENDER_CONTENT flash_html: {:?}\n\n\n", flash_html);
 
     context.insert("flash_html", &flash_html);
 

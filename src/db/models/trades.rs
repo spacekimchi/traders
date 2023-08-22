@@ -1,8 +1,7 @@
-use sqlx::{self, FromRow, postgres::PgArguments, Arguments};
-use actix_web::web::{Data, Query};
-use serde::{Deserialize, Serialize};
+use sqlx::{self, FromRow};
+use actix_web::web::Data;
+use serde::{Deserialize, Serialize}; use chrono::Datelike;
 
-use crate::excel_helpers;
 use crate::startup::AppState;
 
 #[derive(Debug, Deserialize, Serialize, FromRow)]
@@ -19,92 +18,6 @@ pub struct Trade {
     pub created_at: chrono::DateTime<chrono::offset::Utc>,
     #[serde(with = "chrono::serde::ts_seconds")]
     pub updated_at: chrono::DateTime<chrono::offset::Utc>,
-}
-
-#[derive(Deserialize, Debug)]
-pub struct TradeQuery {
-    pub id: Option<i64>,
-    pub instrument_id: Option<i32>,
-    pub account_id: Option<i64>,
-    pub entry_time: Option<f64>,
-    pub exit_time: Option<f64>,
-    pub is_short: Option<bool>,
-    pub start_time: Option<f64>,
-    pub end_time: Option<f64>,
-}
-
-impl TradeQuery {
-    pub fn as_query(&self) -> String {
-        let query = String::from("SELECT id, account_id, instrument, entry_time, exit_time, commissions, pnl, is_short, created_at, updated_at FROM trades");
-        let _vals: Vec<&str> = Vec::new();
-        return query;
-    }
-
-    pub fn as_vec(&self) -> Vec<&'static str> {
-        let mut vals: Vec<&'static str> = Vec::new();
-        if self.id.is_some() {
-            vals.push(&"id =");
-        }
-        if self.instrument_id.is_some() {
-            vals.push(&"instrument_id =");
-        }
-        if self.account_id.is_some() {
-            vals.push(&"account_id =");
-        }
-        if self.entry_time.is_some() {
-            vals.push(&"entry_time =");
-        }
-        if self.exit_time.is_some() {
-            vals.push(&"exit_time =");
-        }
-        if self.is_short.is_some() {
-            vals.push(&"is_short =");
-        }
-        if self.start_time.is_some() {
-            vals.push(&"entry_time >");
-        }
-        if self.end_time.is_some() {
-            vals.push(&"entry_time <");
-        }
-        vals
-    }
-
-    pub fn pg_args(&self) -> PgArguments {
-        let mut args = PgArguments::default();
-        match &self.id {
-            Some(val) => { args.add(val); }
-            _ => {}
-        }
-        match &self.instrument_id {
-            Some(val) => { args.add(val) }
-            _ => {}
-        }
-        match &self.account_id {
-            Some(val) => { args.add(val) }
-            _ => {}
-        }
-        match &self.entry_time {
-            Some(val) => { args.add(val) }
-            _ => {}
-        }
-        match &self.exit_time {
-            Some(val) => { args.add(val) }
-            _ => {}
-        }
-        match &self.is_short {
-            Some(val) => { args.add(val) }
-            _ => {}
-        }
-        match &self.start_time {
-            Some(val) => { args.add(val) }
-            _ => {}
-        }
-        match &self.end_time {
-            Some(val) => { args.add(val) }
-            _ => {}
-        }
-        args
-    }
 }
 
 ///
@@ -149,18 +62,27 @@ impl TradeQuery {
 
 #[derive(Debug, Deserialize, Serialize, FromRow)]
 pub struct TradeInfoByDay {
-    trade_day: f64,
-    number_of_trades: i64,
-    accounts_traded: i64,
-    total_pnl: f32,
-    pct_winning_trades: f64,
+    pub trade_day: f64, // Excel serialize date
+    pub number_of_trades: i64,
+    pub accounts_traded: i64,
+    pub total_pnl: f32,
+    pub pct_winning_trades: f64,
 }
 
-pub async fn get_trades_by_day_in_year(state: &Data<AppState>, year: i32) -> Result<Vec<TradeInfoByDay>, sqlx::Error> {
-    let first_of_year = excel_helpers::year_to_excel(year);
-    let end_of_year = first_of_year + 365 + (if excel_helpers::is_leap_year(year) { 1 } else { 0 });
+impl TradeInfoByDay {
+    pub fn month_from_excel_date(&self) -> u32 {
+        let base_date = chrono::NaiveDate::from_ymd_opt(1900, 1, 1).unwrap();
+
+        // Adjusting for Excel's leap year bug
+        let adj = if self.trade_day >= 61.0 { -1.0 } else { 0.0 };
+        let dt = base_date + chrono::Duration::days((self.trade_day + adj) as i64);
+        dt.month()
+    }
+}
+
+pub async fn get_trades_by_day_from(state: &Data<AppState>, start_date: i32) -> Result<Vec<TradeInfoByDay>, sqlx::Error> {
     let query = String::from(
-format!(
+        format!(
 "SELECT
     FLOOR(trades.entry_time) AS trade_day,
     COUNT(trades.id) AS number_of_trades,
@@ -174,38 +96,14 @@ FROM trades
 JOIN accounts ON trades.account_id = accounts.id
 JOIN instruments ON instruments.id = trades.instrument_id
 WHERE accounts.user_id = '6982c6df-3d03-4583-8fa9-07386cf25f80'
-AND trades.entry_time > {}
-AND trades.exit_time < {}
+AND trades.entry_time >= {}
 AND accounts.sim != true
 GROUP BY FLOOR(trades.entry_time)
-ORDER BY trade_day", first_of_year, end_of_year)
-        );
-    sqlx::query_as::<_, TradeInfoByDay>(&query)
+ORDER BY trade_day", start_date)
+);
+    let trades = sqlx::query_as::<_, TradeInfoByDay>(&query)
         .fetch_all(&state.db)
-        .await
-}
-
-#[tracing::instrument(
-    name = "Grabbing trades from the database",
-    skip(state, tq),
-)]
-pub async fn get_trades(state: &Data<AppState>, tq: &Query<TradeQuery>) -> Result<Vec<Trade>, sqlx::Error> {
-    let mut query = String::from("SELECT id, account_id, instrument_id, entry_time, exit_time, commissions, pnl, is_short, created_at, updated_at from trades");
-    let query_strings = tq
-        .as_vec()
-        .into_iter()
-        .enumerate()
-        .map(|(idx, val)| {
-            format!("{} ${}", val, idx + 1)
-        })
-        .collect::<Vec<String>>()
-        .join(" AND ");
-    if !query_strings.is_empty() {
-        query.push_str(format!(" WHERE {}", query_strings).as_str());
-    }
-
-    sqlx::query_as_with(&query, tq.pg_args())
-        .fetch_all(&state.db)
-        .await
+        .await?;
+    Ok(trades)
 }
 
