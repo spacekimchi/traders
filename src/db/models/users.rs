@@ -2,11 +2,10 @@ use anyhow::Context;
 use sqlx::{self, FromRow};
 use actix_web::web::{Data, Form};
 use serde::{Deserialize, Serialize};
-use secrecy::ExposeSecret;
+use secrecy::{Secret, ExposeSecret};
 
 use crate::errors::*;
 use crate::startup::AppState;
-use crate::routes::api::users::UserForm;
 use crate::authentication::compute_password_hash;
 use crate::telemetry::spawn_blocking_with_tracing;
 
@@ -21,6 +20,13 @@ pub struct User {
     pub created_at: chrono::DateTime<chrono::offset::Utc>,
     #[serde(with = "chrono::serde::ts_seconds")]
     pub updated_at: chrono::DateTime<chrono::offset::Utc>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct UserForm {
+    pub username: String,
+    pub email: String,
+    pub password: Secret<String>,
 }
 
 #[tracing::instrument(name = "Get username", skip(state))]
