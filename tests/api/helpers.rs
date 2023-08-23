@@ -1,7 +1,7 @@
 use sqlx::{PgConnection, Executor, Connection};
 use traders::configuration::{get_configuration, DatabaseSettings};
 use traders::telemetry::{get_subscriber, init_subscriber};
-use sqlx::{PgPool, Pool, Postgres};
+use sqlx::PgPool;
 use once_cell::sync::Lazy;
 use traders::startup::Application;
 use uuid::Uuid;
@@ -111,7 +111,7 @@ impl TestApp {
         Body: serde::Serialize
     {
         self.api_client
-            .post(&format!("{}/api/users", &self.address))
+            .post(&format!("{}/users", &self.address))
             .form(&body)
             .send()
             .await
@@ -137,7 +137,7 @@ impl TestApp {
         self.post_login(&login_body).await
     }
 
-    //pub async fn create_trade_for_user(&self) -> reqwest::Response {
+    //pub async fn _create_trade_for_user(&self) -> reqwest::Response {
     //}
 
     pub async fn _test_user(&self) -> (String, String) {
@@ -213,27 +213,13 @@ async fn configure_database(config: &DatabaseSettings) -> PgPool {
     sqlx::migrate!("./migrations")
         .run(&connection_pool)
         .await
-        .expect("failed to migrate the database");
+        .expect("Failed to migrate the database");
 
     connection_pool
-}
-
-
-
-async fn _add_test_user(pool: &Pool<Postgres>) {
-    sqlx::query!(
-        "INSERT INTO users (id, username, password_hash)
-        VALUES ($1, $2, $3)",
-        Uuid::new_v4(),
-        Uuid::new_v4().to_string(),
-        Uuid::new_v4().to_string(),
-    )
-    .execute(pool)
-    .await
-    .expect("Failed to create test users.");
 }
 
 pub fn assert_is_redirect_to(response: &reqwest::Response, location: &str) {
     assert_eq!(response.status().as_u16(), 303);
     assert_eq!(response.headers().get("Location").unwrap(), location);
 }
+

@@ -1,14 +1,66 @@
+/* Normalize some basic HTML elements */
+html {
+  line-height: 1.15;
+  -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0; }
+
+main {
+  display: block; }
+
+h1 {
+  font-size: 2em;
+  margin: 0.67em 0; }
+
+hr {
+  box-sizing: content-box;
+  height: 0;
+  overflow: visible; }
+
+pre {
+  font-family: monospace, monospace;
+  font-size: 1em; }
+
+a {
+  background-color: transparent; }
+
+abbr[title] {
+  text-decoration: underline;
+  text-decoration: underline dotted; }
+
 .mini-calendar-container {
-  color: blue;
-  font-size: 50px;
-  font-weight: 800;
-  border: solid 1px black;
-  display: inline-block; }
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center; }
+
+.mini-month-container {
+  margin: 2px; }
+  .mini-month-container .mini-month-header {
+    padding: 15px 0;
+    text-align: center; }
 
 .mini-week-container {
-  color: green; }
+  display: flex; }
 
-.red {
-  color: red;
-  font-size: 25px;
-  font-weight: 800; }
+.mini-month-day {
+  margin: 2px;
+  padding: 1px;
+  display: inline-block;
+  border: solid 1px black;
+  height: 50px;
+  width: 50px; }
+  .mini-month-day.padding-day {
+    visibility: hidden; }
+  .mini-month-day.trades-present {
+    background-color: green; }
+  .mini-month-day.green-day {
+    background-color: green; }
+  .mini-month-day.red-day {
+    background-color: red; }
+
+body {
+  background-color: #272829;
+  color: #D8D9DA;
+  width: 1080px;
+  margin: auto; }
