@@ -1,10 +1,8 @@
-<span class="mini-calendar-container">
-    <div class="mini-calendar-header">
-        mini calendar header
+<div class="mini-month-container">
+    <div class="mini-month-header">
+        {{ month.name }} {{ month.year }}
     </div>
-    <div class="mini-calendar-weeks-container">
-        {#{% for trade in trades_in_week %}#}
-            {{trade}}
-        {#{% endfor %}#}
-    </div>
-</span>
+    {% for trades_in_week in month.trades %}
+        {% include "mini_calendar/mini_week.html" %}
+    {% endfor %}
+</div>

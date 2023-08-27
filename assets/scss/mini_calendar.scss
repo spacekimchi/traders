@@ -1,11 +1,43 @@
+@import "variables";
+
 .mini-calendar-container {
-    color: blue;
-    font-size: 50px;
-    font-weight: 800;
-    border: solid 1px black;
-    display: inline-block;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.mini-month-container {
+    margin: 2px;
+
+    .mini-month-header {
+        padding: 15px 0;
+        text-align: center;
+    }
 }
 
 .mini-week-container {
-    color: green;
+    display: flex;
 }
+
+.mini-month-day {
+    margin: 2px;
+    padding: 1px;
+    display: inline-block;
+    border: solid 1px black;
+    height: 50px;
+    width: 50px;
+    &.padding-day {
+        visibility: hidden;
+    }
+
+    &.trades-present {
+        background-color: green;
+    }
+    &.green-day {
+        background-color: green;
+    }
+    &.red-day {
+        background-color: red;
+    }
+}
+

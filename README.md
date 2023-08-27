@@ -1,7 +1,5 @@
 # Traders
 
-## Setting up the project
-
 ### Rust
 
 The recommended way of [installing Rust](https://www.rust-lang.org/tools/install) is through rustup
@@ -41,6 +39,12 @@ Create a systemd service to run the application.
 The systemd service loads environment variables using a path. Be sure to restrict reading access to this file
 in order to protect secrets
 
+## Development
+
+For autocompiling on code changes install cargo-watch with: `cargo install cargo-watch`
+
+Then run `cargo watch -x run`
+
 ## Frontend
 
 Instead of using a frontend framework, this project will use SSR to serve HTML, SCSS, and JavaScript.
@@ -53,21 +57,7 @@ After installing, run `npm run watch:scss`
 
 The project uses [tera](https://github.com/Keats/tera) for templating.
 
-<!--The templating engine used here is the [handlebars-rust](https://github.com/sunng87/handlebars-rust) crate.-->
-
-<!--Some quick tips for using handlebars:-->
- <!--- `{{}}` for interpolation with escaped characters-->
- <!--- `{{{}}}` for interpolation with raw html (nothing is escaped)-->
- <!--- `{{> _partial_name}` for rendering partials-->
- <!--- ```-->
-        <!--{{#each trades}}-->
-        <!--<li class="red">{{this.trade_day}}</li>-->
-        <!--<li class="red">{{this.total_pnl}}</li>-->
-        <!--<li class="red">{{this.pct_winning_trades}}</li>-->
-        <!--{{/each}}-->
-<!--```-->
-
-TODO:
+Future feature:
   [ ] Add Stimulus/Turbo with Hotwire
 
 ## Routes and returning from them
@@ -86,7 +76,7 @@ For other routes, we can return a Result: `fn other_route() -> Result<HttpRespon
   - [x] Set up so `master` branch deploys to server whenever it is pushed to
 - [x] Set up separate repository with a minimal production ready app with user login and a homepage
 - [ ] Fix the test suite
-  - [ ] Routes:
+  - [x] Routes:
     - [x] HealthCheck
     - [x] Users
   - [ ] Models:
@@ -116,6 +106,9 @@ The plan to achieve this is:
     - ~~Write documentaiton along the way~~
 4. ~~Copy this point of the project to a new repository~~
   - ~~This will make starting a new project with actix-web a breeze as there will be a great starting point~~
+
+1. New features should be developed off of the `development` branch.
+2. Merging to master will trigger deployment to production environment.
 
 ## Testing
 

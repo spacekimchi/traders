@@ -1,38 +1,12 @@
 {% extends "base.html" %}
 
 {% block content %}
-    <div>
-        <ul>
-            {% for trades_in_week in past_trades_in_weeks %}
-                <div>
-                    {% for trade_day_info in trades_in_week.trades %}
-                        {{ trade_day_info.day_name }}:
-                        {#Total PnL: {{ trade_day_info.trade_info.total_pnl|round(precision=2)|default(value="N/A"|safe) }}#}
-                        {% if trade_day_info.trade_info.total_pnl %}
-                            Total PnL: {{ trade_day_info.trade_info.total_pnl|round(precision=2) }}
-                        {% else %}
-                            Total PnL: N/A
-                        {% endif %}
-                        {#{% if trade_day_info.trade_info and trade_day_info.trade_info.total_pnl != null %}#}
-                            {#Total PnL: {{ trade_day_info.trade_info.total_pnl }}#}
-                        {#{% else %}#}
-                            {#Total PnL: N/A#}
-                        {#{% endif %}#}
-                    {% endfor %}
-                </div>
-                {#{% include "mini_calendar/mini_calendar.html" %}#}
-                {#<li>Mini Month: {{trades_in_week.trades}}</li>#}
-            {% endfor %}
-        </ul>
+    <div class="mini-calendar-container">
+        {% for month in trades_calendar %}
+            {% include "mini_calendar/mini_calendar.html" %}
+        {% endfor %}
     </div>
     <div>
         This is the calendar root page
-        <ul>
-            {% for trade in trades %}
-                <li>{{trade.trade_day}}</li>
-                <li>{{trade.total_pnl}}</li>
-                <li>{{trade.pct_winning_trades}}</li>
-            {% endfor %}
-        </ul>
     </div>
 {% endblock content %}

@@ -9,7 +9,10 @@ use actix_web_lab::middleware::from_fn;
 use actix_web_flash_messages::storage::CookieMessageStore;
 use actix_web_flash_messages::FlashMessagesFramework;
 use tracing_actix_web::TracingLogger;
-use sqlx::{Pool, PgPool, Postgres};
+// use sqlx::{Pool, Postgres};
+// Pool<Postgres> is similar to PgPool
+// PgPool is sqlx's version
+use sqlx::PgPool;
 use sqlx::postgres::PgPoolOptions;
 use secrecy::{Secret, ExposeSecret};
 
@@ -20,7 +23,7 @@ use crate::routes::{users, login, homepage, calendar};
 use crate::routes::api;
 
 pub struct AppState {
-    pub db: Pool<Postgres>,
+    pub db: PgPool,
     pub hmac_secret: Secret<String>,
 }
 
@@ -81,11 +84,21 @@ pub async fn run(db_pool: PgPool, listener: TcpListener, base_url: String, redis
         App::new()
             .wrap(TracingLogger::default())
             .wrap(message_framework.clone())
-            .wrap(SessionMiddleware::new(redis_store.clone(), secret_key.clone()))
+            .wrap(SessionMiddleware::new(
+                    redis_store.clone(),
+                    secret_key.clone())
+                )
             .app_data(base_url.clone())
-            .app_data(web::Data::new(AppState { db: db_pool.clone(), hmac_secret: hmac_secret.clone() }))
+            .app_data(web::Data::new(AppState {
+                db: db_pool.clone(),
+                hmac_secret: hmac_secret.clone()
+            }))
+
             .app_data(tera.clone())
-            .service(actix_files::Files::new("/static", "./static/"))
+            .service(actix_files::Files::new(
+                    "/static",
+                    "./static/"
+                    ))
             .service(homepage::index)
             .service(login::get_login_page)
             .service(login::login)
@@ -94,6 +107,7 @@ pub async fn run(db_pool: PgPool, listener: TcpListener, base_url: String, redis
                 web::scope("/users")
                 .wrap(from_fn(reject_anonymous_users))
                 .service(users::new_user_page)
+                .service(users::create_user)
             )
             .service(
                 web::scope("/calendar")
@@ -105,7 +119,7 @@ pub async fn run(db_pool: PgPool, listener: TcpListener, base_url: String, redis
                 .service(api::accounts::list)
                 .service(api::users::current_user)
                 .service(
-                    web::scope("")
+                    web::scope("/users")
                     .wrap(from_fn(reject_anonymous_users))
                     .service(api::users::list_users)
                     .service(api::users::delete)
