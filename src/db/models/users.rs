@@ -1,8 +1,8 @@
-use anyhow::Context;
-use sqlx::{self, FromRow};
 use actix_web::web::{Data, Form};
 use serde::{Deserialize, Serialize};
+use sqlx::{self, FromRow};
 use secrecy::{Secret, ExposeSecret};
+use anyhow::Context;
 
 use crate::errors::*;
 use crate::startup::AppState;
@@ -47,6 +47,8 @@ pub async fn get_username(
     Ok(row.username)
 }
 
+/// This will get all the users from the database.
+/// Only a superadmin should ever be able to view this route
 #[tracing::instrument(
     name = "Grabbing users from the database",
     skip(state),
@@ -58,6 +60,7 @@ pub async fn get_users_from_database(state: &Data<AppState>) -> Result<Vec<User>
         .map_err(UserError::DatabaseError)
 }
 
+/// Gets a user by id from the database
 pub async fn get_user_from_database(state: &Data<AppState>, user_id: &String) -> Result<User, UserError> {
     // TODO: Get user by ID. This will discard query params
     sqlx::query_as::<_, User>("SELECT id, username, email, created_at FROM users WHERE id = $1")
@@ -67,6 +70,7 @@ pub async fn get_user_from_database(state: &Data<AppState>, user_id: &String) ->
         .map_err(UserError::DatabaseError)
 }
 
+/// Saves a new user into the database
 #[tracing::instrument(
     name = "Saving new user in the database",
     skip(state, body),

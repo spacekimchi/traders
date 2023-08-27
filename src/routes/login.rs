@@ -51,7 +51,6 @@ pub struct LoginForm {
 /// This route is for displaying the login page
 #[get("/login")]
 async fn get_login_page(tera_store: Data<tera::Tera>, flash_messages: IncomingFlashMessages) -> Result<HttpResponse, LoginError> {
-    println!("\n\n\n INSIDE GET_LOGIN_PAGE \n\n\n");
     let context = tera::Context::new();
 
     let content = render_content(&RenderTemplateParams::new(&"login.html", &tera_store).with_flash_messages(&flash_messages).with_context(&context))?;
@@ -62,7 +61,7 @@ async fn get_login_page(tera_store: Data<tera::Tera>, flash_messages: IncomingFl
 #[tracing::instrument(
     skip(form, state, session),
     fields(username=tracing::field::Empty, id=tracing::field::Empty)
-)]
+    )]
 #[post("/login")]
 pub async fn login(form: Form<LoginForm>, state: Data<AppState>, session: TypedSession) -> Result<HttpResponse, InternalError<LoginError>> {
     let credentials = Credentials {
@@ -98,10 +97,12 @@ pub async fn login(form: Form<LoginForm>, state: Data<AppState>, session: TypedS
 #[post("/logout")]
 pub async fn logout(session: TypedSession) -> Result<HttpResponse, actix_web::Error> {
     if session.get_user_id().map_err(e500)?.is_none() {
-        return Ok(HttpResponse::Unauthorized().json("you are unauthorized"));
+        return Ok(HttpResponse::Unauthorized().body("you are unauthorized"));
     }
     session.logout();
-    Ok(HttpResponse::Ok().finish())
+    Ok(HttpResponse::SeeOther()
+       .insert_header((LOCATION, "/"))
+       .finish())
 }
 
 fn login_redirect(e: LoginError) -> InternalError<LoginError> {

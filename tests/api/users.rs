@@ -40,6 +40,6 @@ async fn authorized_user_creation() {
     let _response = app.post_login(&login_body).await;
     let response = app.post_users_form(&body).await;
 
-    assert_eq!(201, response.status().as_u16(), "User creation failed");
+    assert_eq!(303, response.status().as_u16(), "User creation failed");
 }
 

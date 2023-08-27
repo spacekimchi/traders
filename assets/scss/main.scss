@@ -1,7 +1,11 @@
+@import "normalize";
 @import "mini_calendar";
+@import "variables";
 
-.red {
-    color: red;
-    font-size: 25px;
-    font-weight: 800;
+body {
+    background-color: $dark-1;
+    color: $light-1;
+    width: 1080px;
+    margin: auto;
 }
+

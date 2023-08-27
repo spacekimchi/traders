@@ -3,12 +3,15 @@
 //! This directory will hold all the files that have to do with pages under the /calendar url
 //! Routes under this directory should be placed under the /calendar namespace in src/startup.rs
 //!
+//! TODO:
+//!   - Replace all of the hardcoded strings
+//!     - Quite a few of them are errors, we need to create error types
+//!
+use std::collections::HashMap;
 
 use actix_web::{HttpResponse, get};
 use actix_web::web::Data;
-// For using the .month and .year methods
-use chrono::{Datelike, Duration};
-use chrono::prelude::*;
+use chrono::{Datelike, NaiveDate, Duration, Weekday};
 
 use serde::Serialize;
 
@@ -18,84 +21,11 @@ use crate::startup::AppState;
 use crate::template_helpers::{render_content, RenderTemplateParams, err_500_template};
 use crate::db::models::trades;
 
-/// URL: https://traders.jinz.co/calendar
-#[get("")]
-async fn get_calendar_root(tera_engine: Data<tera::Tera>, _session: TypedSession, state: Data<AppState>) -> HttpResponse {
-    // Calculate the date 52 weeks ago
-    let date_52_weeks_ago = Utc::now() - Duration::days(365);
-
-    println!("\n\n\nDATE_52_WEEKS_AGO: {:?}n", date_52_weeks_ago);
-    // Adjust to the beginning of that week (i.e., the previous Sunday)
-    let days_since_last_sunday = date_52_weeks_ago.weekday().number_from_sunday() as i64 - 1;
-    println!("\n\n\nDATE_52_WEEKS_AGO.WEEKDAY: {:?}n", date_52_weeks_ago.weekday());
-    println!("DAYS_SINCE_LAST_SUNDAY: {:?}", days_since_last_sunday);
-    let start_date = date_52_weeks_ago - Duration::days(days_since_last_sunday);
-    println!("START_DATE: {:?}", start_date);
-
-    let start_date_excel = excel_helpers::date_to_excel(&start_date);
-    println!("START_DATE_EXCEL: {:?}\n\n\n", start_date_excel);
-
-    match trades::get_trades_by_day_from(&state, start_date_excel).await {
-        Ok(trades_by_day) => {
-            //calendar_year_from_trades(&trades_by_day, this_year);
-            let past_trades_in_weeks = calendar_trades_from_last_52_weeks(&trades_by_day, start_date_excel);
-            let mut context = tera::Context::new();
-            context.insert("trades", &trades_by_day);
-            context.insert("past_trades_in_weeks", &past_trades_in_weeks);
-            match render_content(&RenderTemplateParams::new("calendar/index.html", &tera_engine).with_context(&context)) {
-                Ok(calendar_template) => HttpResponse::Ok().body(calendar_template),
-                Err(e) => HttpResponse::InternalServerError().body(err_500_template(&tera_engine, e))
-            }
-        },
-        Err(e) => HttpResponse::InternalServerError().body(err_500_template(&tera_engine, e))
-    }
-}
-
-fn calendar_trades_from_last_52_weeks(trades: &Vec<trades::TradeInfoByDay>, start_date_excel: i32) -> Vec<TradesInWeek> {
-    let mut trades_in_year: Vec<TradesInWeek> = Vec::new();
-
-    // Today's date
-    let today = Utc::now();
-    let end_date_excel = excel_helpers::date_to_excel(&today);
-
-    let mut trades_iter = trades.iter().peekable();
-    let mut current_week = TradesInWeek::new();
-
-    for cur_excel_date in (start_date_excel as i32)..=(end_date_excel as i32) {
-        let cur_date_obj = excel_helpers::excel_to_date(cur_excel_date).unwrap();
-        let day_of_week = cur_date_obj.weekday().number_from_sunday();
-        println!("CUR_DATE_OBJ: {:?}", cur_date_obj);
-        println!("CUR_DATE_OBJ.WEEKDAY: {:?}", cur_date_obj.weekday());
-        println!("DAY_OF_WEEK: {:?}", day_of_week);
-
-        // If it's a weekend, skip
-        // 1 == sunday and 7 == saturday
-        if day_of_week == 1 || day_of_week == 7 {
-            continue;
-        }
-
-        // If a trade exists for the current date, pop it from the iterator
-        let trade_info = if trades_iter.peek().is_some() && trades_iter.peek().unwrap().trade_day as i32 == cur_excel_date {
-            Some(trades_iter.next().unwrap())
-        } else {
-            None
-        };
-
-        current_week.trades.push(TradingDay::new(trade_info, day_of_week));
-
-        // If the current_week has 5 days or if we're in the current week (where we might not have reached 5 weekdays yet)
-        if current_week.trades.len() == 5 || (cur_date_obj == today.naive_utc().date() && day_of_week == 5) {
-            trades_in_year.push(current_week);
-            current_week = TradesInWeek::new();
-        }
-    }
-
-    // If there are any remaining days in the current_week, push it to trades_in_year
-    if !current_week.trades.is_empty() {
-        trades_in_year.push(current_week);
-    }
-
-    trades_in_year
+#[derive(Debug, Serialize)]
+struct TradesInMonth<'a> {
+    pub trades: Vec<TradesInWeek<'a>>,
+    pub name: &'static str,
+    pub year: i32,
 }
 
 #[derive(Debug, Serialize)]
@@ -111,23 +41,205 @@ impl <'a>TradesInWeek<'_> {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 struct TradingDay<'a> {
     pub trade_info: Option<&'a trades::TradeInfoByDay>,
     pub day_name: &'static str,
+    pub date_number: u32,
+    pub padding_day: bool,
 }
 
 impl <'a>TradingDay<'_> {
-    fn new(trade_info: Option<&'a trades::TradeInfoByDay>, day: u32) -> TradingDay<'a> {
+    fn new(trade_info: Option<&'a trades::TradeInfoByDay>, day: u32, date_number: u32) -> TradingDay<'a> {
         TradingDay {
             trade_info,
             day_name: get_day_name_from_number(day),
+            date_number,
+            padding_day: false,
         }
+    }
+
+    fn with_padding_true(mut self) -> Self {
+        self.padding_day = true;
+        self
     }
 }
 
+/// URL: https://traders.jinz.co/calendar
+#[get("")]
+async fn get_calendar_root(tera_engine: Data<tera::Tera>, _session: TypedSession, state: Data<AppState>) -> HttpResponse {
+    let year_in_weeks = 52;
+    let start_date_excel = excel_helpers::get_start_of_n_weeks_ago(year_in_weeks);
+    let trades_by_day = match trades::get_trades_by_day_from(&state.db, start_date_excel).await {
+        Ok(trades_by_day) => trades_by_day,
+        Err(e) => return HttpResponse::InternalServerError().body(err_500_template(&tera_engine, e))
+    };
+    let todays_date = chrono::Local::now().date_naive();
+    let past_trades_in_weeks = calendar_trades_from_last_52_weeks(&trades_by_day, start_date_excel);
+    let trades_by_day_ref = trades_by_day.iter().collect();
+    let trades_calendar = match get_trades_in_year_by_days_in_month(&trades_by_day_ref, todays_date.year()) {
+        Ok(trades_calendar) => trades_calendar,
+        Err(e) => return HttpResponse::InternalServerError().body(err_500_template(&tera_engine, e))
+    };
+    let mut context = tera::Context::new();
+
+    context.insert("trades", &trades_by_day);
+    context.insert("past_trades_in_weeks", &past_trades_in_weeks);
+    context.insert("trades_calendar", &trades_calendar);
+    match render_content(&RenderTemplateParams::new("calendar/index.html", &tera_engine).with_context(&context)) {
+        Ok(calendar_template) => HttpResponse::Ok().body(calendar_template),
+        Err(e) => HttpResponse::InternalServerError().body(err_500_template(&tera_engine, e))
+    }
+}
+
+// This will build trades into a display like the commit history you see on github,
+// except this doesnt have weekends
+fn calendar_trades_from_last_52_weeks(trades: &Vec<trades::TradeInfoByDay>, start_date_excel: u32) -> Vec<TradesInWeek> {
+    let mut trades_in_year: Vec<TradesInWeek> = Vec::new();
+
+    // Today's date
+    let today = chrono::Local::now().date_naive();
+    let end_date_excel = excel_helpers::date_to_excel(&today);
+
+    let mut trades_iter = trades.iter().peekable();
+    let mut current_week = TradesInWeek::new();
+
+    for cur_excel_date in (start_date_excel)..=(end_date_excel) {
+        let cur_date_obj = excel_helpers::excel_to_date(cur_excel_date).unwrap();
+        let day_of_week = cur_date_obj.weekday().number_from_sunday();
+
+        // If it's a weekend, skip
+        // 1 == sunday and 7 == saturday
+        if day_of_week == 1 || day_of_week == 7 {
+            continue;
+        }
+
+        // If a trade exists for the current date, pop it from the iterator
+        let trade_info = if trades_iter.peek().is_some() && trades_iter.peek().unwrap().trade_day as u32  == cur_excel_date {
+            Some(trades_iter.next().unwrap())
+        } else {
+            None
+        };
+
+        current_week.trades.push(TradingDay::new(trade_info, day_of_week, cur_date_obj.day()));
+
+        // If the current_week has 5 days or if we're in the current week (where we might not have reached 5 weekdays yet)
+        if current_week.trades.len() == 5 || (cur_date_obj == today && day_of_week == 5) {
+            trades_in_year.push(current_week);
+            current_week = TradesInWeek::new();
+        }
+    }
+
+    // If there are any remaining days in the current_week, push it to trades_in_year
+    if !current_week.trades.is_empty() {
+        trades_in_year.push(current_week);
+    }
+
+    trades_in_year
+}
+
+/// This function is for building trades into a calendar style for displaying on the calendar
+/// page.
+///
+/// Params:
+/// trades: &HashMap<i32, &Vec<trades::TradeInfoByDay>>
+///   - key: the day in excel serial date format
+///   - value: vector of trades in that day
+fn get_trades_in_year_by_days_in_month<'a>(trades: &Vec<&'a trades::TradeInfoByDay>, year: i32) -> Result<Vec<TradesInMonth<'a>>, &'static str> {
+    let mut trades_hash: HashMap<u32, &'a trades::TradeInfoByDay> = HashMap::new();
+    for trade in trades {
+        trades_hash.insert(trade.trade_day as u32, trade);
+    }
+    let trades_by_month_in_year = build_year(year, &trades_hash)?;
+    Ok(trades_by_month_in_year)
+}
+
+fn build_year<'a>(year: i32, trades: &HashMap<u32, &'a trades::TradeInfoByDay>) -> Result<Vec<TradesInMonth<'a>>, &'static str> {
+    let trades_in_year: Result<Vec<TradesInMonth>, &'static str> = (1..=12)
+        .map(|month| build_month(year, month, trades))
+        .collect();
+
+    trades_in_year
+}
+
+fn build_month<'a>(year: i32, month: u32, trades: &HashMap<u32, &'a trades::TradeInfoByDay>) -> Result<TradesInMonth<'a>, &'static str> {
+    let mut trades_in_month: Vec<TradingDay> = Vec::new();
+    // NaiveDate returns a date that looks like 12/24/1991. There is no time association
+    let first_day_of_month = NaiveDate::from_ymd_opt(year, month, 1).ok_or("Unable to set first_weekday_of_month in build_month")?;
+    // In chrono::Weekday, numbering starts with 0 on Monday up to 6 on Sunday
+    // [Mon, Tue, Wed, Thu, Fri, Sat, Sun]
+    // This will make sure the first_weekday_of_month always starts on a Monday
+    let mut padding_day = match first_day_of_month.weekday() {
+        Weekday::Mon => first_day_of_month,
+        Weekday::Tue => first_day_of_month - Duration::days(1),
+        Weekday::Wed => first_day_of_month - Duration::days(2),
+        Weekday::Thu => first_day_of_month - Duration::days(3),
+        Weekday::Fri => first_day_of_month - Duration::days(4),
+        Weekday::Sat => first_day_of_month + Duration::days(2),
+        Weekday::Sun => first_day_of_month + Duration::days(1),
+    };
+    while padding_day < first_day_of_month {
+        match padding_day.weekday() {
+            Weekday::Sat | Weekday::Sun => {},
+            _ => trades_in_month.push(TradingDay::new(None, padding_day.weekday().number_from_sunday(), padding_day.day()).with_padding_true())
+        }
+        padding_day += Duration::days(1);
+    }
+
+    let next_month_start = if month == 12 {
+        NaiveDate::from_ymd_opt(year + 1, 1, 1).ok_or("Unable to set next_month_start in build_month")?
+    } else {
+        NaiveDate::from_ymd_opt(year, month + 1, 1).ok_or("Unable to set next_month_start in build_month")?
+    };
+
+    // These should be the days of the current month we are building
+    // On weekdays we want to add trades to TradeInfoByDay
+    // We only want to collect weekdays
+    let mut current_day = first_day_of_month;
+    while current_day < next_month_start {
+        match current_day.weekday() {
+            Weekday::Sat | Weekday::Sun => {},
+            _ => { 
+                let excel_date = excel_helpers::date_to_excel(&current_day);
+                let days_from_sunday = current_day.weekday().number_from_sunday();
+                let date_number = current_day.day();
+                let trading_day = match trades.get(&excel_date) {
+                    Some(trade_info) => TradingDay::new(Some(*trade_info), days_from_sunday, date_number),
+                    None => TradingDay::new(None, days_from_sunday, date_number)
+                };
+                trades_in_month.push(trading_day);
+            }
+        }
+        current_day += Duration::days(1);
+    }
+    
+    // Padding for the remaining days in the month calendar
+    let last_day_of_month = next_month_start - Duration::days(1);
+    let last_weekday_of_month = match last_day_of_month.weekday() {
+        Weekday::Mon => last_day_of_month + Duration::days(4),
+        Weekday::Tue => last_day_of_month + Duration::days(3),
+        Weekday::Wed => last_day_of_month + Duration::days(2),
+        Weekday::Thu => last_day_of_month + Duration::days(1),
+        Weekday::Fri => last_day_of_month,
+        Weekday::Sat => last_day_of_month - Duration::days(1),
+        Weekday::Sun => last_day_of_month - Duration::days(2),
+    };
+    while current_day <= last_weekday_of_month {
+        trades_in_month.push(TradingDay::new(None, current_day.weekday().number_from_sunday(), current_day.day()).with_padding_true());
+        current_day += Duration::days(1);
+    }
+
+
+    let mut weeks = vec![];
+    for chunk in trades_in_month.chunks(5) { // Now the chunk size remains 5 for weekdays
+        weeks.push(TradesInWeek { trades: chunk.to_vec() });
+    }
+
+    Ok(TradesInMonth { trades: weeks, name: get_month_name_from_number(month), year })
+}
+
 fn get_day_name_from_number(mut day: u32) -> &'static str {
-    let day_strings = vec!("INVALID",
+    let day_strings = vec!("INVALID DAY",
                                       "Sunday",
                                       "Monday",
                                       "Tuesday",
@@ -141,8 +253,9 @@ fn get_day_name_from_number(mut day: u32) -> &'static str {
     day_strings[day as usize]
 }
 
-fn _get_month_name_from_number(mut month: i32) -> &'static str {
-    let months_to_string = vec!("January",
+fn get_month_name_from_number(mut month: u32) -> &'static str {
+    let months_to_string = vec!("INVALID MONTH",
+                                           "January",
                                            "Februrary",
                                            "March",
                                            "April",
@@ -153,10 +266,9 @@ fn _get_month_name_from_number(mut month: i32) -> &'static str {
                                            "September",
                                            "October",
                                            "November",
-                                           "December",
-                                           "INVAID MONTH");
+                                           "December");
 
-    if month < 0 || month >= months_to_string.len() as i32 {
+    if month >= months_to_string.len() as u32 {
         month = 12;
     }
     months_to_string[month as usize]

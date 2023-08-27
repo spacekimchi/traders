@@ -1,8 +1,9 @@
-use sqlx::{self, FromRow};
-use actix_web::web::Data;
-use serde::{Deserialize, Serialize}; use chrono::Datelike;
+//! src/db/models/trades.rs
+//!
+//! The purpose of this file is to hold database operations relevant to the trades table
 
-use crate::startup::AppState;
+use sqlx::{self, FromRow, PgPool};
+use serde::{Deserialize, Serialize}; use chrono::Datelike;
 
 #[derive(Debug, Deserialize, Serialize, FromRow)]
 pub struct Trade {
@@ -20,25 +21,33 @@ pub struct Trade {
     pub updated_at: chrono::DateTime<chrono::offset::Utc>,
 }
 
-///
-/// This query is good for displaying a calendar view of the trades
+#[derive(Debug, Deserialize, Serialize, FromRow)]
+pub struct TradeInfoByDay {
+    pub trade_day: i32, // Excel serialize date
+    pub number_of_trades: i64,
+    pub accounts_traded: i64,
+    pub total_pnl: f32,
+    pub pct_winning_trades: f64,
+}
+
+impl TradeInfoByDay {
+    pub fn month_from_excel_date(&self) -> u32 {
+        let base_date = chrono::NaiveDate::from_ymd_opt(1900, 1, 1).unwrap();
+
+        // Adjusting for Excel's leap year bug
+        let adj = if self.trade_day >= 61 { -1 } else { 0 };
+        let dt = base_date + chrono::Duration::days((self.trade_day + adj) as i64);
+        dt.month()
+    }
+}
+
+/// This query is for displaying a calendar view of the trades
 /// An additional WHERE clause can easily be added to grab within a time range
-///   - WHERE trades.entry_time > $0 AND trades.exit_time < $1
+///   - WHERE trades.exit_time > $0 AND trades.exit_time < $1
 ///
-/// SELECT
-///     FLOOR(trades.entry_time) AS trade_day,
-///     COUNT(trades.id) AS number_of_trades,
-///     COUNT(DISTINCT accounts.id) AS accounts_traded,
-///     SUM(trades.pnl) - SUM(trades.commissions) AS total_pnl,
-///     SUM(CASE WHEN trades.pnl - trades.commissions > 0 THEN 1 ELSE 0 END) / COUNT(trades.id) * 100 AS pct_winning_trades
-/// FROM trades
-/// JOIN accounts ON trades.account_id = accounts.id
-/// JOIN instruments ON instruments.id = trades.instrument_id
-/// WHERE accounts.user_id = '6982c6df-3d03-4583-8fa9-07386cf25f80'
-/// AND accounts.sim != true
-/// GROUP BY FLOOR(trades.entry_time)
-/// ORDER BY trade_day;
+/// We use exit_time to get the pnl of trades that were CLOSED on that day.
 ///
+/// This is an example of rows that are returned from the query
 ///
 /// trade_day | number_of_trades | accounts_traded | total_pnl | pct_winning_trades
 ///-----------+------------------+-----------------+-----------+-------------------------
@@ -58,51 +67,60 @@ pub struct Trade {
 ///     45012 |               25 |               3 |   -243.64 |                   64.00
 ///     45013 |               32 |               3 |      2.82 |                   96.88
 ///     45014 |               10 |               3 |    121.67 |                   70.00
-///
-
-#[derive(Debug, Deserialize, Serialize, FromRow)]
-pub struct TradeInfoByDay {
-    pub trade_day: f64, // Excel serialize date
-    pub number_of_trades: i64,
-    pub accounts_traded: i64,
-    pub total_pnl: f32,
-    pub pct_winning_trades: f64,
-}
-
-impl TradeInfoByDay {
-    pub fn month_from_excel_date(&self) -> u32 {
-        let base_date = chrono::NaiveDate::from_ymd_opt(1900, 1, 1).unwrap();
-
-        // Adjusting for Excel's leap year bug
-        let adj = if self.trade_day >= 61.0 { -1.0 } else { 0.0 };
-        let dt = base_date + chrono::Duration::days((self.trade_day + adj) as i64);
-        dt.month()
-    }
-}
-
-pub async fn get_trades_by_day_from(state: &Data<AppState>, start_date: i32) -> Result<Vec<TradeInfoByDay>, sqlx::Error> {
+pub async fn get_trades_by_day_from(db: &PgPool, start_date: u32) -> Result<Vec<TradeInfoByDay>, sqlx::Error> {
     let query = String::from(
         format!(
 "SELECT
-    FLOOR(trades.entry_time) AS trade_day,
+    CAST(FLOOR(trades.entry_time) AS INTEGER) AS trade_day,
     COUNT(trades.id) AS number_of_trades,
     COUNT(DISTINCT accounts.id) AS accounts_traded,
     SUM(trades.pnl) - SUM(trades.commissions) AS total_pnl,
     CAST(
         SUM(CASE WHEN trades.pnl - trades.commissions > 0.0 THEN 1.0 ELSE 0.0 END) / COUNT(trades.id) * 100
-        AS double precision
+        AS DOUBLE PRECISION
     ) AS pct_winning_trades
 FROM trades
 JOIN accounts ON trades.account_id = accounts.id
 JOIN instruments ON instruments.id = trades.instrument_id
 WHERE accounts.user_id = '6982c6df-3d03-4583-8fa9-07386cf25f80'
-AND trades.entry_time >= {}
+AND trades.exit_time >= {}
 AND accounts.sim != true
 GROUP BY FLOOR(trades.entry_time)
 ORDER BY trade_day", start_date)
 );
+
     let trades = sqlx::query_as::<_, TradeInfoByDay>(&query)
-        .fetch_all(&state.db)
+        .fetch_all(db)
+        .await?;
+    Ok(trades)
+}
+
+/// Similar to the above query, but this will return trades in a range
+/// This function and #get_trades_by_day_from can be combined into a single function
+pub async fn get_trades_by_day_in_range(db: &PgPool, start_date: i32, end_date: i32) -> Result<Vec<TradeInfoByDay>, sqlx::Error> {
+    let query = String::from(
+        format!(
+"SELECT
+    CAST(FLOOR(trades.entry_time) AS INTEGER) AS trade_day,
+    COUNT(trades.id) AS number_of_trades,
+    COUNT(DISTINCT accounts.id) AS accounts_traded,
+    SUM(trades.pnl) - SUM(trades.commissions) AS total_pnl,
+    CAST(
+        SUM(CASE WHEN trades.pnl - trades.commissions > 0.0 THEN 1.0 ELSE 0.0 END) / COUNT(trades.id) * 100
+        AS DOUBLE PRECISION
+    ) AS pct_winning_trades
+FROM trades
+JOIN accounts ON trades.account_id = accounts.id
+JOIN instruments ON instruments.id = trades.instrument_id
+WHERE accounts.user_id = '6982c6df-3d03-4583-8fa9-07386cf25f80'
+AND trades.exit_time >= {}
+AND trades.exit_time <= {}
+AND accounts.sim != true
+GROUP BY FLOOR(trades.entry_time)
+ORDER BY trade_day", start_date, end_date)
+);
+    let trades = sqlx::query_as::<_, TradeInfoByDay>(&query)
+        .fetch_all(db)
         .await?;
     Ok(trades)
 }

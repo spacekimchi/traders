@@ -3,13 +3,17 @@
     <head>
         <meta http-equiv="content-type" content="text/html; charset=utf-8">
         <link rel="stylesheet" href="/static/css/main.css">
-        <title>{% block title %}Traderz{% endblock title %}</title>
+        <title>
+            {% block title %}
+                Traderz
+            {% endblock title %}
+        </title>
     </head>
     <body>
         {% block flash_html %}
             {{flash_html|safe}}
         {% endblock flash_html %}
-        {% block top_nav %}{% endblock top_nav %}
+        {% include "partials/_navigation.html" %}
         <div id="main-content">
             {% block content %}{% endblock content %}
         </div>

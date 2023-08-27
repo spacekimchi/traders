@@ -1,11 +1,12 @@
 //! src/routes/users.rs
 //!
-//! Routes for actions on users
+//! Routes for actions on users.
+
 use actix_web::web::{Data, Json, Path, Form};
 use actix_web::{web, HttpResponse, HttpRequest, Responder, get, post, delete};
 // InternalError is similar to us returning e500;
 use actix_web::error::InternalError;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use secrecy::{Secret, ExposeSecret};
 
 use crate::startup::AppState;
@@ -18,7 +19,8 @@ use crate::authentication::{validate_credentials, AuthError, Credentials, change
 use crate::authentication::UserId;
 
 /// This runs validations on UserForm. It tries to create the NewUser
-/// for when creating a new user
+/// struct with the values passed in from UserForm.
+/// Validations are inside of the NewUser file
 impl TryFrom<UserForm> for NewUser {
     type Error = String;
 
@@ -27,14 +29,6 @@ impl TryFrom<UserForm> for NewUser {
         let email = UserEmail::parse(value.email)?;
         Ok(Self { email, username })
     }
-}
-
-#[derive(Debug, Serialize)]
-pub struct UserResponse {
-    pub id: uuid::Uuid,
-    pub username: String,
-    pub email: String,
-    // other fields but no password
 }
 
 #[derive(Debug, Deserialize)]
@@ -46,6 +40,8 @@ pub struct ChangePasswordRequest {
 
 /// This endpoint is used for grabbing the current user_id in the session
 /// If there is no user in the session, it will return 0
+/// TODO
+///   - Need to change from returning 0 to returning something else
 #[tracing::instrument(
     name = "Getting current user",
     skip(session),
@@ -97,7 +93,7 @@ pub async fn create_user(
     }
 }
 
-#[get("/users/{user_id}")]
+#[get("/{user_id}")]
 pub async fn get_user_by_id(state: Data<AppState>, path: Path<String>) -> impl Responder {
     // TODO: Get user by ID. This will discard query params
     let user_id = path.into_inner();
@@ -108,7 +104,7 @@ pub async fn get_user_by_id(state: Data<AppState>, path: Path<String>) -> impl R
         }
 }
 
-#[delete("/users/{user_id}")]
+#[delete("/{user_id}")]
 pub async fn delete(_state: Data<AppState>, _path: Path<(String,)>) -> HttpResponse {
     // TODO: Delete user by ID
     // in any case return status 204
@@ -121,7 +117,7 @@ pub async fn delete(_state: Data<AppState>, _path: Path<(String,)>) -> HttpRespo
 
 /// TODO
 ///   - We need some kind of password strength checker
-#[post("/users/{user_id}")]
+#[post("/{user_id}")]
 pub async fn change_user_password(
     state: Data<AppState>,
     body: Json<ChangePasswordRequest>,

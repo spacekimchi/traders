@@ -1,4 +1,3 @@
-pub mod trades;
 pub mod homepage;
 pub mod calendar;
 pub mod login;
