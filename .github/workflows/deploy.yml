@@ -37,10 +37,12 @@ jobs:
         echo "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
         # Deploy static files
         scp -i ~/.ssh/traders-deploy -r static/ $SERVER:/home/jhg/workspace/traders/
+        # Deploy migrations
+        scp -i ~/.ssh/traders-deploy -r migrations/ $SERVER:/home/jhg/workspace/traders/
+        # Stop service
         ssh -i ~/.ssh/traders-deploy $SERVER 'sudo systemctl stop traders'
-        # migrations (Split this up into it's own name later
-        ssh -i ~/.ssh/traders-deploy $SERVER "DATABASE_URL=${DATABASE_URL} sqlx migrate run"
         # Deploy Traders binary
         scp -i ~/.ssh/traders-deploy target/release/traders $SERVER:/home/jhg/workspace/traders/target/release/traders
+        # Start service
         ssh -i ~/.ssh/traders-deploy $SERVER 'sudo systemctl start traders'
 
