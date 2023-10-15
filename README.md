@@ -115,6 +115,8 @@ The plan to achieve this is:
 If an error like this appears `failed to find data for query INSERT INTO users (id, email, username, password_hash)`
  - run this command `DATABASE_URL=postgres://your_database_url cargo sqlx prepare`
 
+Errors saying there are too many files open could be fixed for the current shell session with `ulimit -n 50000`
+
 ## Purpose
 
 NinjaTrader is a futures trading platform that provides users with an excel file (.xlsx) of every trade execution they make during that trading day.

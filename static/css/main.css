@@ -1,47 +1,127 @@
 /* Normalize some basic HTML elements */
 html {
   line-height: 1.15;
-  -webkit-text-size-adjust: 100%; }
+  -webkit-text-size-adjust: 100%;
+}
 
 body {
-  margin: 0; }
+  margin: 0;
+}
 
 main {
-  display: block; }
+  display: block;
+}
 
 h1 {
   font-size: 2em;
-  margin: 0.67em 0; }
+  margin: 0.67em 0;
+}
 
 hr {
   box-sizing: content-box;
   height: 0;
-  overflow: visible; }
+  overflow: visible;
+}
 
 pre {
   font-family: monospace, monospace;
-  font-size: 1em; }
+  font-size: 1em;
+}
 
 a {
-  background-color: transparent; }
+  background-color: transparent;
+}
 
 abbr[title] {
   text-decoration: underline;
-  text-decoration: underline dotted; }
+  text-decoration: underline dotted;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+ol,
+ul {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  font-size: 16px;
+  color: #F0EAD6;
+  line-height: 1.6;
+  background-color: #fff;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-weight: normal;
+  line-height: 1.2;
+}
+
+ol,
+ul {
+  list-style: none;
+}
+
+a {
+  text-decoration: none;
+  color: #F0EAD6;
+}
+a:hover {
+  text-decoration: underline;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+input,
+textarea,
+select,
+button {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+}
 
 .mini-calendar-container {
   display: flex;
   flex-wrap: wrap;
-  justify-content: center; }
+  justify-content: center;
+}
 
 .mini-month-container {
-  margin: 2px; }
-  .mini-month-container .mini-month-header {
-    padding: 15px 0;
-    text-align: center; }
+  margin: 2px;
+}
+.mini-month-container .mini-month-header {
+  padding: 15px 0;
+  text-align: center;
+}
 
 .mini-week-container {
-  display: flex; }
+  display: flex;
+}
 
 .mini-month-day {
   margin: 2px;
@@ -49,18 +129,45 @@ abbr[title] {
   display: inline-block;
   border: solid 1px black;
   height: 50px;
-  width: 50px; }
-  .mini-month-day.padding-day {
-    visibility: hidden; }
-  .mini-month-day.trades-present {
-    background-color: green; }
-  .mini-month-day.green-day {
-    background-color: green; }
-  .mini-month-day.red-day {
-    background-color: red; }
+  width: 50px;
+}
+.mini-month-day.padding-day {
+  visibility: hidden;
+}
+.mini-month-day.trades-present {
+  background-color: green;
+}
+.mini-month-day.green-day {
+  background-color: green;
+}
+.mini-month-day.red-day {
+  background-color: red;
+}
+
+.navigation {
+  display: flex;
+  align-items: center;
+}
+
+.nav-logo {
+  height: 75px;
+}
+
+.nav-section {
+  display: flex;
+}
+.nav-section:last-child {
+  margin-left: auto;
+}
+.nav-section > li:not(:first-child) {
+  margin-left: 5px;
+}
 
 body {
   background-color: #272829;
   color: #D8D9DA;
   width: 1080px;
-  margin: auto; }
+  margin: auto;
+}
+
+/*# sourceMappingURL=main.css.map */

@@ -1,0 +1,23 @@
+.navigation {
+    display: flex;
+    align-items: center;
+}
+
+.nav-logo {
+    height: 75px;
+}
+
+.nav-section {
+    display: flex;
+
+    &:last-child {
+        margin-left: auto;
+    }
+    
+    > li {
+        &:not(:first-child) {
+            margin-left: 5px;
+        }
+    }
+}
+
