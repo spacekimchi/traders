@@ -1,14 +1,9 @@
 <div class="mini-week-container">
     {% for trading_day in trades_in_week.trades %}
-        <span class="mini-month-day{% if trading_day.padding_day %} padding-day{% endif %}{% if trading_day.trade_info %}{% if trading_day.trade_info.total_pnl > 0 %} green-day{% else %} red-day{% endif %}{% endif %}">
+        <span class="{{trading_day.class_list | join(sep=' ')}}">
             <div>
                 {{ trading_day.date_number }}
             </div>
-            {#{% if trading_day.trade_info.total_pnl %}#}
-                {#<div>#}
-                    {#{{ trading_day.trade_info.total_pnl|round(precision=2) }}#}
-                    {#</div>#}
-            {#{% endif %}#}
         </span>
     {% endfor %}
 </div>

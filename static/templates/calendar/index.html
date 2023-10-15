@@ -1,6 +1,15 @@
 {% extends "base.html" %}
 
 {% block content %}
+    <div>
+        Range picker
+        Stats for range:
+            1) Total pnl
+            2) Total trades
+            3) Average Winner
+            4) Average Loser
+
+    </div>
     <div class="mini-calendar-container">
         {% for month in trades_calendar %}
             {% include "mini_calendar/mini_calendar.html" %}

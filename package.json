@@ -7,7 +7,7 @@
         "test": "tests"
     },
     "scripts": {
-        "build:scss": "node-sass assets/scss/main.scss -o static/css/",
+        "build:scss": "sass assets/scss/main.scss static/css/main.css",
         "watch:scss": "nodemon -e scss -x 'npm run build:scss'",
         "test": "echo \"Error: no test specified\" && exit 1"
     },
@@ -25,6 +25,5 @@
         "nodemon": "^3.0.1"
     },
     "dependencies": {
-        "node-sass": "^9.0.0"
     }
 }

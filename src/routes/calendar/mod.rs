@@ -47,6 +47,7 @@ struct TradingDay<'a> {
     pub day_name: &'static str,
     pub date_number: u32,
     pub padding_day: bool,
+    pub class_list: Vec<&'static str>,
 }
 
 impl <'a>TradingDay<'_> {
@@ -55,14 +56,33 @@ impl <'a>TradingDay<'_> {
             trade_info,
             day_name: get_day_name_from_number(day),
             date_number,
+            class_list: get_class_list_for_trading_day(&trade_info),
             padding_day: false,
         }
     }
 
     fn with_padding_true(mut self) -> Self {
         self.padding_day = true;
+        self.class_list.push("padding-day");
         self
     }
+}
+
+//"mini-month-day{% if trading_day.padding_day %} padding-day{% endif %}{% if trading_day.trade_info %}{% if trading_day.trade_info.total_pnl > 0 %} green-day{% else %} red-day{% endif %}{% endif %}"
+/// This is a helper method to set the class list for the calendar day
+pub fn get_class_list_for_trading_day<'a>(trade_info: &Option<&'a trades::TradeInfoByDay>) -> Vec<&'static str> {
+    let mut class_list = vec!["mini-month-day"];
+    match trade_info {
+        Some(trade) => {
+            if trade.total_pnl > 0.0 {
+                class_list.push("green-day");
+            } else {
+                class_list.push("red-day");
+            }
+        },
+        None => {}
+    }
+    class_list
 }
 
 /// URL: https://traders.jinz.co/calendar
