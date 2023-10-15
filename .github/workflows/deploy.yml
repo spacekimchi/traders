@@ -39,7 +39,7 @@ jobs:
         scp -i ~/.ssh/traders-deploy -r static/ $SERVER:/home/jhg/workspace/traders/
         ssh -i ~/.ssh/traders-deploy $SERVER 'sudo systemctl stop traders'
         # migrations (Split this up into it's own name later
-        ssh -i ~/.ssh/traders-deploy $SERVER "DATABASE_URL=${DATABASE_URL} /home/jhg/.cargo/bin/sqlx migrate run"
+        ssh -i ~/.ssh/traders-deploy $SERVER "DATABASE_URL=${DATABASE_URL} sqlx migrate run"
         # Deploy Traders binary
         scp -i ~/.ssh/traders-deploy target/release/traders $SERVER:/home/jhg/workspace/traders/target/release/traders
         ssh -i ~/.ssh/traders-deploy $SERVER 'sudo systemctl start traders'
