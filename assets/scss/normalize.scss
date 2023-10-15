@@ -37,3 +37,86 @@ abbr[title] {
     text-decoration: underline dotted;
 }
 
+// Resets.. Maybe should be moved to it's own file
+
+// Variables
+$body-font-family: Arial, sans-serif;
+$base-font-size: 16px;
+$text-color: #F0EAD6;
+$line-height: 1.6;
+
+// Basic Reset
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+ol,
+ul {
+  margin: 0;
+  padding: 0;
+}
+
+// Body & Text Defaults
+body {
+  font-family: $body-font-family;
+  font-size: $base-font-size;
+  color: $text-color;
+  line-height: $line-height;
+  background-color: #fff;
+}
+
+// Headings
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-weight: normal;
+  line-height: 1.2;
+}
+
+// Lists
+ol,
+ul {
+  list-style: none;
+}
+
+// Links
+a {
+  text-decoration: none;
+  color: $text-color;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+// Images
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+// Form Elements
+input,
+textarea,
+select,
+button {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+}

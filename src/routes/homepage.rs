@@ -1,12 +1,14 @@
 //! src/routes/homepage.rs
 //!
 //! This file is used to create a route for the homepage
+//! The homepage template can be found in static/templates/index.html
 use actix_web::{get, HttpResponse, web};
 use actix_web_flash_messages::IncomingFlashMessages;
 
 use crate::template_helpers::{RenderTemplateParams, render_content};
 
 // Macro documentation can be found in the actix_web_codegen crate
+//
 #[get("/")]
 async fn index(tera_store: web::Data<tera::Tera>, flash_messages: IncomingFlashMessages) -> Result<HttpResponse, actix_web::Error> {
     let mut context = tera::Context::new();
