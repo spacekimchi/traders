@@ -28,6 +28,7 @@ jobs:
         SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
         SERVER_USER: ${{ secrets.SERVER_USER }}
         SERVER_IP: ${{ secrets.SERVER_IP }}
+        DATABASE_URL: ${{ secrets.DATABASE_URL }}
       run: |
         SERVER="${SERVER_USER}@${SERVER_IP}"
         mkdir -p ~/.ssh/
@@ -37,6 +38,8 @@ jobs:
         # Deploy static files
         scp -i ~/.ssh/traders-deploy -r static/ $SERVER:/home/jhg/workspace/traders/
         ssh -i ~/.ssh/traders-deploy $SERVER 'sudo systemctl stop traders'
+        # migrations (Split this up into it's own name later
+        ssh -i ~/.ssh/traders-deploy $SERVER "DATABASE_URL=${DATABASE_URL} /home/jhg/.cargo/bin/sqlx migrate run"
         # Deploy Traders binary
         scp -i ~/.ssh/traders-deploy target/release/traders $SERVER:/home/jhg/workspace/traders/target/release/traders
         ssh -i ~/.ssh/traders-deploy $SERVER 'sudo systemctl start traders'
