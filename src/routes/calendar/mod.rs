@@ -87,7 +87,7 @@ pub fn get_class_list_for_trading_day<'a>(trade_info: &Option<&'a trades::TradeI
 
 /// URL: https://traders.jinz.co/calendar
 #[get("")]
-async fn get_calendar_root(tera_engine: Data<tera::Tera>, _session: TypedSession, state: Data<AppState>) -> HttpResponse {
+async fn get_calendar_root(tera_engine: Data<tera::Tera>, session: TypedSession, state: Data<AppState>) -> HttpResponse {
     let year_in_weeks = 52;
     let start_date_excel = excel_helpers::get_start_of_n_weeks_ago(year_in_weeks);
     let trades_by_day = match trades::get_trades_by_day_from(&state.db, start_date_excel).await {
@@ -106,7 +106,9 @@ async fn get_calendar_root(tera_engine: Data<tera::Tera>, _session: TypedSession
     context.insert("trades", &trades_by_day);
     context.insert("past_trades_in_weeks", &past_trades_in_weeks);
     context.insert("trades_calendar", &trades_calendar);
-    match render_content(&RenderTemplateParams::new("calendar/index.html", &tera_engine).with_context(&context)) {
+    match render_content(&RenderTemplateParams::new("calendar/index.html", &tera_engine)
+                         .with_context(&context)
+                         .with_session(&session)) {
         Ok(calendar_template) => HttpResponse::Ok().body(calendar_template),
         Err(e) => HttpResponse::InternalServerError().body(err_500_template(&tera_engine, e))
     }
