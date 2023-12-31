@@ -12,7 +12,7 @@ pub struct ExecutionJsonData {
     fill_time: f64,
     commissions: f32,
     price: f32,
-    direction: String,
+    direction: String, /* convert this to is_by */
     quantity: i64,
     is_initial_entry: bool,
     is_last_exit: bool,
