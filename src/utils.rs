@@ -18,3 +18,10 @@ pub fn error_chain_fmt(
     }
     Ok(())
 }
+
+/// This function is for returning a string from the currency to have trailing zeros
+/// The round(precision=2) in tera templates do not add trailing zeroes
+pub fn currency_format(value: f32) -> String {
+    format!("{:.2}", value)
+}
+

@@ -134,9 +134,6 @@ button {
 .mini-month-day.padding-day {
   visibility: hidden;
 }
-.mini-month-day.trades-present {
-  background-color: green;
-}
 .mini-month-day.green-day {
   background-color: green;
 }
@@ -161,6 +158,31 @@ button {
 }
 .nav-section > li:not(:first-child) {
   margin-left: 5px;
+}
+
+.mini-days {
+  display: flex;
+  flex-direction: row;
+}
+
+.mini-days-week {
+  display: flex;
+  flex-direction: column;
+}
+
+.mini-day {
+  display: inline-block;
+  margin: 2px;
+  height: 12px;
+  width: 12px;
+  border-radius: 2px;
+  background-color: gray;
+}
+.mini-day.green-day {
+  background-color: green;
+}
+.mini-day.red-day {
+  background-color: red;
 }
 
 body {
