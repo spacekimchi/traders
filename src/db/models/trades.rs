@@ -24,8 +24,8 @@ pub struct Trade {
 #[derive(Debug, Deserialize, Serialize, FromRow)]
 pub struct TradeInfoByDay {
     pub trade_day: i32, // Excel serialize date
-    pub number_of_trades: i64,
-    pub accounts_traded: i64,
+    pub number_of_trades: i64, // TODO: see if this can be changed to an i32
+    pub accounts_traded: i64, // TODO: see if this can be changed to an i32
     pub total_pnl: f32,
     pub pct_winning_trades: f64,
 }
@@ -38,6 +38,10 @@ impl TradeInfoByDay {
         let adj = if self.trade_day >= 61 { -1 } else { 0 };
         let dt = base_date + chrono::Duration::days((self.trade_day + adj) as i64);
         dt.month()
+    }
+
+    pub fn total_pnl_as_currency(&self) -> String {
+        format!("{:.2}", self.total_pnl)
     }
 }
 
@@ -97,7 +101,7 @@ ORDER BY trade_day", start_date)
 
 /// Similar to the above query, but this will return trades in a range
 /// This function and #get_trades_by_day_from can be combined into a single function
-pub async fn get_trades_by_day_in_range(db: &PgPool, start_date: i32, end_date: i32) -> Result<Vec<TradeInfoByDay>, sqlx::Error> {
+pub async fn get_trades_by_day_in_range(db: &PgPool, start_date: u32, end_date: u32) -> Result<Vec<TradeInfoByDay>, sqlx::Error> {
     let query = String::from(
         format!(
 "SELECT
