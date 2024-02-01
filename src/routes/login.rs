@@ -53,9 +53,7 @@ pub struct LoginForm {
 async fn get_login_page(tera_store: Data<tera::Tera>, flash_messages: IncomingFlashMessages) -> Result<HttpResponse, LoginError> {
     let context = tera::Context::new();
 
-    let content = render_content(&RenderTemplateParams::new(&"login.html", &tera_store)
-                                         .with_flash_messages(&flash_messages)
-                                         .with_context(&context))?;
+    let content = render_content(&RenderTemplateParams::new(&"login.html", &tera_store).with_flash_messages(&flash_messages).with_context(&context))?;
 
     Ok(HttpResponse::Ok().content_type("text/html").body(content))
 }

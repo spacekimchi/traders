@@ -10,17 +10,16 @@
 use std::collections::HashMap;
 
 use actix_web::{HttpResponse, get};
-use actix_web::web::{Data, Query};
-use chrono::{Datelike, NaiveDate, Duration, Weekday, Local, DateTime, Utc};
+use actix_web::web::Data;
+use chrono::{Datelike, NaiveDate, Duration, Weekday};
 
-use serde::{Serialize, Deserialize};
+use serde::Serialize;
 
 use crate::session_state::TypedSession;
 use crate::excel_helpers;
 use crate::startup::AppState;
 use crate::template_helpers::{render_content, RenderTemplateParams, err_500_template};
 use crate::db::models::trades;
-use crate::utils::{currency_format, naivedate_to_datetime_utc_start_of_day};
 
 #[derive(Debug, Serialize)]
 struct TradesInMonth<'a> {
@@ -67,23 +66,12 @@ impl <'a>TradingDay<'_> {
         self.class_list.push("padding-day");
         self
     }
-
-    fn with_mini_month(mut self) -> Self {
-        self.class_list.push("mini-month-day");
-        self
-    }
-
-    fn with_mini_day(mut self) -> Self {
-        self.class_list.push("mini-day");
-        self
-    }
 }
 
+//"mini-month-day{% if trading_day.padding_day %} padding-day{% endif %}{% if trading_day.trade_info %}{% if trading_day.trade_info.total_pnl > 0 %} green-day{% else %} red-day{% endif %}{% endif %}"
 /// This is a helper method to set the class list for the calendar day
-/// Doing this makes it easy to just call a join on the tera templates to generate the classes in
-/// the html
 pub fn get_class_list_for_trading_day<'a>(trade_info: &Option<&'a trades::TradeInfoByDay>) -> Vec<&'static str> {
-    let mut class_list = vec![];
+    let mut class_list = vec!["mini-month-day"];
     match trade_info {
         Some(trade) => {
             if trade.total_pnl > 0.0 {
@@ -97,92 +85,36 @@ pub fn get_class_list_for_trading_day<'a>(trade_info: &Option<&'a trades::TradeI
     class_list
 }
 
-/// The start_date and end_date formats should be "YEAR-MONTH-DAY" (2023-12-31)
-#[derive(Debug, Serialize, Deserialize)]
-pub struct CalendarQueryStrings {
-    pub start_date: Option<String>,
-    pub end_date: Option<String>,
-}
-
 /// URL: https://traders.jinz.co/calendar
 #[get("")]
-async fn get_calendar_root(tera_engine: Data<tera::Tera>, session: TypedSession, state: Data<AppState>, query: Query<CalendarQueryStrings>) -> HttpResponse {
-    // We need these to grab the start date and end date from the params
-    // Or set it to the first day of the year
-    let today = Local::now().date_naive();
-    let start_date = match &query.start_date {
-        Some(date) => NaiveDate::parse_from_str(date, "%Y-%m-%d").unwrap_or(NaiveDate::from_ymd_opt(today.year(), 1, 1).unwrap()),
-        _ => NaiveDate::from_ymd_opt(today.year(), 1, 1).unwrap()
-    };
-    
-    let end_date = match &query.end_date {
-        Some(date) => NaiveDate::parse_from_str(date, "%Y-%m-%d").unwrap_or(today),
-        _ => today
-    };
-
+async fn get_calendar_root(tera_engine: Data<tera::Tera>, _session: TypedSession, state: Data<AppState>) -> HttpResponse {
     let year_in_weeks = 52;
-    let year_of_trades = excel_helpers::get_start_of_n_weeks_ago(year_in_weeks);
-    let start_date_excel = excel_helpers::date_to_excel(&start_date);
-    let end_date_excel = excel_helpers::date_to_excel(&end_date);
-    let trades_by_day = match trades::get_trades_by_day_from(&state.db, year_of_trades).await {
+    let start_date_excel = excel_helpers::get_start_of_n_weeks_ago(year_in_weeks);
+    let trades_by_day = match trades::get_trades_by_day_from(&state.db, start_date_excel).await {
         Ok(trades_by_day) => trades_by_day,
         Err(e) => return HttpResponse::InternalServerError().body(err_500_template(&tera_engine, e))
     };
-    let trades_by_day_in_range = match trades::get_trades_by_day_in_range(&state.db, start_date, end_date).await {
-        Ok(trades_by_day_in_range) => trades_by_day_in_range,
-        Err(e) => return HttpResponse::InternalServerError().body(err_500_template(&tera_engine, e))
-    };
     let todays_date = chrono::Local::now().date_naive();
-    let last_52_weeks_of_trades = calendar_trades_from_last_52_weeks(&trades_by_day, year_of_trades);
-    let trades_by_day_in_range_ref = trades_by_day_in_range.iter().collect();
-    let trades_calendar = match get_trades_in_year_by_days_in_month(&trades_by_day_in_range_ref, todays_date.year()) {
+    let past_trades_in_weeks = calendar_trades_from_last_52_weeks(&trades_by_day, start_date_excel);
+    let trades_by_day_ref = trades_by_day.iter().collect();
+    let trades_calendar = match get_trades_in_year_by_days_in_month(&trades_by_day_ref, todays_date.year()) {
         Ok(trades_calendar) => trades_calendar,
         Err(e) => return HttpResponse::InternalServerError().body(err_500_template(&tera_engine, e))
     };
-    let statistics = statistics_calculations(&trades_by_day_in_range_ref);
-
     let mut context = tera::Context::new();
-    context.insert("statistics", &statistics);
-    context.insert("trades", &trades_by_day);
-    context.insert("trades_by_day_in_range", &trades_by_day_in_range);
-    context.insert("last_52_weeks_of_trades", &last_52_weeks_of_trades);
-    context.insert("trades_calendar", &trades_calendar);
 
-    match render_content(&RenderTemplateParams::new("calendar/index.html", &tera_engine)
-                         .with_context(&context)
-                         .with_session(&session)) {
+    context.insert("trades", &trades_by_day);
+    context.insert("past_trades_in_weeks", &past_trades_in_weeks);
+    context.insert("trades_calendar", &trades_calendar);
+    match render_content(&RenderTemplateParams::new("calendar/index.html", &tera_engine).with_context(&context)) {
         Ok(calendar_template) => HttpResponse::Ok().body(calendar_template),
         Err(e) => HttpResponse::InternalServerError().body(err_500_template(&tera_engine, e))
     }
 }
 
-fn _total_pnl(trades_by_day: &Vec<&trades::TradeInfoByDay>) -> f32 {
-    trades_by_day.iter().map(|trade| trade.total_pnl).sum()
-}
-
-#[derive(Debug, Serialize)]
-struct TradeStatistics {
-    pub total_pnl: String,
-    pub total_trades: i64,
-}
-
-fn statistics_calculations(trades_by_day: &Vec<&trades::TradeInfoByDay>) -> TradeStatistics {
-    let mut sum = 0.0;
-    let mut total_trades = 0;
-    for trade in trades_by_day {
-        sum += trade.total_pnl;
-        total_trades += trade.number_of_trades;
-    }
-
-    TradeStatistics {
-        total_pnl: currency_format(sum),
-        total_trades
-    }
-}
-
 // This will build trades into a display like the commit history you see on github,
 // except this doesnt have weekends
-fn calendar_trades_from_last_52_weeks(trades: &Vec<trades::TradeInfoByDay>, start_date_excel: DateTime<Utc>) -> Vec<TradesInWeek> {
+fn calendar_trades_from_last_52_weeks(trades: &Vec<trades::TradeInfoByDay>, start_date_excel: u32) -> Vec<TradesInWeek> {
     let mut trades_in_year: Vec<TradesInWeek> = Vec::new();
 
     // Today's date
@@ -209,7 +141,7 @@ fn calendar_trades_from_last_52_weeks(trades: &Vec<trades::TradeInfoByDay>, star
             None
         };
 
-        current_week.trades.push(TradingDay::new(trade_info, day_of_week, cur_date_obj.day()).with_mini_day());
+        current_week.trades.push(TradingDay::new(trade_info, day_of_week, cur_date_obj.day()));
 
         // If the current_week has 5 days or if we're in the current week (where we might not have reached 5 weekdays yet)
         if current_week.trades.len() == 5 || (cur_date_obj == today && day_of_week == 5) {
@@ -269,9 +201,7 @@ fn build_month<'a>(year: i32, month: u32, trades: &HashMap<u32, &'a trades::Trad
     while padding_day < first_day_of_month {
         match padding_day.weekday() {
             Weekday::Sat | Weekday::Sun => {},
-            _ => trades_in_month.push(TradingDay::new(None, padding_day.weekday().number_from_sunday(), padding_day.day())
-                                      .with_padding_true()
-                                      .with_mini_month())
+            _ => trades_in_month.push(TradingDay::new(None, padding_day.weekday().number_from_sunday(), padding_day.day()).with_padding_true())
         }
         padding_day += Duration::days(1);
     }
@@ -294,8 +224,8 @@ fn build_month<'a>(year: i32, month: u32, trades: &HashMap<u32, &'a trades::Trad
                 let days_from_sunday = current_day.weekday().number_from_sunday();
                 let date_number = current_day.day();
                 let trading_day = match trades.get(&excel_date) {
-                    Some(trade_info) => TradingDay::new(Some(*trade_info), days_from_sunday, date_number).with_mini_month(),
-                    None => TradingDay::new(None, days_from_sunday, date_number).with_mini_month()
+                    Some(trade_info) => TradingDay::new(Some(*trade_info), days_from_sunday, date_number),
+                    None => TradingDay::new(None, days_from_sunday, date_number)
                 };
                 trades_in_month.push(trading_day);
             }

@@ -3,14 +3,12 @@ use std::fmt::Write;
 use actix_web_flash_messages::IncomingFlashMessages;
 
 use crate::utils::e500;
-use crate::session_state::TypedSession;
 
 pub struct RenderTemplateParams<'a> {
     pub template_path: &'static str,
     pub tera_store: &'a actix_web::web::Data<tera::Tera>,
     pub incoming_flash_messages: Option<&'a IncomingFlashMessages>,
     pub template_context: Option<&'a tera::Context>,
-    pub session: Option<&'a TypedSession>,
 }
 
 impl<'a> RenderTemplateParams<'a> {
@@ -20,7 +18,6 @@ impl<'a> RenderTemplateParams<'a> {
             tera_store,
             incoming_flash_messages: None,
             template_context: None,
-            session: None
         }
     }
 
@@ -33,11 +30,6 @@ impl<'a> RenderTemplateParams<'a> {
         self.template_context = Some(data);
         self
     }
-
-    pub fn with_session(mut self, session: &'a TypedSession) -> Self {
-        self.session = Some(session);
-        self
-    }
 }
 
 pub fn render_content(render_template_params: &RenderTemplateParams<'_>) -> Result<String, actix_web::Error> {
@@ -47,16 +39,6 @@ pub fn render_content(render_template_params: &RenderTemplateParams<'_>) -> Resu
         context = data.clone(); // assuming `tera::Context` implements the Clone trait
     } else {
         context = tera::Context::new();
-    }
-
-    // Check if session data is available and user is logged in
-    if let Some(session) = render_template_params.session {
-        if let Ok(Some(user_id)) = session.get_user_id() {
-            context.insert("user_id", &user_id.to_string());
-            context.insert("logged_in", &true);
-        } else {
-            context.insert("logged_in", &false);
-        }
     }
 
     // Setting the flash message can be extracted out into it's own method

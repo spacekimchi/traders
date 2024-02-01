@@ -106,15 +106,6 @@ impl TestApp {
             .expect("Failed to execute request.")
     }
 
-    pub async fn post_ninja_trader_executions_import(&self, body: &serde_json::Value) -> reqwest::Response {
-        self.api_client
-            .post(&format!("{}/api/ninja_trader_executions_import", &self.address))
-            .json(&body)
-            .send()
-            .await
-            .expect("Failed to post to ninja trader exeuctions")
-    }
-
     pub async fn post_users_form<Body>(&self, body: &Body) -> reqwest::Response
     where
         Body: serde::Serialize

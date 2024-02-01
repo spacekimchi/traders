@@ -41,7 +41,7 @@ pub async fn reject_anonymous_users(
             next.call(req).await
         },
         None => {
-            let response = HttpResponse::Unauthorized().json("You are not authorized");
+            let response = HttpResponse::Unauthorized().json("you are not authorized");
             let e = anyhow::anyhow!("The user has not logged in");
             Err(InternalError::from_response(e, response).into())
         }

@@ -19,16 +19,13 @@
         <!--</li>-->
     </ul>
     <ul class="nav-section">
-        {% if not logged_in %}
-            <li>
-                <a href="/login">Login</a>
-            </li>
-        {% else %}
-            <li>
-                <form action="/logout" method="post">
-                    <button type="submit">Logout</button>
-                </form>
-            </li>
-        {% endif %}
+        <li>
+            <a href="/login">Login</a>
+        </li>
+        <li>
+            <form action="/logout" method="post">
+                <button type="submit">Logout</button>
+            </form>
+        </li>
     </ul>
 </nav>
