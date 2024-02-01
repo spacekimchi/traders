@@ -1,4 +1,6 @@
-use chrono::{Datelike, NaiveDate, Duration};
+use chrono::{Datelike, NaiveDate, Duration, DateTime, Utc};
+
+use crate::utils::naivedate_to_datetime_utc_start_of_day;
 
 const EXCEL_BUG_DATE: u32 = 60;
 
@@ -19,17 +21,17 @@ pub fn excel_to_date(excel_date: u32) -> Option<NaiveDate> {
 }
 
 /// This function will go back weeks_ago and grab the start of that week
-/// Grabbing dates that start at the beginning of the week is helpful because it
-/// allows us to grab trades starting at the beginning of a week
-pub fn get_start_of_n_weeks_ago(weeks_ago: u32) -> u32 {
+/// Grabbing dates that start at the start of the week is helpful because it
+/// allows us to grab trades starting at the start of a week
+pub fn get_start_of_n_weeks_ago(weeks_ago: u32) -> DateTime<Utc> {
     // Calculate the date 52 weeks ago
     let date_52_weeks_ago = chrono::Local::now().date_naive() - Duration::weeks(weeks_ago as i64);
 
-    // Adjust to the beginning of that week (i.e., the previous Sunday)
+    // Adjust to the start of that week (i.e., the previous Sunday)
     let days_since_last_sunday = date_52_weeks_ago.weekday().number_from_sunday() as i64 - 1;
     let start_date = date_52_weeks_ago - Duration::days(days_since_last_sunday);
 
-    date_to_excel(&start_date)
+    naivedate_to_datetime_utc_start_of_day(&start_date)
 }
 
 /// Convert a NaiveDate to an Excel serial date

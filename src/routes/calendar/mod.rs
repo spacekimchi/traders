@@ -11,7 +11,7 @@ use std::collections::HashMap;
 
 use actix_web::{HttpResponse, get};
 use actix_web::web::{Data, Query};
-use chrono::{Datelike, NaiveDate, Duration, Weekday, Local};
+use chrono::{Datelike, NaiveDate, Duration, Weekday, Local, DateTime, Utc};
 
 use serde::{Serialize, Deserialize};
 
@@ -20,7 +20,7 @@ use crate::excel_helpers;
 use crate::startup::AppState;
 use crate::template_helpers::{render_content, RenderTemplateParams, err_500_template};
 use crate::db::models::trades;
-use crate::utils::currency_format;
+use crate::utils::{currency_format, naivedate_to_datetime_utc_start_of_day};
 
 #[derive(Debug, Serialize)]
 struct TradesInMonth<'a> {
@@ -114,6 +114,7 @@ async fn get_calendar_root(tera_engine: Data<tera::Tera>, session: TypedSession,
         Some(date) => NaiveDate::parse_from_str(date, "%Y-%m-%d").unwrap_or(NaiveDate::from_ymd_opt(today.year(), 1, 1).unwrap()),
         _ => NaiveDate::from_ymd_opt(today.year(), 1, 1).unwrap()
     };
+    
     let end_date = match &query.end_date {
         Some(date) => NaiveDate::parse_from_str(date, "%Y-%m-%d").unwrap_or(today),
         _ => today
@@ -127,7 +128,7 @@ async fn get_calendar_root(tera_engine: Data<tera::Tera>, session: TypedSession,
         Ok(trades_by_day) => trades_by_day,
         Err(e) => return HttpResponse::InternalServerError().body(err_500_template(&tera_engine, e))
     };
-    let trades_by_day_in_range = match trades::get_trades_by_day_in_range(&state.db, start_date_excel, end_date_excel).await {
+    let trades_by_day_in_range = match trades::get_trades_by_day_in_range(&state.db, start_date, end_date).await {
         Ok(trades_by_day_in_range) => trades_by_day_in_range,
         Err(e) => return HttpResponse::InternalServerError().body(err_500_template(&tera_engine, e))
     };
@@ -181,7 +182,7 @@ fn statistics_calculations(trades_by_day: &Vec<&trades::TradeInfoByDay>) -> Trad
 
 // This will build trades into a display like the commit history you see on github,
 // except this doesnt have weekends
-fn calendar_trades_from_last_52_weeks(trades: &Vec<trades::TradeInfoByDay>, start_date_excel: u32) -> Vec<TradesInWeek> {
+fn calendar_trades_from_last_52_weeks(trades: &Vec<trades::TradeInfoByDay>, start_date_excel: DateTime<Utc>) -> Vec<TradesInWeek> {
     let mut trades_in_year: Vec<TradesInWeek> = Vec::new();
 
     // Today's date
