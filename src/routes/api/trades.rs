@@ -1,13 +1,13 @@
-use serde::{Deserialize, Serialize};
-use actix_web::web::{Data, Path, Query};
 use actix_web::{HttpResponse, Responder, get, delete, post};
+use actix_web::web::{Data, Path, Query};
 use actix_multipart::Multipart;
+use serde::{Deserialize, Serialize};
 use sqlx::{self, FromRow, postgres::PgArguments, Arguments};
 
 use crate::db::models::trades::{get_trades, TradeQuery};
+use crate::session_state::TypedSession;
 use crate::startup::AppState;
 use crate::utils::e500;
-use crate::session_state::TypedSession;
 
 #[derive(Debug, Deserialize, Serialize, FromRow)]
 pub struct Trade {
