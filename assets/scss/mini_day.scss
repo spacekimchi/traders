@@ -1,0 +1,23 @@
+.mini-days {
+    display: flex;
+    flex-direction: row;
+}
+.mini-days-week {
+    display: flex;
+    flex-direction: column;
+}
+.mini-day {
+    display: inline-block;
+    margin: 2px;
+    height: 12px;
+    width: 12px;
+    border-radius: 2px;
+    background-color: gray;
+
+    &.green-day {
+        background-color: green;
+    }
+    &.red-day {
+        background-color: red;
+    }
+}

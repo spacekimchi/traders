@@ -7,17 +7,14 @@ use crate::startup::AppState;
 #[derive(Debug, Deserialize)]
 pub struct ExecutionJsonData {
     id: i64,
+    account_name: String,
     order_id: String,
     instrument_name: String,
-    fill_time: f64,
-    commissions: f32,
+    fill_time: f64, // Need to convert this to TIMESTAMPTZ
+    commission: f32,
     price: f32,
-    direction: String, /* convert this to is_by */
+    is_buy: bool,
     quantity: i64,
-    is_initial_entry: bool,
-    is_last_exit: bool,
-    is_entry: bool,
-    is_exit: bool,
 }
 
 #[post("/ninja_trader_executions_import")]

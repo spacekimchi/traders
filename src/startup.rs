@@ -19,7 +19,7 @@ use secrecy::{Secret, ExposeSecret};
 use crate::configuration::Settings;
 use crate::configuration::DatabaseSettings;
 use crate::authentication::reject_anonymous_users;
-use crate::routes::{users, login, homepage, calendar};
+use crate::routes::{users, login, homepage};
 use crate::routes::api;
 
 pub struct AppState {
@@ -108,10 +108,6 @@ pub async fn run(db_pool: PgPool, listener: TcpListener, base_url: String, redis
                 .wrap(from_fn(reject_anonymous_users))
                 .service(users::new_user_page)
                 .service(users::create_user)
-            )
-            .service(
-                web::scope("/calendar")
-                .service(calendar::get_calendar_root)
             )
             .service(
                 web::scope("/api")

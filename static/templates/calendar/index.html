@@ -1,13 +1,24 @@
 {% extends "base.html" %}
 
 {% block content %}
+    Last 52 weeks of trades
+    <div class="mini-days">
+        {% for trading_week in last_52_weeks_of_trades %}
+            <div class="mini-days-week">
+                {% for trade in trading_week.trades %}
+                    <span class="{{ trade.class_list | join(sep=' ') }}">
+                    </span>
+                {% endfor %}
+            </div>
+        {% endfor %}
+    </div>
     <div>
         Range picker
         Stats for range:
-            1) Total pnl
-            2) Total trades
-            3) Average Winner
-            4) Average Loser
+        1) Total pnl: {{ statistics.total_pnl  }}
+        2) Total trades: {{ statistics.total_trades }}
+        3) Average Winner
+        4) Average Loser
 
     </div>
     <div class="mini-calendar-container">

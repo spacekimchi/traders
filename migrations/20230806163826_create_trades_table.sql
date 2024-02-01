@@ -5,13 +5,13 @@ CREATE TABLE IF NOT EXISTS trades
     instrument_id SERIAL REFERENCES instruments (id),
     entry_time TIMESTAMPTZ NOT NULL,
     exit_time TIMESTAMPTZ NOT NULL,
-    commissions REAL,
+    commission REAL,
     pnl REAL,
-    is_short BOOLEAN,
+    is_long BOOLEAN,
     notes TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_trades_accountid_entry_exit_time
+CREATE INDEX idx_trades_account_id_entry_exit_time
 ON trades(account_id, entry_time, exit_time);
