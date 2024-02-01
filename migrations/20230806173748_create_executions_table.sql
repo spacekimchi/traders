@@ -9,6 +9,10 @@ CREATE TABLE IF NOT EXISTS executions
     commission REAL,
     price REAL NOT NULL,
     quantity INTEGER NOT NULL,
+    is_initial_entry BOOLEAN NOT NULL,
+    is_entry BOOLEAN NOT NULL,
+    is_last_exit BOOLEAN NOT NULL,
+    is_exit BOOLEAN NOT NULL,
     is_buy BOOLEAN NOT NULL, -- TRUE for 'buy', FALSE for 'sell'
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
