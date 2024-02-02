@@ -8,7 +8,6 @@ CREATE TABLE IF NOT EXISTS trades
     commission REAL,
     pnl REAL,
     is_long BOOLEAN,
-    notes TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
