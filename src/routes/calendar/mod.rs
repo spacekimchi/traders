@@ -12,7 +12,6 @@ use std::collections::HashMap;
 use actix_web::{HttpResponse, get};
 use actix_web::web::{Data, Query};
 use chrono::{Datelike, NaiveDate, Duration, Weekday, Local, DateTime, Utc};
-
 use serde::{Serialize, Deserialize};
 
 use crate::session_state::TypedSession;

@@ -8,14 +8,14 @@ use serde::{Deserialize, Serialize}; use chrono::Datelike;
 
 #[derive(Debug, Deserialize, Serialize, FromRow)]
 pub struct Trade {
-    pub id: i64,
+    pub id: i32,
     pub account_id: i64,
 	pub instrument_id: i32,
     pub entry_time: DateTime<Utc>,
     pub exit_time: DateTime<Utc>,
 	pub commission: f32,
     pub pnl: f32,
-    pub is_short: bool,
+    pub is_long: bool,
     #[serde(with = "chrono::serde::ts_seconds")]
     pub created_at: chrono::DateTime<chrono::offset::Utc>,
     #[serde(with = "chrono::serde::ts_seconds")]
@@ -133,3 +133,25 @@ ORDER BY trade_day", start_date_str, end_date_str)
     Ok(trades)
 }
 
+/// Basic index query to grab trades within a date range
+///
+pub async fn get_trades_in_range(db: &PgPool, start_date: DateTime<Utc>, end_date: DateTime<Utc>) -> Result<Vec<Trade>, sqlx::Error> {
+    let start_date_str = start_date.to_rfc3339(); // Convert to a string in ISO 8601 format
+    let end_date_str = end_date.to_rfc3339(); // Convert to a string in ISO 8601 format
+    let query = String::from(
+        format!(
+"SELECT *
+FROM trades
+JOIN accounts ON trades.account_id = accounts.id
+JOIN instruments ON instruments.id = trades.instrument_id
+WHERE accounts.user_id = '6982c6df-3d03-4583-8fa9-07386cf25f80'
+AND trades.exit_time >= TIMESTAMP WITH TIME ZONE '{}'
+AND trades.exit_time <= TIMESTAMP WITH TIME ZONE '{}'
+AND accounts.sim != true
+ORDER BY trades.entry_time DESC", start_date_str, end_date_str)
+);
+    let trades = sqlx::query_as::<_, Trade>(&query)
+        .fetch_all(db)
+        .await?;
+    Ok(trades)
+}

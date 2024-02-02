@@ -41,6 +41,7 @@ impl<'a> RenderTemplateParams<'a> {
 }
 
 pub fn render_content(render_template_params: &RenderTemplateParams<'_>) -> Result<String, actix_web::Error> {
+    println!("\n\n\n INSIDE RENDER CONTENT \n\n\n");
     // First set the context data
     let mut context: tera::Context;
     if let Some(data) = render_template_params.template_context {
