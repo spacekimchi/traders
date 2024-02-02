@@ -19,7 +19,7 @@ use secrecy::{Secret, ExposeSecret};
 use crate::configuration::Settings;
 use crate::configuration::DatabaseSettings;
 use crate::authentication::reject_anonymous_users;
-use crate::routes::{users, login, homepage};
+use crate::routes::{users, login, homepage, trades};
 use crate::routes::api;
 
 pub struct AppState {
@@ -103,6 +103,10 @@ pub async fn run(db_pool: PgPool, listener: TcpListener, base_url: String, redis
             .service(login::get_login_page)
             .service(login::login)
             .service(login::logout)
+            .service(
+                web::scope("/trades")
+                .service(trades::get_trades_index)
+            )
             .service(
                 web::scope("/users")
                 .wrap(from_fn(reject_anonymous_users))
