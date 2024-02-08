@@ -82,3 +82,13 @@ pub fn err_500_template<E: std::fmt::Display>(tr: &actix_web::web::Data<tera::Te
     tr.render("500.html", &context).unwrap_or_else(|_| String::from("Internal Server Error"))
 }
 
+pub fn currency_format(value: &tera::Value, _: &std::collections::HashMap<String, tera::Value>) -> tera::Result<tera::Value> {
+    match value.as_f64() {
+        Some(num) => {
+            // Format the number as currency here. This is a simple example.
+            let formatted = format!("{:.2}", num);
+            Ok(tera::Value::String(formatted))
+        },
+        None => Err("Failed to format value as currency".into()),
+    }
+}

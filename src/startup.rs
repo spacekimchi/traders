@@ -21,6 +21,7 @@ use crate::configuration::DatabaseSettings;
 use crate::authentication::reject_anonymous_users;
 use crate::routes::{users, login, homepage, trades};
 use crate::routes::api;
+use crate::template_helpers;
 
 pub struct AppState {
     pub db: PgPool,
@@ -78,7 +79,18 @@ pub async fn run(db_pool: PgPool, listener: TcpListener, base_url: String, redis
     let secret_key = Key::from(hmac_secret.expose_secret().as_bytes());
     let message_store = CookieMessageStore::builder(secret_key.clone()).build();
     let message_framework = FlashMessagesFramework::builder(message_store).build();
-    let tera = web::Data::new(tera::Tera::new("./static/templates/**/*html").unwrap());
+    // Create a Tera instance
+    let mut tera = match tera::Tera::new("./static/templates/**/*html") {
+        Ok(t) => t,
+        Err(e) => {
+            // Handle error appropriately (e.g., panic or log the error)
+            panic!("Parsing error(s): {}", e);
+        },
+    };
+    // Register the custom filter
+    tera.register_filter("currency_format", template_helpers::currency_format);
+    // Wrap the Tera instance in web::Data for Actix-web
+    let tera = web::Data::new(tera);
 
     let server = HttpServer::new(move || {
         App::new()
