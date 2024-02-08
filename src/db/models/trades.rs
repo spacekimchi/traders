@@ -155,3 +155,40 @@ ORDER BY trades.entry_time DESC", start_date_str, end_date_str)
         .await?;
     Ok(trades)
 }
+
+#[derive(Debug, Deserialize, Serialize, FromRow)]
+pub struct TradeForTable {
+    pub pnl: f32,
+    pub instrument_name: String,
+    pub account_name: String,
+    pub is_long: bool,
+    pub duration_seconds: i64,
+    pub entry_time: DateTime<Utc>,
+}
+
+pub async fn get_trades_for_table_in_range(db: &PgPool, start_date: &DateTime<Utc>, end_date: &DateTime<Utc>) -> Result<Vec<TradeForTable>, sqlx::Error> {
+    let start_date_str = start_date.to_rfc3339(); // Convert to a string in ISO 8601 format
+    let end_date_str = end_date.to_rfc3339(); // Convert to a string in ISO 8601 format
+    let query = String::from(
+        format!(
+"SELECT 
+    trades.pnl - trades.commission AS pnl,
+    instruments.code as instrument_name,
+    accounts.name as account_name,
+    trades.is_long as is_long,
+    EXTRACT(EPOCH FROM (trades.exit_time - trades.entry_time))::BIGINT as duration_seconds,
+    trades.entry_time as entry_time
+FROM trades
+JOIN accounts ON trades.account_id = accounts.id
+JOIN instruments ON instruments.id = trades.instrument_id
+WHERE accounts.user_id = '6982c6df-3d03-4583-8fa9-07386cf25f80'
+AND trades.exit_time >= TIMESTAMP WITH TIME ZONE '{}'
+AND trades.exit_time <= TIMESTAMP WITH TIME ZONE '{}'
+AND accounts.sim != true
+ORDER BY trades.entry_time DESC", start_date_str, end_date_str)
+);
+    let trades = sqlx::query_as::<_, TradeForTable>(&query)
+        .fetch_all(db)
+        .await?;
+    Ok(trades)
+}

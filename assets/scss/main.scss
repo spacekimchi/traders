@@ -3,10 +3,11 @@
 @import "variables";
 @import "navigation";
 @import "mini_day";
+@import "trades";
 
 body {
     background-color: $dark-1;
-    color: $light-1;
+    color: $bright-1;
     width: 1080px;
     margin: auto;
 }
