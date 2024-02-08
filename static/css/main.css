@@ -185,9 +185,38 @@ button {
   background-color: red;
 }
 
+.trades-table-container {
+  border: solid 1px white;
+}
+
+.trades-table {
+  margin: auto;
+}
+
+.trades-table-header {
+  border: solid 1px white;
+  min-width: 100px;
+}
+
+.trades-table-body tr:nth-child(even) .trades-table-data {
+  border-top: solid 1px white;
+  border-bottom: solid 1px white;
+}
+
+.trades-table-data {
+  text-align: center;
+  padding: 0 10px;
+}
+.trades-table-data .green-day {
+  color: green;
+}
+.trades-table-data .red-day {
+  color: red;
+}
+
 body {
-  background-color: #272829;
-  color: #D8D9DA;
+  background-color: #171010;
+  color: #DDE6ED;
   width: 1080px;
   margin: auto;
 }
