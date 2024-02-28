@@ -110,8 +110,8 @@ pub async fn create(
         return Ok(HttpResponse::Unauthorized().json("you are not authorized"));
     };
 
-    let user = insert_journal_entry(&state, &body, &user_id).await.context("Failed to commit user to the database")?;
-    Ok(HttpResponse::Ok().json(user))
+    let journal_entry = insert_journal_entry(&state, &body, &user_id).await.context("Failed to commit journal entry to the database")?;
+    Ok(HttpResponse::Ok().json(journal_entry))
 }
 
 #[tracing::instrument(
