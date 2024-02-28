@@ -3,10 +3,6 @@
 
 // External crate imports
 use actix_web::{HttpResponse, Responder, get, post};
-use actix_web::web::{Data, Json, Path, Form};
-use serde::Deserialize;
-use crate::startup::AppState;
-use secrecy::{Secret, ExposeSecret};
 
 /// a health_check endpoint to check on the health of the server
 ///
@@ -27,21 +23,11 @@ pub async fn health_check() -> impl Responder {
     HttpResponse::Ok().finish()
 }
 
-#[derive(Debug, Deserialize)]
-pub struct ExecutionJsonData {
-    order_id: String,
+#[post("/health_check")]
+pub async fn health_check_post() -> impl Responder {
+    println!("XXXXXXXXXXXX INSIDE OF HEALTH CHECK POST XXXXXXXXXXXXXXXX");
+    println!("XXXXXXXXXXXX INSIDE OF HEALTH CHECK POST XXXXXXXXXXXXXXXX");
+    println!("XXXXXXXXXXXX INSIDE OF HEALTH CHECK POST XXXXXXXXXXXXXXXX");
+    println!("XXXXXXXXXXXX INSIDE OF HEALTH CHECK POST XXXXXXXXXXXXXXXX");
+    HttpResponse::InternalServerError().json("THIS IS A json 500 ERROR")
 }
-
-#[post("/health_check_posts")]
-pub async fn health_check_posts(
-    state: Data<AppState>,
-    executions: actix_web::web::Json<Vec<ExecutionJsonData>>,
-) -> impl Responder {
-    println!("XXXXXXXXXXXX INSIDE OF HEALTH CHECK POSTS XXXXXXXXXXXXXXXX");
-    println!("XXXXXXXXXXXX INSIDE OF HEALTH CHECK POSTS XXXXXXXXXXXXXXXX");
-    println!("Received: {:?}", executions);
-    println!("XXXXXXXXXXXX INSIDE OF HEALTH CHECK POSTS XXXXXXXXXXXXXXXX");
-    println!("XXXXXXXXXXXX INSIDE OF HEALTH CHECK POSTS XXXXXXXXXXXXXXXX");
-    HttpResponse::Ok().json("Data Received")
-}
-

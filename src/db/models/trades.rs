@@ -4,16 +4,17 @@
 
 use sqlx::{self, FromRow, PgPool};
 use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize}; use chrono::Datelike;
+use serde::{Deserialize, Serialize};
+use chrono::Datelike;
 
 #[derive(Debug, Deserialize, Serialize, FromRow)]
 pub struct Trade {
     pub id: i32,
     pub account_id: i64,
-	pub instrument_id: i32,
+    pub instrument_id: i32,
     pub entry_time: DateTime<Utc>,
     pub exit_time: DateTime<Utc>,
-	pub commission: f32,
+    pub commission: f32,
     pub pnl: f32,
     pub is_long: bool,
     #[serde(with = "chrono::serde::ts_seconds")]

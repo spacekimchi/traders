@@ -128,7 +128,7 @@ pub async fn run(db_pool: PgPool, listener: TcpListener, base_url: String, redis
             .service(
                 web::scope("/api")
                 .service(api::health_check::health_check)
-                .service(api::health_check::health_check_posts)
+                .service(api::health_check::health_check_post)
                 .service(api::executions::ninja_trader_executions_import)
                 .service(api::accounts::list)
                 .service(api::users::current_user)

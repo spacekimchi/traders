@@ -1,4 +1,4 @@
-use chrono::{Datelike, NaiveDate, Duration, DateTime, Utc};
+use chrono::{Datelike, NaiveDate, Duration, DateTime, Utc, TimeZone};
 
 use crate::utils::naivedate_to_datetime_utc_start_of_day;
 
@@ -18,6 +18,25 @@ pub fn excel_to_date(excel_date: u32) -> Option<NaiveDate> {
         },
         None => None
     }
+}
+
+pub fn excel_to_utc(excel_date: f64) -> DateTime<Utc> {
+    // Excel's base date for Windows (December 30, 1899)
+    let base_date = NaiveDate::from_ymd_opt(1899, 12, 30).unwrap();
+
+    // Calculate the number of days and fractional days from the Excel date
+    let days = excel_date.trunc() as i64;
+    let fractional_days = excel_date.fract();
+
+    // Convert fractional days to seconds (1 day = 86400 seconds)
+    let seconds_in_day = 86_400.0;
+    let seconds = (fractional_days * seconds_in_day).round() as i64;
+
+    // Create a NaiveDateTime from the base_date plus the Excel days
+    let naive_date_time = base_date.and_hms_opt(0, 0, 0).unwrap() + Duration::days(days) + Duration::seconds(seconds);
+
+    // Convert to DateTime<Utc>
+    Utc.from_utc_datetime(&naive_date_time)
 }
 
 /// This function will go back weeks_ago and grab the start of that week

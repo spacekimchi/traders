@@ -1,6 +1,7 @@
 CREATE TABLE IF NOT EXISTS trades
 (
     id BIGSERIAL NOT NULL PRIMARY KEY,
+    user_id uuid REFERENCES users (id) ON DELETE CASCADE,
     account_id BIGSERIAL REFERENCES accounts (id) ON DELETE CASCADE,
     instrument_id SERIAL REFERENCES instruments (id),
     entry_time TIMESTAMPTZ NOT NULL,

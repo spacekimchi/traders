@@ -16,6 +16,7 @@ pub struct User {
     pub username: String,
     pub password_hash: String,
     pub email: String,
+    pub ninja_trader_id: String,
     #[serde(with = "chrono::serde::ts_seconds")]
     pub created_at: chrono::DateTime<chrono::offset::Utc>,
     #[serde(with = "chrono::serde::ts_seconds")]
@@ -65,6 +66,20 @@ pub async fn get_user_from_database(state: &Data<AppState>, user_id: &String) ->
     // TODO: Get user by ID. This will discard query params
     sqlx::query_as::<_, User>("SELECT id, username, email, created_at FROM users WHERE id = $1")
         .bind(user_id)
+        .fetch_one(&state.db)
+        .await
+        .map_err(UserError::DatabaseError)
+}
+
+#[derive(Debug, Deserialize, Serialize, FromRow)]
+pub struct UserId {
+    pub id: uuid::Uuid,
+}
+
+/// Gets a user by ninja_trader_id from the database
+pub async fn get_user_from_database_by_ninja_trader_id(state: &Data<AppState>, ninja_trader_id: &String) -> Result<UserId, UserError> {
+    sqlx::query_as::<_, UserId>("SELECT id FROM users WHERE ninja_trader_id = $1")
+        .bind(ninja_trader_id)
         .fetch_one(&state.db)
         .await
         .map_err(UserError::DatabaseError)
