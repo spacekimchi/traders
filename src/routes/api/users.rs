@@ -2,7 +2,7 @@
 //!
 //! Routes for actions on users.
 
-use actix_web::web::{Data, Json, Path, Form};
+use actix_web::web::{Data, Json, Path};
 use actix_web::{web, HttpResponse, HttpRequest, Responder, get, post, delete};
 // InternalError is similar to us returning e500;
 use actix_web::error::InternalError;
@@ -10,7 +10,7 @@ use serde::Deserialize;
 use secrecy::{Secret, ExposeSecret};
 
 use crate::startup::AppState;
-use crate::errors::*;
+use crate::errors::user_errors::*;
 use crate::utils::e500;
 use crate::db::models::users::{get_username, get_users_from_database, get_user_from_database, save_user_to_database, UserForm};
 use crate::session_state::TypedSession;
@@ -61,7 +61,7 @@ pub async fn current_user(session: TypedSession) -> Result<HttpResponse, actix_w
     name = "Listing users",
     skip(state),
 )]
-#[get("/users")]
+#[get("")]
 pub async fn list_users(state: Data<AppState>) -> Result<impl Responder, UserError> {
     let users = get_users_from_database(&state).await.map_err(e500)?;
     Ok(HttpResponse::Ok().content_type("application/json").json(users))
@@ -75,14 +75,14 @@ pub async fn list_users(state: Data<AppState>) -> Result<impl Responder, UserErr
         username = %body.username,
     )
 )]
-#[post("/users")]
+#[post("")]
 pub async fn create_user(
     state: Data<AppState>,
-    body: Form<UserForm>,
+    body: web::Json<UserForm>,
     _session: TypedSession,
     request: HttpRequest
 ) -> Result<HttpResponse, InternalError<StoreUserError>> {
-    match save_user_to_database(&state, &body).await {
+    match save_user_to_database(&state, &body.0).await {
         Ok(user) => {
             Ok(HttpResponse::Created().json(user))
         }

@@ -1,10 +1,10 @@
-use actix_web::web::{Data, Form};
+use actix_web::web::Data;
 use serde::{Deserialize, Serialize};
-use sqlx::{self, FromRow};
+use sqlx::{self, FromRow, PgPool};
 use secrecy::{Secret, ExposeSecret};
 use anyhow::Context;
 
-use crate::errors::*;
+use crate::errors::user_errors::*;
 use crate::startup::AppState;
 use crate::authentication::compute_password_hash;
 use crate::telemetry::spawn_blocking_with_tracing;
@@ -16,7 +16,7 @@ pub struct User {
     pub username: String,
     pub password_hash: String,
     pub email: String,
-    pub ninja_trader_id: String,
+    pub ninja_trader_id: Option<String>,
     #[serde(with = "chrono::serde::ts_seconds")]
     pub created_at: chrono::DateTime<chrono::offset::Utc>,
     #[serde(with = "chrono::serde::ts_seconds")]
@@ -77,10 +77,10 @@ pub struct UserId {
 }
 
 /// Gets a user by ninja_trader_id from the database
-pub async fn get_user_from_database_by_ninja_trader_id(state: &Data<AppState>, ninja_trader_id: &String) -> Result<UserId, UserError> {
+pub async fn get_user_from_database_by_ninja_trader_id(db_pool: &PgPool, ninja_trader_id: &String) -> Result<UserId, UserError> {
     sqlx::query_as::<_, UserId>("SELECT id FROM users WHERE ninja_trader_id = $1")
         .bind(ninja_trader_id)
-        .fetch_one(&state.db)
+        .fetch_one(db_pool)
         .await
         .map_err(UserError::DatabaseError)
 }
@@ -88,11 +88,11 @@ pub async fn get_user_from_database_by_ninja_trader_id(state: &Data<AppState>, n
 /// Saves a new user into the database
 #[tracing::instrument(
     name = "Saving new user in the database",
-    skip(state, body),
+    skip(state, new_user_fields),
 )]
-pub async fn save_user_to_database(state: &Data<AppState>, body: &Form<UserForm>) -> Result<User, StoreUserError> {
+pub async fn save_user_to_database(state: &Data<AppState>, new_user_fields: &UserForm) -> Result<User, StoreUserError> {
     let user_id = uuid::Uuid::new_v4();
-    let password = body.0.password.clone();
+    let password = new_user_fields.password.clone();
 
     /* TODO: Study this pattern */
     let password_hash_result = spawn_blocking_with_tracing(move || compute_password_hash(password)).await;
@@ -103,11 +103,11 @@ pub async fn save_user_to_database(state: &Data<AppState>, body: &Form<UserForm>
     let exposed_s = password_hash?.expose_secret().to_string();
 
     sqlx::query_as::<_, User>(
-        "INSERT INTO users (id, username, email, password_hash) VALUES ($1, $2, $3, $4) RETURNING id, username, email, visible, password_hash, created_at, updated_at"
+        "INSERT INTO users (id, username, email, password_hash) VALUES ($1, $2, $3, $4) RETURNING id, username, email, visible, password_hash, ninja_trader_id, created_at, updated_at"
     )
     .bind(user_id)
-    .bind(&body.0.username)
-    .bind(&body.0.email)
+    .bind(new_user_fields.username.clone())
+    .bind(new_user_fields.email.clone())
     .bind(exposed_s)
     .fetch_one(&state.db)
     .await

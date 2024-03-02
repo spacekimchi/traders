@@ -16,18 +16,10 @@ use actix_web::{HttpResponse, Responder, get, post};
 ///     also finalizes the response
 #[get("/health_check")]
 pub async fn health_check() -> impl Responder {
-    println!("XXXXXXXXXXXX INSIDE OF HEALTH CHECK XXXXXXXXXXXXXXXX");
-    println!("XXXXXXXXXXXX INSIDE OF HEALTH CHECK XXXXXXXXXXXXXXXX");
-    println!("XXXXXXXXXXXX INSIDE OF HEALTH CHECK XXXXXXXXXXXXXXXX");
-    println!("XXXXXXXXXXXX INSIDE OF HEALTH CHECK XXXXXXXXXXXXXXXX");
     HttpResponse::Ok().finish()
 }
 
 #[post("/health_check")]
 pub async fn health_check_post() -> impl Responder {
-    println!("XXXXXXXXXXXX INSIDE OF HEALTH CHECK POST XXXXXXXXXXXXXXXX");
-    println!("XXXXXXXXXXXX INSIDE OF HEALTH CHECK POST XXXXXXXXXXXXXXXX");
-    println!("XXXXXXXXXXXX INSIDE OF HEALTH CHECK POST XXXXXXXXXXXXXXXX");
-    println!("XXXXXXXXXXXX INSIDE OF HEALTH CHECK POST XXXXXXXXXXXXXXXX");
     HttpResponse::InternalServerError().json("THIS IS A json 500 ERROR")
 }

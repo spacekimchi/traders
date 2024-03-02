@@ -7,7 +7,7 @@ use actix_web::{web::{Data, Form}, HttpResponse, HttpRequest, get, post};
 use actix_web_flash_messages::{FlashMessage, IncomingFlashMessages};
 
 use crate::startup::AppState;
-use crate::errors::UserError;
+use crate::errors::user_errors::UserError;
 use crate::db::models::users::{UserForm, save_user_to_database};
 use crate::template_helpers::{render_content, RenderTemplateParams, err_500_template};
 
@@ -37,7 +37,7 @@ pub async fn create_user(
     request: HttpRequest,
     tera_engine: Data<tera::Tera>
 ) -> Result<HttpResponse, UserError> {
-    save_user_to_database(&state, &body).await?;
+    save_user_to_database(&state, &body.0).await?;
     FlashMessage::success("User creation successful!").send();
     Ok(HttpResponse::SeeOther().insert_header((LOCATION, "/")).finish())
 }
