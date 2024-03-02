@@ -1,19 +1,17 @@
-@import "variables";
-
-.trades-table-container {
+.table-container {
     border: solid 1px white;
 }
 
-.trades-table {
+.table {
     margin: auto;
 }
 
-.trades-table-header {
+.table-header {
     border: solid 1px white;
     min-width: 100px;
 }
 
-.trades-table-body {
+.table-body {
     tr:nth-child(odd) {
         // css for odd and even rows
     }
@@ -27,7 +25,7 @@
     }
 }
 
-.trades-table-data {
+.table-data {
     text-align: center;
     padding: 0 10px;
 

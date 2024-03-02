@@ -19,7 +19,7 @@ use secrecy::{Secret, ExposeSecret};
 use crate::configuration::Settings;
 use crate::configuration::DatabaseSettings;
 use crate::authentication::reject_anonymous_users;
-use crate::routes::{users, login, homepage, trades};
+use crate::routes::{users, login, homepage, trade_routes, execution_routes};
 use crate::routes::api;
 use crate::template_helpers;
 
@@ -115,9 +115,10 @@ pub async fn run(db_pool: PgPool, listener: TcpListener, base_url: String, redis
             .service(login::get_login_page)
             .service(login::login)
             .service(login::logout)
+            .service(execution_routes::get_executions_index)
             .service(
                 web::scope("/trades")
-                .service(trades::get_trades_index)
+                .service(trade_routes::get_trades_index)
             )
             .service(
                 web::scope("/users")
@@ -129,7 +130,7 @@ pub async fn run(db_pool: PgPool, listener: TcpListener, base_url: String, redis
                 web::scope("/api")
                 .service(api::health_check::health_check)
                 .service(api::health_check::health_check_post)
-                .service(api::executions::ninja_trader_executions_import)
+                .service(api::execution_routes::ninja_trader_executions_import)
                 .service(api::accounts::list)
                 .service(api::users::current_user)
                 .service(

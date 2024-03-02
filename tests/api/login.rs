@@ -16,7 +16,6 @@ async fn invalid_user_is_unable_to_login() {
 
     // Act - Part 2 - Follow the redirect
     let html_page = app.get_login_html().await;
-    println!("HTML_PAGE: {:?}", html_page);
     assert!(html_page.contains("<div>Authentication failed<div>"));
 
     // Act - Part 3 - Reload the login page

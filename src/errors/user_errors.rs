@@ -1,19 +1,11 @@
-use serde::Serialize;
 use actix_web::HttpResponse;
 use actix_web::ResponseError;
 use actix_web::rt::task::JoinError;
 
 use crate::utils::error_chain_fmt;
-
+use crate::errors::general_errors;
+    
 pub use self::UserError::*;
-
-/**
- * For retruning consistent JSON errors
- */
-#[derive(Debug, Serialize)]
-pub struct ApiError {
-    pub message: String,
-}
 
 /*
  * UserErrors
@@ -36,7 +28,7 @@ pub enum UserError {
 impl ResponseError for UserError {
     fn error_response(&self) -> HttpResponse {
         let error_message = format!("{}", self);
-        let error_response = ApiError { message: error_message };
+        let error_response = general_errors::ApiError { message: error_message };
 
         match self {
             UserError::ValidationError(_) => HttpResponse::BadRequest().json(error_response),

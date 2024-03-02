@@ -68,6 +68,17 @@ For other routes, we can return a Result: `fn other_route() -> Result<HttpRespon
  - Actix-web will automatically convert `actix_web::Error`s into an HttpResponse
  - We can create an error enum to convert errors and implement the `actix_web::ResponseError` trait to define our own HttpResponse for errors
 
+## Tests
+
+Run tests with the command `cargo test`
+
+If you want to run a certain test, you can specify the name of the test.
+ - Ex: `cargo test authorized_user_creation` will run tests that match `authorized_user_creation`
+
+If you want to capture `println!()` statements, add `-- --nocapture` to the command.
+ - Ex: `cargo test -- --nocapture`
+
+
 ## TODO
 - [x] Bring database changes from other repository and get at least homepage to show
 - [x] Set up server to display homepage
