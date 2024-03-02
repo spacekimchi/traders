@@ -44,6 +44,7 @@ pub async fn find_or_create_account(account_name: &str, user_id: &Uuid, db_pool:
     }
 }
 
+/// This function is for grabbing the accounts the belong to a user.
 pub async fn fetch_accounts_by_user_id(user_id: &Uuid, db_pool: &PgPool) -> Result<Vec<Account>, sqlx::Error> {
     let accounts = sqlx::query_as!(Account, "SELECT * FROM accounts WHERE user_id = $1", user_id)
         .fetch_all(db_pool)

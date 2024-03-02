@@ -26,7 +26,7 @@ pub enum LoginError {
 impl actix_web::ResponseError for LoginError {
     fn error_response(&self) -> HttpResponse {
         let error_message = format!("{}", self);
-        let error_response = errors::ApiError { message: error_message };
+        let error_response = errors::general_errors::ApiError { message: error_message };
 
         match self {
             LoginError::AuthError(_) => HttpResponse::BadRequest().json(error_response),

@@ -97,27 +97,20 @@ pub async fn ninja_trader_executions_import(
     state: Data<AppState>,
     ninja_trader_import: actix_web::web::Json<NinjaTraderImport>,
     ) -> Result<impl Responder, actix_web::Error> {
-    println!("XXXXXXXXXXXX INSIDE NINJA_TRADER_EXECUTIONS XXXXXXXXXXXXXXXX");
-    println!("XXXXXXXXXXXX INSIDE NINJA_TRADER_EXECUTIONS XXXXXXXXXXXXXXXX");
+    println!("XXXXXXXXXXXXX inside route at top");
     let ninja_trader_data = ninja_trader_import.into_inner();
 
     let ninja_trader_id = ninja_trader_data.ninja_trader_id;
+    println!("NINJATRADER ID IN ENDPOINT: {:?}", ninja_trader_id);
     let executions_data = ninja_trader_data.executions;
-    println!("XXXXXXXXXXXX INSIDE NINJA_TRADER_EXECUTIONS XXXXXXXXXXXXXXXX");
-    println!("XXXXXXXXXXXX INSIDE NINJA_TRADER_EXECUTIONS XXXXXXXXXXXXXXXX");
-    println!("Received ninja_trader_id: {:?}", ninja_trader_id);
-    println!("Received executions_data: {:?}", executions_data);
-    println!("XXXXXXXXXXXX INSIDE NINJA_TRADER_EXECUTIONS XXXXXXXXXXXXXXXX");
-    println!("XXXXXXXXXXXX INSIDE NINJA_TRADER_EXECUTIONS XXXXXXXXXXXXXXXX");
+
     // Attempt to retrieve the user associated with the given Ninja Trader ID
     // This will return an Http Error if it is unable to find a user
-    let user = get_user_from_database_by_ninja_trader_id(&state, &ninja_trader_id).await?;
 
-    println!("XXXXXXXXXXXX INSIDE NINJA_TRADER_EXECUTIONS XXXXXXXXXXXXXXXX");
-    println!("XXXXXXXXXXXX INSIDE NINJA_TRADER_EXECUTIONS XXXXXXXXXXXXXXXX");
-    println!("user: {:?}", user);
-    println!("XXXXXXXXXXXX INSIDE NINJA_TRADER_EXECUTIONS XXXXXXXXXXXXXXXX");
-    println!("XXXXXXXXXXXX INSIDE NINJA_TRADER_EXECUTIONS XXXXXXXXXXXXXXXX");
+    println!("XXXXXXXXXXXXX about to get user from db");
+    let user = get_user_from_database_by_ninja_trader_id(&state.db, &ninja_trader_id).await?;
+    println!("XXXXXXXXXXXXX got user from db");
+
     spawn_with_tracing(async move {
         match executions::save_executions_from_ninja_trader_to_database(&state.db, user.id, &executions_data).await {
             Ok(_) => println!("Executions saved successfully."),

@@ -29,7 +29,7 @@ async fn authorized_user_creation() {
             "email": "test1@email.com",
             "password": "newpassword",
         });
-    let response = app.post_users_form(&body).await;
+    let response = app.post_users(&body).await;
 
     assert_eq!(401, response.status().as_u16());
 
@@ -37,9 +37,9 @@ async fn authorized_user_creation() {
         "username": &app.test_user.username,
         "password": &app.test_user.password
     });
-    let _response = app.post_login(&login_body).await;
-    let response = app.post_users_form(&body).await;
+    let _login_response = app.post_login(&login_body).await;
+    let response = app.post_users(&body).await;
 
-    assert_eq!(303, response.status().as_u16(), "User creation failed");
+    assert_eq!(201, response.status().as_u16(), "User creation failed");
 }
 

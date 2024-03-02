@@ -214,6 +214,35 @@ button {
   color: red;
 }
 
+.table-container {
+  border: solid 1px white;
+}
+
+.table {
+  margin: auto;
+}
+
+.table-header {
+  border: solid 1px white;
+  min-width: 100px;
+}
+
+.table-body tr:nth-child(even) .trades-table-data {
+  border-top: solid 1px white;
+  border-bottom: solid 1px white;
+}
+
+.table-data {
+  text-align: center;
+  padding: 0 10px;
+}
+.table-data .green-day {
+  color: green;
+}
+.table-data .red-day {
+  color: red;
+}
+
 body {
   background-color: #171010;
   color: #DDE6ED;

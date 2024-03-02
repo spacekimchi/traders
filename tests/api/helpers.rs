@@ -26,7 +26,8 @@ pub struct TestUser {
     pub user_id: Uuid,
     pub email: String,
     pub username: String,
-    pub password: String
+    pub password: String,
+    pub ninja_trader_id: String,
 }
 
 impl TestUser {
@@ -35,7 +36,8 @@ impl TestUser {
             user_id: Uuid::new_v4(),
             email: SafeEmail().fake::<String>(),
             username: Uuid::new_v4().to_string(),
-            password: Uuid::new_v4().to_string()
+            password: Uuid::new_v4().to_string(),
+            ninja_trader_id: Uuid::new_v4().to_string(),
         }
     }
 
@@ -53,12 +55,13 @@ impl TestUser {
         .to_string();
 
         sqlx::query!(
-            "INSERT INTO users (id, email, username, password_hash)
-            VALUES ($1, $2, $3, $4)",
+            "INSERT INTO users (id, email, username, password_hash, ninja_trader_id)
+            VALUES ($1, $2, $3, $4, $5)",
             self.user_id,
             email,
             self.username,
             password_hash,
+            self.ninja_trader_id,
         )
         .execute(pool)
         .await
@@ -107,6 +110,7 @@ impl TestApp {
     }
 
     pub async fn post_ninja_trader_executions_import(&self, body: &serde_json::Value) -> reqwest::Response {
+        println!("TRYING TO HIT ENDPOINT");
         self.api_client
             .post(&format!("{}/api/ninja_trader_executions_import", &self.address))
             .json(&body)
@@ -115,7 +119,7 @@ impl TestApp {
             .expect("Failed to post to ninja trader exeuctions")
     }
 
-    pub async fn post_users_form<Body>(&self, body: &Body) -> reqwest::Response
+    pub async fn _post_users_form<Body>(&self, body: &Body) -> reqwest::Response
     where
         Body: serde::Serialize
     {
@@ -214,11 +218,6 @@ async fn configure_database(config: &DatabaseSettings) -> PgPool {
     let connection_pool = PgPool::connect_with(config.with_db())
         .await
         .expect("Failed to connect to Postgres.");
-    //let connection_pool = PgPoolOptions::new()
-        //.max_connections(5)
-        //.connect_with(config.with_db())
-        //.await
-        //.expect("Error building a conneciton pool");
     sqlx::migrate!("./migrations")
         .run(&connection_pool)
         .await
