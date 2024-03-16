@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS executions
     user_id uuid NOT NULL REFERENCES users (id) ON DELETE CASCADE,
     account_id SERIAL NOT NULL references accounts (id),
     trade_id BIGINT references trades (id) ON DELETE CASCADE,
-    instrument_id SERIAL NOT NULL references instruments (id),
+    ticker TEXT NOT NULL,
     order_id TEXT NOT NULL,
     fill_time TIMESTAMPTZ NOT NULL,
     commission REAL NOT NULL,
@@ -18,3 +18,6 @@ CREATE TABLE IF NOT EXISTS executions
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+CREATE INDEX idx_trades_id_fill_time
+ON executions(id, fill_time);
