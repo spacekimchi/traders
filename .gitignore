@@ -20,3 +20,4 @@ trademaker
 trades/
 node_modules/
 static/
+test_data/

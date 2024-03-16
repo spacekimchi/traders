@@ -12,4 +12,6 @@ pub mod errors;
 pub mod db;
 pub mod template_helpers;
 pub mod excel_helpers;
+pub mod services;
+pub mod instrument_prices;
 
