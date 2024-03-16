@@ -3,12 +3,13 @@ CREATE TABLE IF NOT EXISTS trades
     id BIGSERIAL NOT NULL PRIMARY KEY,
     user_id uuid REFERENCES users (id) ON DELETE CASCADE,
     account_id BIGSERIAL REFERENCES accounts (id) ON DELETE CASCADE,
-    instrument_id SERIAL REFERENCES instruments (id),
+    ticker TEXT NOT NULL,
     entry_time TIMESTAMPTZ NOT NULL,
     exit_time TIMESTAMPTZ NOT NULL,
-    commission REAL,
-    pnl REAL,
-    is_long BOOLEAN,
+    commission REAL NOT NULL,
+    pnl REAL NOT NULL DEFAULT 0.0,
+    is_long BOOLEAN NOT NULL,
+    is_open BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

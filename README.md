@@ -27,6 +27,22 @@ I use [sqlx-cli](https://github.com/launchbadge/sqlx/tree/main/sqlx-cli) to mana
 
 `cargo install sqlx-cli --no-default-features --features native-tls,postgres`
 
+We can initialize the database using
+
+`sqlx database setup`
+
+Add a migration using sqlx
+
+`sqlx migrate add <migration_name>`
+
+Run the migrations with
+
+`sqlx migrate run`
+
+Revert the last migration with
+
+`sqlx migrate revert`
+
 ## When deploying to server
 
 Remember to get a copy of the `configuration/local.yaml`, `configuration/base.yaml`, and `configuration/production.yaml`.

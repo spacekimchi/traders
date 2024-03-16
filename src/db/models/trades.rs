@@ -7,11 +7,16 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use chrono::Datelike;
 
+use crate::errors::trade_errors::TradeError;
+use crate::db::models::executions::PendingExecution;
+use crate::db::models::trade_processing_statuses;
+use crate::instrument_prices;
+
 #[derive(Debug, Deserialize, Serialize, FromRow)]
 pub struct Trade {
     pub id: i32,
     pub account_id: i64,
-    pub instrument_id: i32,
+    pub ticker: String,
     pub entry_time: DateTime<Utc>,
     pub exit_time: DateTime<Utc>,
     pub commission: f32,
@@ -22,6 +27,7 @@ pub struct Trade {
     #[serde(with = "chrono::serde::ts_seconds")]
     pub updated_at: chrono::DateTime<chrono::offset::Utc>,
 }
+
 
 #[derive(Debug, Deserialize, Serialize, FromRow)]
 pub struct TradeInfoByDay {
@@ -73,7 +79,7 @@ impl TradeInfoByDay {
 ///     45012 |               25 |               3 |   -243.64 |                   64.00
 ///     45013 |               32 |               3 |      2.82 |                   96.88
 ///     45014 |               10 |               3 |    121.67 |                   70.00
-pub async fn get_trades_by_day_from(db: &PgPool, start_date: DateTime<Utc>) -> Result<Vec<TradeInfoByDay>, sqlx::Error> {
+pub async fn get_trades_by_day_from(db: &PgPool, start_date: DateTime<Utc>) -> Result<Vec<TradeInfoByDay>, TradeError> {
     let start_date_str = start_date.to_rfc3339(); // Convert to a string in ISO 8601 format
     let query = String::from(
         format!(
@@ -88,7 +94,6 @@ pub async fn get_trades_by_day_from(db: &PgPool, start_date: DateTime<Utc>) -> R
     ) AS pct_winning_trades
 FROM trades
 JOIN accounts ON trades.account_id = accounts.id
-JOIN instruments ON instruments.id = trades.instrument_id
 WHERE accounts.user_id = '6982c6df-3d03-4583-8fa9-07386cf25f80'
 AND trades.exit_time >= TIMESTAMP WITH TIME ZONE '{}'
 AND accounts.sim != true
@@ -104,7 +109,7 @@ ORDER BY trade_day", start_date_str)
 
 /// Similar to the above query, but this will return trades in a range
 /// This function and #get_trades_by_day_from can be combined into a single function
-pub async fn get_trades_by_day_in_range(db: &PgPool, start_date: DateTime<Utc>, end_date: DateTime<Utc>) -> Result<Vec<TradeInfoByDay>, sqlx::Error> {
+pub async fn get_trades_by_day_in_range(db: &PgPool, start_date: DateTime<Utc>, end_date: DateTime<Utc>) -> Result<Vec<TradeInfoByDay>, TradeError> {
     let start_date_str = start_date.to_rfc3339(); // Convert to a string in ISO 8601 format
     let end_date_str = end_date.to_rfc3339(); // Convert to a string in ISO 8601 format
     let query = String::from(
@@ -120,7 +125,6 @@ pub async fn get_trades_by_day_in_range(db: &PgPool, start_date: DateTime<Utc>, 
     ) AS pct_winning_trades
 FROM trades
 JOIN accounts ON trades.account_id = accounts.id
-JOIN instruments ON instruments.id = trades.instrument_id
 WHERE accounts.user_id = '6982c6df-3d03-4583-8fa9-07386cf25f80'
 AND trades.exit_time >= TIMESTAMP WITH TIME ZONE '{}'
 AND trades.exit_time <= TIMESTAMP WITH TIME ZONE '{}'
@@ -136,7 +140,7 @@ ORDER BY trade_day", start_date_str, end_date_str)
 
 /// Basic index query to grab trades within a date range
 ///
-pub async fn get_trades_in_range(db: &PgPool, start_date: DateTime<Utc>, end_date: DateTime<Utc>) -> Result<Vec<Trade>, sqlx::Error> {
+pub async fn get_trades_in_range(db: &PgPool, start_date: DateTime<Utc>, end_date: DateTime<Utc>) -> Result<Vec<Trade>, TradeError> {
     let start_date_str = start_date.to_rfc3339(); // Convert to a string in ISO 8601 format
     let end_date_str = end_date.to_rfc3339(); // Convert to a string in ISO 8601 format
     let query = String::from(
@@ -144,7 +148,6 @@ pub async fn get_trades_in_range(db: &PgPool, start_date: DateTime<Utc>, end_dat
 "SELECT *
 FROM trades
 JOIN accounts ON trades.account_id = accounts.id
-JOIN instruments ON instruments.id = trades.instrument_id
 WHERE accounts.user_id = '6982c6df-3d03-4583-8fa9-07386cf25f80'
 AND trades.exit_time >= TIMESTAMP WITH TIME ZONE '{}'
 AND trades.exit_time <= TIMESTAMP WITH TIME ZONE '{}'
@@ -160,28 +163,27 @@ ORDER BY trades.entry_time DESC", start_date_str, end_date_str)
 #[derive(Debug, Deserialize, Serialize, FromRow)]
 pub struct TradeForTable {
     pub pnl: f32,
-    pub instrument_name: String,
+    pub ticker: String,
     pub account_name: String,
     pub is_long: bool,
     pub duration_seconds: i64,
     pub entry_time: DateTime<Utc>,
 }
 
-pub async fn get_trades_for_table_in_range(db: &PgPool, start_date: &DateTime<Utc>, end_date: &DateTime<Utc>) -> Result<Vec<TradeForTable>, sqlx::Error> {
+pub async fn get_trades_for_table_in_range(db: &PgPool, start_date: &DateTime<Utc>, end_date: &DateTime<Utc>) -> Result<Vec<TradeForTable>, TradeError> {
     let start_date_str = start_date.to_rfc3339(); // Convert to a string in ISO 8601 format
     let end_date_str = end_date.to_rfc3339(); // Convert to a string in ISO 8601 format
     let query = String::from(
         format!(
 "SELECT 
     trades.pnl - trades.commission AS pnl,
-    instruments.code as instrument_name,
+    trades.ticker as ticker,
     accounts.name as account_name,
     trades.is_long as is_long,
     EXTRACT(EPOCH FROM (trades.exit_time - trades.entry_time))::BIGINT as duration_seconds,
     trades.entry_time as entry_time
 FROM trades
 JOIN accounts ON trades.account_id = accounts.id
-JOIN instruments ON instruments.id = trades.instrument_id
 WHERE accounts.user_id = '6982c6df-3d03-4583-8fa9-07386cf25f80'
 AND trades.exit_time >= TIMESTAMP WITH TIME ZONE '{}'
 AND trades.exit_time <= TIMESTAMP WITH TIME ZONE '{}'
@@ -192,4 +194,243 @@ ORDER BY trades.entry_time DESC", start_date_str, end_date_str)
         .fetch_all(db)
         .await?;
     Ok(trades)
+}
+
+struct TradeToSave {
+    user_id: uuid::Uuid,
+    account_id: i32,
+    ticker: String,
+    entry_time: DateTime<Utc>,
+    exit_time: Option<DateTime<Utc>>,
+    commission: f32,
+    pnl: f32,
+    is_long: bool,
+    is_open: bool,
+}
+
+impl TradeToSave {
+    pub fn to_string(&self) -> String {
+        format!(
+            "Trade: ticker: {}, is_long: {}, is_open: {}", self.ticker, self.is_long, self.is_open
+            )
+    }
+}
+
+/// This function is used to process a vector of Vec< PendingExecution>
+/// The implementation of this is in O(n). It is a monotonic stack.
+/// TODO: Needs to be refactored to be cleaner and easier to read
+pub async fn process_pending_executions_into_trades(db: &PgPool, pending_executions: &mut Vec<PendingExecution>, user_id: &uuid::Uuid) -> Result<(), TradeError> {
+    let mut trades: Vec<TradeToSave> = Vec::new();
+    let mut execution_stack: Vec<PendingExecution> = Vec::new();
+    let mut execution_ids: Vec<i64> = Vec::new();
+    let attempted_execution_ids = pending_executions.iter().map(|pe| pe.id).collect::<Vec<i64>>();
+
+    let trade_processing_status_id = trade_processing_statuses::start(db, user_id, &attempted_execution_ids).await?;
+    let mut transaction = db.begin().await?;
+    for pending_execution in pending_executions {
+        let mut pnl = 0.0;
+        let mut commission = 0.0;
+        execution_ids.push(pending_execution.id);
+        while let Some(top_of_stack) = execution_stack.last_mut() {
+            // We exit the loop if the pending execution is on th same side as the current trade
+            if top_of_stack.is_buy == pending_execution.is_buy {
+                break;
+            }
+            let ticks_per_point = instrument_prices::by_symbol(top_of_stack.ticker.as_str()).0;
+            let price_per_tick = instrument_prices::by_symbol(top_of_stack.ticker.as_str()).1;
+            // We add to commission when the execution reaches 0 quantity
+            if top_of_stack.quantity == pending_execution.quantity {
+                pnl += (pending_execution.price - top_of_stack.price) * ticks_per_point * price_per_tick * top_of_stack.quantity as f32;
+                // We add both commissions because we are at the end of both quantities
+                commission += top_of_stack.commission + pending_execution.commission;
+                pending_execution.quantity = 0;
+                execution_stack.pop();
+                break;
+            }
+            if top_of_stack.quantity < pending_execution.quantity {
+                pnl += (pending_execution.price - top_of_stack.price) * ticks_per_point * price_per_tick * top_of_stack.quantity as f32;
+                pending_execution.quantity -= top_of_stack.quantity;
+                commission += top_of_stack.commission;
+                execution_stack.pop();
+            } else {
+                // top_of_stack.quantity > pending_execution.quantity
+                // top_of_stack should have remaining executions in the stack so we don't pop it
+                pnl += (pending_execution.price - top_of_stack.price) * ticks_per_point * price_per_tick * pending_execution.quantity as f32;
+                top_of_stack.quantity -= pending_execution.quantity;
+                commission += pending_execution.commission;
+                break;
+            }
+        }
+        // Matching for the different cases.
+        // Whenever something goes wrong, we want to clear all of the current trackings
+        let execution_ids_str = execution_ids.iter().map(ToString::to_string).collect::<Vec<String>>().join(", ");
+        match (execution_stack.last_mut(), trades.last_mut()) {
+            // This should always be the first match to happen
+            // It's like the initializer
+            (None, None) => {
+                let long_multiplier = match pending_execution.is_long() {
+                    true => 1,
+                    false => -1,
+                };
+
+                // (pending_execution.quantity * long_multiplier) == pending_execution.position
+                // this is supposed to mean that the initial trade should have a position that is
+                // the same if it is long or * -1 if it is a short trade
+                if (pending_execution.quantity * long_multiplier) == pending_execution.position {
+                    execution_stack.push(pending_execution.clone());
+                    trades.push(TradeToSave {
+                        user_id: pending_execution.user_id,
+                        account_id: pending_execution.account_id,
+                        ticker: pending_execution.ticker.clone(),
+                        entry_time: pending_execution.fill_time,
+                        exit_time: None,
+                        is_long: pending_execution.is_long(),
+                        is_open: true,
+                        commission: 0.0,
+                        pnl: 0.0,
+                    });
+                } else {
+                    eprintln!("Something went wrong. Quantity and position should be same or opposites when it is the initial execution");
+                    let message = format!("Failed. Should have been the start of processing.\nPendingExecution: {}\nExecution_ids: {}", pending_execution.to_string(), execution_ids_str);
+                    trade_processing_statuses::record_message(db, user_id, &trade_processing_status_id, &message).await?;
+                    trade_processing_statuses::end_with_error(db, user_id, &trade_processing_status_id, &execution_ids).await?;
+                    clear_trade_making_vecs(&mut trades, &mut execution_stack, &mut execution_ids);
+                    break;
+                }
+            },
+            // This case handles should be for when we are either at the start or end of a trade
+            // START OF TRADE:
+            //   1. Add the trade to the execution_stack.
+            //     a. We know we are at the start of a trade if the pending_execution.quantity > 0
+            //   2. We don't want to edit the most recent trade
+            //   3. Most recent trade should have trade.is_open == false
+            //
+            // END OF TRADE:
+            //   1. Add pnl and commission to the most recent trade
+            //   2. Close the trade
+            //   3. pending_execution.position are 0 when it is the last execution in stack
+            (None, Some(trade)) => {
+                if pending_execution.quantity > 0 && pending_execution.position > 0 && !trade.is_open {
+                    // START OF TRADE CASE
+                    execution_stack.push(pending_execution.clone());
+                    trades.push(TradeToSave {
+                        user_id: pending_execution.user_id,
+                        account_id: pending_execution.account_id,
+                        ticker: pending_execution.ticker.clone(),
+                        entry_time: pending_execution.fill_time,
+                        exit_time: None,
+                        is_long: pending_execution.is_long(),
+                        is_open: true,
+                        commission: 0.0,
+                        pnl: 0.0,
+                    });
+                } else if pending_execution.quantity == 0 && pending_execution.position == 0 && trade.is_open && trade.is_long == pending_execution.is_long() {
+                    // END OF TRADE CASE
+                    trade.pnl += pnl;
+                    trade.commission += commission;
+                    trade.exit_time = Some(pending_execution.fill_time);
+                    trade.is_open = false;
+
+                    // If the trade is a short, we want to multiply the pnl by -1
+                    if !trade.is_long {
+                        trade.pnl *= -1.0;
+                    }
+
+                    // Since it is the end of a trade, we want to save them to the database
+                    // We only want to add Trades to the database if they are closed.
+                    // TODO: do a bulk save to trades
+                    let trade_id = trade_to_save_to_database(&mut transaction, &trade).await?;
+                    // We also want to update the trade_id of the executions in this trade
+                    update_execution_trade_id(&mut transaction, &execution_ids, trade_id).await?;
+                    // We will record the success of creating a trade
+                    // db: &PgPool, user_id: &uuid::Uuid, trade_processing_status_id: &TradeProcessingStatusId, message: &String
+                    let message = format!("Executions were successfully processed into a trade and saved into the database.\nExecution_ids: {}", execution_ids_str);
+                    trade_processing_statuses::record_message(db, user_id, &trade_processing_status_id, &message).await?;
+                    // Clear the executions for the next iteration
+                    execution_ids.clear();
+                } else {
+                    eprintln!("If we are in here, then there is something wrong.");
+                    // Record an error message
+                    let message = format!("Failed PendingExecution: {}\nFailed trade: {}\nExecution_ids: {}", pending_execution.to_string(), trade.to_string(), execution_ids_str);
+                    trade_processing_statuses::record_message(db, user_id, &trade_processing_status_id, &message).await?;
+                    trade_processing_statuses::end_with_error(db, user_id, &trade_processing_status_id, &execution_ids).await?;
+                    clear_trade_making_vecs(&mut trades, &mut execution_stack, &mut execution_ids);
+                    break;
+                }
+            },
+            // There are pending_execution left in the stack.
+            // The pending_execution is either same side as the most recent trade
+            // or the pending_execution has a quantity of 0 from the monotonic stack above
+            (Some(execution), Some(trade)) => {
+                trade.pnl += pnl;
+                trade.commission += commission;
+                if pending_execution.is_long() == trade.is_long && pending_execution.quantity > 0 {
+                    execution_stack.push(pending_execution.clone());
+                } else if pending_execution.quantity != 0 {
+                    eprintln!("Something went wrong");
+                    let message = format!("Failed with executions in the execution_stack.\nPendingExecution: {}\nTop of stack: {}\nFailed trade: {}\nExecution_ids: {}", pending_execution.to_string(), execution.to_string(), trade.to_string(), execution_ids_str);
+                    trade_processing_statuses::record_message(db, user_id, &trade_processing_status_id, &message).await?;
+                    trade_processing_statuses::end_with_error(db, user_id, &trade_processing_status_id, &execution_ids).await?;
+                    clear_trade_making_vecs(&mut trades, &mut execution_stack, &mut execution_ids);
+                    break;
+                }
+            },
+            (Some(execution), None) => {
+                eprintln!("Something went wrong");
+                let message = format!("Failed with executions in the execution_stack but no trade.\nPendingExecution: {}\nTop of stack: {}\nExecution_ids: {}", pending_execution.to_string(), execution.to_string(), execution_ids_str);
+                trade_processing_statuses::record_message(db, user_id, &trade_processing_status_id, &message).await?;
+                trade_processing_statuses::end_with_error(db, user_id, &trade_processing_status_id, &execution_ids).await?;
+                clear_trade_making_vecs(&mut trades, &mut execution_stack, &mut execution_ids);
+                break;
+            }
+        }
+    }
+    transaction.commit().await?;
+    trade_processing_statuses::end_with_success(db, user_id, &trade_processing_status_id).await?;
+    Ok(())
+}
+
+// Define a struct to represent the result of the query
+#[derive(sqlx::FromRow)]
+struct TradeId {
+    id: i64,
+}
+
+async fn trade_to_save_to_database(transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>, trade: &TradeToSave) -> Result<i64, sqlx::error::Error> {
+    let trade_id = sqlx::query_as!(
+        TradeId,
+        "INSERT INTO trades (user_id, account_id, ticker, entry_time, exit_time, is_long, is_open, commission, pnl) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id",
+        trade.user_id,
+        trade.account_id as i64,
+        trade.ticker,
+        trade.entry_time,
+        trade.exit_time,
+        trade.is_long,
+        trade.is_open,
+        trade.commission,
+        trade.pnl
+        )
+        .fetch_one(transaction)
+        .await?
+        .id;
+
+    Ok(trade_id)
+}
+
+async fn update_execution_trade_id(transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>, execution_ids: &Vec<i64>, trade_id: i64) -> Result<(), sqlx::error::Error> {
+    sqlx::query!(
+        "UPDATE executions SET trade_id = $1 WHERE id = ANY($2)",
+        trade_id,
+        execution_ids
+    )
+    .execute(transaction)
+    .await?;
+
+    Ok(())
+}
+
+fn clear_trade_making_vecs(trades: &mut Vec<TradeToSave>, execution_stack: &mut Vec<PendingExecution>, execution_ids: &mut Vec<i64>) {
+    trades.clear();
+    execution_stack.clear();
+    execution_ids.clear();
 }
