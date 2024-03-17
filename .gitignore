@@ -14,10 +14,11 @@ configuration/*
 *.swp
 .DS_Store*
 .prettierrc
-
 migrations/20230818033353_seed_user_and_trades.sql
 trademaker
 trades/
 node_modules/
-static/
+static/*
 test_data/
+dbre.sh
+migrate_script.sh
