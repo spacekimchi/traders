@@ -77,13 +77,25 @@ impl Clone for PendingExecution {
 }
 
 impl PendingExecution {
+    // (pending_execution.quantity * long_multiplier) == pending_execution.position
+    // this is supposed to mean that the initial trade should have a position that is
+    // the same if it is long or * -1 if it is a short trade
+    pub fn seems_like_initial_entry(&self) -> bool {
+        let long_multiplier = match self.is_long() {
+            true => 1,
+            false => -1,
+        };
+        (self.quantity * long_multiplier) == self.position
+    }
+
     pub fn is_long(&self) -> bool {
-        self.is_entry && self.is_buy
+        self.is_entry == self.is_buy
     }
 
     pub fn to_string(&self) -> String {
-        format!("Pending Execution: id: {}, ticker: {}, quantity: {}, is_entry: {}, is_buy: {}, position: {}",
+        format!("Pending Execution: id: {}, account_id: {}, ticker: {}, quantity: {}, is_entry: {}, is_buy: {}, position: {}",
                 self.id,
+                self.account_id,
                 self.ticker,
                 self.quantity,
                 self.is_entry,
@@ -292,8 +304,8 @@ pub async fn get_unprocessed_executions_for_user(db: &PgPool, user_id: &uuid::Uu
 "SELECT id, account_id, user_id, ticker, order_id, fill_time, commission, price, quantity, is_entry, is_exit, is_buy, execution_id, position
 FROM executions
 WHERE user_id = '{}'
-AND trade_id = NULL
-ORDER BY account_id, ticker, fill_time", user_id
+AND trade_id IS NULL
+ORDER BY account_id, ticker, fill_time, id", user_id
 ));
     let pending_executions = sqlx::query_as::<_, PendingExecution>(&query)
         .fetch_all(db)

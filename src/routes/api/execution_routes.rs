@@ -65,18 +65,12 @@ pub async fn ninja_trader_executions_import(
     // This will return an Http Error if it is unable to find a user
 
     let user = get_user_from_database_by_ninja_trader_id(&state.db, &ninja_trader_id).await?;
-    println!("AM I RETURNING A USER: {:?}", user);
-    println!("AM I RETURNING A USER: {:?}", user);
-    println!("AM I RETURNING A USER: {:?}", user);
-    println!("AM I RETURNING A USER: {:?}", user);
-    println!("AM I RETURNING A USER: {:?}", user);
     let db = state.db.clone(); // Clone the pool reference
     let user_id = user.id.clone(); // Clone the Uuid
 
     spawn_with_tracing(async move {
         match trade_processor::process_ninja_trader_executions_and_trades(&db, &user_id, &executions_data).await {
-            Ok(_) => {
-            },
+            Ok(_) => {},
             Err(ProcessingError::Execution(e)) => eprintln!("Encountered an execution error: {}", e),
             Err(ProcessingError::Trade(e)) => eprintln!("Encountered a trade error: {}", e),
         }
