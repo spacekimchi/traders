@@ -1,2 +1,0 @@
-ALTER TABLE trade_processing_status_messages
-RENAME COLUMN trade_processing_statuses_id TO trade_processing_status_id;
