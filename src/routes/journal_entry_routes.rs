@@ -6,10 +6,11 @@ use actix_web::{web, HttpResponse, get};
 use serde::{Serialize, Deserialize};
 use chrono::{Datelike, NaiveDate, Local};
 
-use crate::utils::{naivedate_to_datetime_utc_start_of_day, naivedate_to_datetime_utc_end_of_day};
 use crate::session_state::TypedSession;
 use crate::startup::AppState;
 use crate::db::models::trades;
+use crate::excel_helpers;
+use crate::template_helpers::{RenderTemplateParams, err_500_template, render_content};
 
 /// The start_date and end_date formats should be "YEAR-MONTH-DAY" (2023-12-31)
 #[derive(Debug, Serialize, Deserialize)]
@@ -26,25 +27,21 @@ pub async fn get_journal_entries_index(state: web::Data<AppState>, session: Type
     };
     let today = Local::now().date_naive();
     let start_date = match &query.start_date {
-        Some(date) => {
-            let naive_date = NaiveDate::parse_from_str(date, "%Y-%m-%d").unwrap_or(NaiveDate::from_ymd_opt(today.year() - 3, 1, 1).unwrap());
-            naivedate_to_datetime_utc_start_of_day(&naive_date)
-        },
-        _ => {
-            let naive_date = NaiveDate::from_ymd_opt(today.year() - 3, 1, 1).unwrap();
-            naivedate_to_datetime_utc_start_of_day(&naive_date)
-        }
+        Some(date) => excel_helpers::date_to_excel(&NaiveDate::parse_from_str(date, "%Y-%m-%d").unwrap_or(NaiveDate::from_ymd_opt(today.year() - 3, 1, 1).unwrap())),
+        _ => excel_helpers::date_to_excel(&NaiveDate::from_ymd_opt(today.year() - 3, 1, 1).unwrap())
     };
 
     let end_date = match &query.end_date {
-        Some(date) => {
-            naivedate_to_datetime_utc_end_of_day(&NaiveDate::parse_from_str(date, "%Y-%m-%d").unwrap_or(today))
-        },
-        _ => naivedate_to_datetime_utc_end_of_day(&today)
+        Some(date) => excel_helpers::date_to_excel(&NaiveDate::parse_from_str(date, "%Y-%m-%d").unwrap_or(today)),
+        _ => excel_helpers::date_to_excel(&today)
     };
-    let trades = trades::get_trades_by_day_in_range(&state.db, start_date, end_date).await?;
-    println!("TRADES_BY_DAY_IN_RANGE: {:?}", trades);
-
-
-    Ok(HttpResponse::Ok().body(""))
+    let trades_by_range = trades::get_trades_by_day_in_range(&state.db, start_date, end_date).await?;
+    let mut context = tera::Context::new();
+    context.insert("trades_by_day", &trades_by_range);
+    match render_content(&RenderTemplateParams::new("trades/index.html", &tera_engine)
+                         .with_context(&context)
+                         .with_session(&session)) {
+        Ok(calendar_template) => Ok(HttpResponse::Ok().body(calendar_template)),
+        Err(e) => Ok(HttpResponse::InternalServerError().body(err_500_template(&tera_engine, e)))
+    }
 }
