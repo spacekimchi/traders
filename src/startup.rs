@@ -19,7 +19,7 @@ use secrecy::{Secret, ExposeSecret};
 use crate::configuration::Settings;
 use crate::configuration::DatabaseSettings;
 use crate::authentication::reject_anonymous_users;
-use crate::routes::{users, login, homepage, trade_routes, execution_routes};
+use crate::routes::{users, login, homepage, trade_routes, execution_routes, journal_entry_routes};
 use crate::routes::api;
 use crate::template_helpers;
 
@@ -126,6 +126,10 @@ pub async fn run(db_pool: PgPool, listener: TcpListener, base_url: String, redis
                 .wrap(from_fn(reject_anonymous_users))
                 .service(users::new_user_page)
                 .service(users::create_user)
+            )
+            .service(
+                web::scope("/journal_entries")
+                .service(journal_entry_routes::get_journal_entries_index)
             )
             .service(
                 web::scope("/api")

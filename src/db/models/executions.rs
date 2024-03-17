@@ -22,7 +22,7 @@ pub struct Execution {
     pub trade_id: Option<i64>,
     pub ticker: String,
     pub order_id: String,
-    pub fill_time: DateTime<Utc>,
+    pub fill_time: f64,
     pub commission: f32,
     pub price: f32,
     pub quantity: i32,
@@ -44,7 +44,7 @@ pub struct PendingExecution {
     pub user_id: uuid::Uuid,
     pub ticker: String,
     pub order_id: String,
-    pub fill_time: DateTime<Utc>,
+    pub fill_time: f64,
     pub commission: f32,
     pub price: f32,
     pub quantity: i32,
@@ -110,19 +110,18 @@ struct ExecutionParams {
     account_id: i64,
     ticker: String,
     order_id: String,
-    fill_time: chrono::DateTime<chrono::Utc>,
+    fill_time: f64,
     commission: f32,
     price: f32,
     quantity: i64,
     is_entry: bool,
-    is_exit: bool,
     is_buy: bool,
     execution_id: String,
     position: i32,
 }
 
 // This should be the same length as the ExecutionParams struct
-const EXECUTION_PARAMS_FIELD_COUNT: usize = 13;
+const EXECUTION_PARAMS_FIELD_COUNT: usize = 12;
 
 /// This function is used to fetch Executions from the database
 pub async fn fetch_executions_by_user_id(db_pool: &PgPool, user_id: &uuid::Uuid) -> Result<Vec<Execution>, ExecutionError> {
@@ -151,31 +150,25 @@ pub async fn save_executions_from_ninja_trader_to_database(db_pool: &PgPool, use
 async fn bulk_save_ninja_trader_executions(db_pool: &PgPool,
                                            user_id: &uuid::Uuid,
                                            accounts: &HashMap<String, i64>,
-                                           executions: &Vec<execution_routes::ExecutionJsonData>) -> Result<(DateTime<Utc>, DateTime<Utc>), ExecutionError> {
+                                           executions: &Vec<execution_routes::ExecutionJsonData>) -> Result<(), ExecutionError> {
     let mut query = "INSERT INTO executions (user_id, account_id, ticker, order_id, fill_time, commission, price, quantity, is_entry, is_exit, is_buy, execution_id, position) VALUES ".to_string();
     let mut params: Vec<ExecutionParams> = Vec::new();
-    let mut min_fill_time = Utc::now();
-    let mut max_fill_time = Utc::now() + chrono::Duration::days(1);
 
     // We need to go through each execution and create the fields that will be saved
     for execution in executions {
         let account_id = *accounts.get(&execution.account_name).ok_or(sqlx::Error::RowNotFound)?;
-        let fill_time = excel_helpers::excel_to_utc(execution.fill_time);
         // Update min and max fill_time
-        min_fill_time = min(min_fill_time, fill_time);
-        max_fill_time = max(max_fill_time, fill_time);
 
         params.push(ExecutionParams {
             user_id: *user_id,
             account_id,
             ticker: execution.ticker.clone(),
             order_id: execution.order_id.clone(),
-            fill_time,
+            fill_time: execution.fill_time,
             commission: execution.commission,
             price: execution.price,
             quantity: execution.quantity,
             is_entry: execution.is_entry,
-            is_exit: execution.is_exit,
             is_buy: execution.is_buy,
             execution_id: execution.execution_id.clone(),
             position: execution.position,
@@ -208,14 +201,13 @@ async fn bulk_save_ninja_trader_executions(db_pool: &PgPool,
             .bind(param.price)
             .bind(param.quantity)
             .bind(param.is_entry)
-            .bind(param.is_exit)
             .bind(param.is_buy)
             .bind(param.execution_id)
             .bind(param.position);
     }
     build_query.execute(db_pool).await?;
 
-    Ok((min_fill_time, max_fill_time))
+    Ok(())
 }
 
 /// This function is used to create new accounts from the executions passed from NinjaTrader which
@@ -258,12 +250,13 @@ pub struct ExecutionForTable {
     pub is_buy: bool,
     pub position: i32,
     pub trade_id: Option<i64>,
-    pub fill_time: DateTime<Utc>,
+    pub fill_time: f64,
     pub created_at: DateTime<Utc>,
 }
 
 /// This function is used to grab executions that will be used grab executions in a proper format
 /// to be displayed on the executions index page
+/// TODO: Edit start_date and end_date to be f64 excel times.
 pub async fn get_executions_for_index_table(db: &PgPool, user_id: &uuid::Uuid, start_date: &DateTime<Utc>, end_date: &DateTime<Utc>) -> Result<Vec<ExecutionForTable>, ExecutionError> {
     let start_date_str = start_date.to_rfc3339(); // Convert to a string in ISO 8601 format
     let end_date_str = end_date.to_rfc3339(); // Convert to a string in ISO 8601 format

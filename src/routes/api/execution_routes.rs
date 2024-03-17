@@ -35,7 +35,6 @@ pub struct ExecutionJsonData {
     // This is the execution_id that NinjaTrader uses
     pub execution_id: String,
     pub ticker: String,
-    // Need to convert this to TIMESTAMPTZ
     pub fill_time: f64,
     pub commission: f32,
     pub price: f32,
@@ -43,7 +42,6 @@ pub struct ExecutionJsonData {
     pub is_buy: bool,
     pub quantity: i64,
     pub is_entry: bool,
-    pub is_exit: bool,
 }
 
 /// This endpoint is for saving the executions from NinjaTrader.
