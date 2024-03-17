@@ -2,7 +2,6 @@
 //!
 //! The purpose of this file is to hold database operations relevant to the trades table
 use sqlx::{self, FromRow, PgPool};
-use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use chrono::Datelike;
 
@@ -78,8 +77,7 @@ impl TradeInfoByDay {
 ///     45012 |               25 |               3 |   -243.64 |                   64.00
 ///     45013 |               32 |               3 |      2.82 |                   96.88
 ///     45014 |               10 |               3 |    121.67 |                   70.00
-pub async fn get_trades_by_day_from(db: &PgPool, start_date: DateTime<Utc>) -> Result<Vec<TradeInfoByDay>, TradeError> {
-    let start_date_str = start_date.to_rfc3339(); // Convert to a string in ISO 8601 format
+pub async fn get_trades_by_day_from(db: &PgPool, start_date: u32) -> Result<Vec<TradeInfoByDay>, TradeError> {
     let query = String::from(
         format!(
 "SELECT
@@ -94,10 +92,10 @@ pub async fn get_trades_by_day_from(db: &PgPool, start_date: DateTime<Utc>) -> R
 FROM trades
 JOIN accounts ON trades.account_id = accounts.id
 WHERE accounts.user_id = '6982c6df-3d03-4583-8fa9-07386cf25f80'
-AND trades.exit_time >= TIMESTAMP WITH TIME ZONE '{}'
+AND trades.exit_time >= {}
 AND accounts.sim != true
 GROUP BY DATE(trades.entry_time)
-ORDER BY trade_day", start_date_str)
+ORDER BY trade_day", start_date)
 );
 
     let trades = sqlx::query_as::<_, TradeInfoByDay>(&query)
@@ -108,9 +106,7 @@ ORDER BY trade_day", start_date_str)
 
 /// Similar to the above query, but this will return trades in a range
 /// This function and #get_trades_by_day_from can be combined into a single function
-pub async fn get_trades_by_day_in_range(db: &PgPool, start_date: DateTime<Utc>, end_date: DateTime<Utc>) -> Result<Vec<TradeInfoByDay>, TradeError> {
-    let start_date_str = start_date.to_rfc3339(); // Convert to a string in ISO 8601 format
-    let end_date_str = end_date.to_rfc3339(); // Convert to a string in ISO 8601 format
+pub async fn get_trades_by_day_in_range(db: &PgPool, start_date: u32, end_date: u32) -> Result<Vec<TradeInfoByDay>, TradeError> {
     let query = String::from(
         format!(
 "SELECT
@@ -125,11 +121,11 @@ pub async fn get_trades_by_day_in_range(db: &PgPool, start_date: DateTime<Utc>, 
 FROM trades
 JOIN accounts ON trades.account_id = accounts.id
 WHERE accounts.user_id = '6982c6df-3d03-4583-8fa9-07386cf25f80'
-AND trades.exit_time >= TIMESTAMP WITH TIME ZONE '{}'
-AND trades.exit_time <= TIMESTAMP WITH TIME ZONE '{}'
+AND trades.exit_time >= {}
+AND trades.exit_time <= {}
 AND accounts.sim != true
 GROUP BY DATE(trades.entry_time)
-ORDER BY trade_day", start_date_str, end_date_str)
+ORDER BY trade_day", start_date, end_date)
 );
     let trades = sqlx::query_as::<_, TradeInfoByDay>(&query)
         .fetch_all(db)
@@ -137,27 +133,6 @@ ORDER BY trade_day", start_date_str, end_date_str)
     Ok(trades)
 }
 
-/// Basic index query to grab trades within a date range
-///
-pub async fn get_trades_in_range(db: &PgPool, start_date: DateTime<Utc>, end_date: DateTime<Utc>) -> Result<Vec<Trade>, TradeError> {
-    let start_date_str = start_date.to_rfc3339(); // Convert to a string in ISO 8601 format
-    let end_date_str = end_date.to_rfc3339(); // Convert to a string in ISO 8601 format
-    let query = String::from(
-        format!(
-"SELECT *
-FROM trades
-JOIN accounts ON trades.account_id = accounts.id
-WHERE accounts.user_id = '6982c6df-3d03-4583-8fa9-07386cf25f80'
-AND trades.exit_time >= TIMESTAMP WITH TIME ZONE '{}'
-AND trades.exit_time <= TIMESTAMP WITH TIME ZONE '{}'
-AND accounts.sim != true
-ORDER BY trades.entry_time DESC", start_date_str, end_date_str)
-);
-    let trades = sqlx::query_as::<_, Trade>(&query)
-        .fetch_all(db)
-        .await?;
-    Ok(trades)
-}
 
 #[derive(Debug, Deserialize, Serialize, FromRow)]
 pub struct TradeForTable {
@@ -169,9 +144,7 @@ pub struct TradeForTable {
     pub entry_time: f64,
 }
 
-pub async fn get_trades_for_table_in_range(db: &PgPool, start_date: &DateTime<Utc>, end_date: &DateTime<Utc>) -> Result<Vec<TradeForTable>, TradeError> {
-    let start_date_str = start_date.to_rfc3339(); // Convert to a string in ISO 8601 format
-    let end_date_str = end_date.to_rfc3339(); // Convert to a string in ISO 8601 format
+pub async fn get_trades_for_table_in_range(db: &PgPool, start_date: u32, end_date: u32) -> Result<Vec<TradeForTable>, TradeError> {
     let query = String::from(
         format!(
 "SELECT 
@@ -184,9 +157,9 @@ pub async fn get_trades_for_table_in_range(db: &PgPool, start_date: &DateTime<Ut
 FROM trades
 JOIN accounts ON trades.account_id = accounts.id
 WHERE accounts.user_id = '6982c6df-3d03-4583-8fa9-07386cf25f80'
-AND trades.exit_time >= TIMESTAMP WITH TIME ZONE '{}'
-AND trades.exit_time <= TIMESTAMP WITH TIME ZONE '{}'
-ORDER BY trades.entry_time DESC", start_date_str, end_date_str)
+AND trades.exit_time >= {}
+AND trades.exit_time <= {}
+ORDER BY trades.entry_time DESC", start_date, end_date)
 );
     let trades = sqlx::query_as::<_, TradeForTable>(&query)
         .fetch_all(db)

@@ -127,7 +127,7 @@ async fn get_calendar_root(tera_engine: Data<tera::Tera>, session: TypedSession,
         Ok(trades_by_day) => trades_by_day,
         Err(e) => return HttpResponse::InternalServerError().body(err_500_template(&tera_engine, e))
     };
-    let trades_by_day_in_range = match trades::get_trades_by_day_in_range(&state.db, start_date, end_date).await {
+    let trades_by_day_in_range = match trades::get_trades_by_day_in_range(&state.db, start_date_excel, end_date_excel).await {
         Ok(trades_by_day_in_range) => trades_by_day_in_range,
         Err(e) => return HttpResponse::InternalServerError().body(err_500_template(&tera_engine, e))
     };

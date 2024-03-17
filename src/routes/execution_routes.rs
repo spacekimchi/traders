@@ -11,8 +11,9 @@ use chrono::{Datelike, NaiveDate, Local};
 use crate::startup::AppState;
 use crate::session_state::TypedSession;
 use crate::template_helpers::{render_content, RenderTemplateParams, err_500_template};
-use crate::utils::{naivedate_to_datetime_utc_start_of_day, naivedate_to_datetime_utc_end_of_day, e500};
+use crate::utils::e500;
 use crate::db::models;
+use crate::excel_helpers;
 
 //const DEFAULT_USER_ID: uuid::Uuid = uuid::Uuid::parse_str("6982c6df-3d03-4583-8fa9-07386cf25f80");
 
@@ -37,24 +38,16 @@ async fn get_executions_index(tera_engine: Data<tera::Tera>, session: TypedSessi
     let today = Local::now().date_naive();
     let default_start_year = today.year() - 3;
     let start_date = match &query.start_date {
-        Some(date) => {
-            let naive_date = NaiveDate::parse_from_str(date, "%Y-%m-%d").unwrap_or(NaiveDate::from_ymd_opt(default_start_year, 1, 1).unwrap());
-            naivedate_to_datetime_utc_start_of_day(&naive_date)
-        },
-        _ => {
-            let naive_date = NaiveDate::from_ymd_opt(default_start_year, 1, 1).unwrap();
-            naivedate_to_datetime_utc_start_of_day(&naive_date)
-        }
+        Some(date) => excel_helpers::date_to_excel(&NaiveDate::parse_from_str(date, "%Y-%m-%d").unwrap_or(NaiveDate::from_ymd_opt(default_start_year, 1, 1).unwrap())),
+        _ => excel_helpers::date_to_excel(&NaiveDate::from_ymd_opt(default_start_year, 1, 1).unwrap())
     };
 
     let end_date = match &query.end_date {
-        Some(date) => {
-            naivedate_to_datetime_utc_end_of_day(&NaiveDate::parse_from_str(date, "%Y-%m-%d").unwrap_or(today))
-        },
-        _ => naivedate_to_datetime_utc_end_of_day(&today)
+        Some(date) => excel_helpers::date_to_excel(&NaiveDate::parse_from_str(date, "%Y-%m-%d").unwrap_or(today)),
+        _ => excel_helpers::date_to_excel(&today)
     };
 
-    let executions = models::executions::get_executions_for_index_table(&state.db, &user_id, &start_date, &end_date).await?;
+    let executions = models::executions::get_executions_for_index_table(&state.db, &user_id, start_date, end_date).await?;
 
     let mut context = tera::Context::new();
     context.insert("executions", &executions);
