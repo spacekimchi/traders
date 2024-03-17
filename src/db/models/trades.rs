@@ -16,8 +16,8 @@ pub struct Trade {
     pub id: i32,
     pub account_id: i64,
     pub ticker: String,
-    pub entry_time: DateTime<Utc>,
-    pub exit_time: DateTime<Utc>,
+    pub entry_time: f64,
+    pub exit_time: f64,
     pub commission: f32,
     pub pnl: f32,
     pub is_long: bool,
@@ -166,7 +166,7 @@ pub struct TradeForTable {
     pub account_name: String,
     pub is_long: bool,
     pub duration_seconds: i64,
-    pub entry_time: DateTime<Utc>,
+    pub entry_time: f64,
 }
 
 pub async fn get_trades_for_table_in_range(db: &PgPool, start_date: &DateTime<Utc>, end_date: &DateTime<Utc>) -> Result<Vec<TradeForTable>, TradeError> {
@@ -198,8 +198,8 @@ struct TradeToSave {
     user_id: uuid::Uuid,
     account_id: i32,
     ticker: String,
-    entry_time: DateTime<Utc>,
-    exit_time: Option<DateTime<Utc>>,
+    entry_time: f64,
+    exit_time: Option<f64>,
     commission: f32,
     pnl: f32,
     is_long: bool,

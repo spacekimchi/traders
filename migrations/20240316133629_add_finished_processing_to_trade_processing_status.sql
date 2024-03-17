@@ -1,2 +1,0 @@
-ALTER TABLE trade_processing_statuses
-ADD COLUMN finished_processing_at TIMESTAMPTZ;
