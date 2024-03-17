@@ -1,7 +1,6 @@
 //! src/db/models/trades.rs
 //!
 //! The purpose of this file is to hold database operations relevant to the trades table
-
 use sqlx::{self, FromRow, PgPool};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -187,7 +186,6 @@ JOIN accounts ON trades.account_id = accounts.id
 WHERE accounts.user_id = '6982c6df-3d03-4583-8fa9-07386cf25f80'
 AND trades.exit_time >= TIMESTAMP WITH TIME ZONE '{}'
 AND trades.exit_time <= TIMESTAMP WITH TIME ZONE '{}'
-AND accounts.sim != true
 ORDER BY trades.entry_time DESC", start_date_str, end_date_str)
 );
     let trades = sqlx::query_as::<_, TradeForTable>(&query)
@@ -223,10 +221,13 @@ pub async fn process_pending_executions_into_trades(db: &PgPool, pending_executi
     let mut trades: Vec<TradeToSave> = Vec::new();
     let mut execution_stack: Vec<PendingExecution> = Vec::new();
     let mut execution_ids: Vec<i64> = Vec::new();
+    //let mut pending_executions_by_account: HashMap<i32, Vec<&mut PendingExecution>> = HashMap::new();
     let attempted_execution_ids = pending_executions.iter().map(|pe| pe.id).collect::<Vec<i64>>();
 
     let trade_processing_status_id = trade_processing_statuses::start(db, user_id, &attempted_execution_ids).await?;
+    // Starting a new transaction
     let mut transaction = db.begin().await?;
+    let mut should_commit_transaction = true;
     for pending_execution in pending_executions {
         let mut pnl = 0.0;
         let mut commission = 0.0;
@@ -257,26 +258,19 @@ pub async fn process_pending_executions_into_trades(db: &PgPool, pending_executi
                 // top_of_stack should have remaining executions in the stack so we don't pop it
                 pnl += (pending_execution.price - top_of_stack.price) * ticks_per_point * price_per_tick * pending_execution.quantity as f32;
                 top_of_stack.quantity -= pending_execution.quantity;
+                pending_execution.quantity = 0;
                 commission += pending_execution.commission;
                 break;
             }
         }
+        let execution_ids_str = execution_ids.iter().map(ToString::to_string).collect::<Vec<String>>().join(", ");
         // Matching for the different cases.
         // Whenever something goes wrong, we want to clear all of the current trackings
-        let execution_ids_str = execution_ids.iter().map(ToString::to_string).collect::<Vec<String>>().join(", ");
         match (execution_stack.last_mut(), trades.last_mut()) {
             // This should always be the first match to happen
             // It's like the initializer
             (None, None) => {
-                let long_multiplier = match pending_execution.is_long() {
-                    true => 1,
-                    false => -1,
-                };
-
-                // (pending_execution.quantity * long_multiplier) == pending_execution.position
-                // this is supposed to mean that the initial trade should have a position that is
-                // the same if it is long or * -1 if it is a short trade
-                if (pending_execution.quantity * long_multiplier) == pending_execution.position {
+                if pending_execution.seems_like_initial_entry() {
                     execution_stack.push(pending_execution.clone());
                     trades.push(TradeToSave {
                         user_id: pending_execution.user_id,
@@ -295,6 +289,7 @@ pub async fn process_pending_executions_into_trades(db: &PgPool, pending_executi
                     trade_processing_statuses::record_message(db, user_id, &trade_processing_status_id, &message).await?;
                     trade_processing_statuses::end_with_error(db, user_id, &trade_processing_status_id, &execution_ids).await?;
                     clear_trade_making_vecs(&mut trades, &mut execution_stack, &mut execution_ids);
+                    should_commit_transaction = false;
                     break;
                 }
             },
@@ -310,7 +305,7 @@ pub async fn process_pending_executions_into_trades(db: &PgPool, pending_executi
             //   2. Close the trade
             //   3. pending_execution.position are 0 when it is the last execution in stack
             (None, Some(trade)) => {
-                if pending_execution.quantity > 0 && pending_execution.position > 0 && !trade.is_open {
+                if pending_execution.quantity > 0 && pending_execution.seems_like_initial_entry() && !trade.is_open {
                     // START OF TRADE CASE
                     execution_stack.push(pending_execution.clone());
                     trades.push(TradeToSave {
@@ -342,10 +337,6 @@ pub async fn process_pending_executions_into_trades(db: &PgPool, pending_executi
                     let trade_id = trade_to_save_to_database(&mut transaction, &trade).await?;
                     // We also want to update the trade_id of the executions in this trade
                     update_execution_trade_id(&mut transaction, &execution_ids, trade_id).await?;
-                    // We will record the success of creating a trade
-                    // db: &PgPool, user_id: &uuid::Uuid, trade_processing_status_id: &TradeProcessingStatusId, message: &String
-                    let message = format!("Executions were successfully processed into a trade and saved into the database.\nExecution_ids: {}", execution_ids_str);
-                    trade_processing_statuses::record_message(db, user_id, &trade_processing_status_id, &message).await?;
                     // Clear the executions for the next iteration
                     execution_ids.clear();
                 } else {
@@ -355,6 +346,7 @@ pub async fn process_pending_executions_into_trades(db: &PgPool, pending_executi
                     trade_processing_statuses::record_message(db, user_id, &trade_processing_status_id, &message).await?;
                     trade_processing_statuses::end_with_error(db, user_id, &trade_processing_status_id, &execution_ids).await?;
                     clear_trade_making_vecs(&mut trades, &mut execution_stack, &mut execution_ids);
+                    should_commit_transaction = false;
                     break;
                 }
             },
@@ -364,14 +356,17 @@ pub async fn process_pending_executions_into_trades(db: &PgPool, pending_executi
             (Some(execution), Some(trade)) => {
                 trade.pnl += pnl;
                 trade.commission += commission;
-                if pending_execution.is_long() == trade.is_long && pending_execution.quantity > 0 {
+                // If it isn't one of these two conditions, then pending_execution.quantity == 0
+                // and in this case we just want to move on to the next pending_execution
+                if pending_execution.is_buy == execution.is_buy && pending_execution.quantity > 0 {
                     execution_stack.push(pending_execution.clone());
                 } else if pending_execution.quantity != 0 {
-                    eprintln!("Something went wrong");
+                    eprintln!("Something went wrong in here!");
                     let message = format!("Failed with executions in the execution_stack.\nPendingExecution: {}\nTop of stack: {}\nFailed trade: {}\nExecution_ids: {}", pending_execution.to_string(), execution.to_string(), trade.to_string(), execution_ids_str);
                     trade_processing_statuses::record_message(db, user_id, &trade_processing_status_id, &message).await?;
                     trade_processing_statuses::end_with_error(db, user_id, &trade_processing_status_id, &execution_ids).await?;
                     clear_trade_making_vecs(&mut trades, &mut execution_stack, &mut execution_ids);
+                    should_commit_transaction = false;
                     break;
                 }
             },
@@ -381,12 +376,19 @@ pub async fn process_pending_executions_into_trades(db: &PgPool, pending_executi
                 trade_processing_statuses::record_message(db, user_id, &trade_processing_status_id, &message).await?;
                 trade_processing_statuses::end_with_error(db, user_id, &trade_processing_status_id, &execution_ids).await?;
                 clear_trade_making_vecs(&mut trades, &mut execution_stack, &mut execution_ids);
+                should_commit_transaction = false;
                 break;
             }
         }
     }
-    transaction.commit().await?;
-    trade_processing_statuses::end_with_success(db, user_id, &trade_processing_status_id).await?;
+    if should_commit_transaction {
+        transaction.commit().await?;
+        // We will record the success of creating trades
+        // db: &PgPool, user_id: &uuid::Uuid, trade_processing_status_id: &TradeProcessingStatusId, message: &String
+        let message = format!("Executions were successfully processed into trades and saved in the database.");
+        trade_processing_statuses::record_message(db, user_id, &trade_processing_status_id, &message).await?;
+        trade_processing_statuses::end_with_success(db, user_id, &trade_processing_status_id).await?;
+    }
     Ok(())
 }
 

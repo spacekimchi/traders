@@ -2,7 +2,8 @@
 //!
 
 use actix_web::web::{Data, Query};
-use actix_web::{HttpResponse, get};
+use actix_web::http;
+use actix_web::{HttpResponse, get, post};
 use chrono::{Datelike, NaiveDate, Local};
 use serde::{Serialize, Deserialize};
 
@@ -12,6 +13,8 @@ use crate::template_helpers::{render_content, RenderTemplateParams, err_500_temp
 use crate::utils::{naivedate_to_datetime_utc_start_of_day, naivedate_to_datetime_utc_end_of_day};
 
 use crate::db::models::trades;
+use crate::services::trade_processor;
+use crate::utils::e500;
 
 /// The start_date and end_date formats should be "YEAR-MONTH-DAY" (2023-12-31)
 #[derive(Debug, Serialize, Deserialize)]
@@ -57,3 +60,15 @@ async fn get_trades_index(tera_engine: Data<tera::Tera>, session: TypedSession, 
     }
 }
 
+/// URL: https://traders.jinz.co/process_trades
+#[post("process_trades")]
+async fn process_trades(session: TypedSession, state: Data<AppState>) -> Result<HttpResponse, actix_web::Error> {
+    let user_id = match session
+        .get_user_id()
+        .map_err(e500)? {
+            Some(user_id) => user_id,
+            None => return Ok(HttpResponse::Unauthorized().body("You are not authorized"))
+        };
+    trade_processor::process_trades(&state.db, &user_id).await.map_err(e500)?;
+    Ok(HttpResponse::Found().insert_header((http::header::LOCATION, "/trades")).finish())
+}

@@ -119,6 +119,7 @@ pub async fn run(db_pool: PgPool, listener: TcpListener, base_url: String, redis
             .service(
                 web::scope("/trades")
                 .service(trade_routes::get_trades_index)
+                .service(trade_routes::process_trades)
             )
             .service(
                 web::scope("/users")
