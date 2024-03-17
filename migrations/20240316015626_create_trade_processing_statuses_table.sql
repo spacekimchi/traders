@@ -1,4 +1,4 @@
-CREATE TYPE IF NOT EXISTS processing_status_enum AS ENUM ('STARTED', 'SUCCESS', 'FAILED');
+CREATE TYPE processing_status_enum AS ENUM ('STARTED', 'SUCCESS', 'FAILED');
 
 CREATE TABLE IF NOT EXISTS trade_processing_statuses
 (

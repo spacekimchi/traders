@@ -3,7 +3,6 @@
 //! This file is for things related to executions
 
 use std::collections::{HashMap, HashSet};
-use std::cmp::{min, max};
 
 use sqlx::{self, FromRow, PgPool};
 use chrono::{DateTime, Utc};
@@ -27,7 +26,6 @@ pub struct Execution {
     pub price: f32,
     pub quantity: i32,
     pub is_entry: bool,
-    pub is_exit: bool,
     pub is_buy: bool,
     pub execution_id: String,
     pub position: i32,
@@ -49,7 +47,6 @@ pub struct PendingExecution {
     pub price: f32,
     pub quantity: i32,
     pub is_entry: bool,
-    pub is_exit: bool,
     pub is_buy: bool,
     pub execution_id: String,
     pub position: i32,
@@ -68,7 +65,6 @@ impl Clone for PendingExecution {
             price: self.price,
             quantity: self.quantity,
             is_entry: self.is_entry,
-            is_exit: self.is_exit,
             is_buy: self.is_buy,
             execution_id: self.execution_id.clone(),
             position: self.position
@@ -151,7 +147,7 @@ async fn bulk_save_ninja_trader_executions(db_pool: &PgPool,
                                            user_id: &uuid::Uuid,
                                            accounts: &HashMap<String, i64>,
                                            executions: &Vec<execution_routes::ExecutionJsonData>) -> Result<(), ExecutionError> {
-    let mut query = "INSERT INTO executions (user_id, account_id, ticker, order_id, fill_time, commission, price, quantity, is_entry, is_exit, is_buy, execution_id, position) VALUES ".to_string();
+    let mut query = "INSERT INTO executions (user_id, account_id, ticker, order_id, fill_time, commission, price, quantity, is_entry, is_buy, execution_id, position) VALUES ".to_string();
     let mut params: Vec<ExecutionParams> = Vec::new();
 
     // We need to go through each execution and create the fields that will be saved
@@ -294,7 +290,7 @@ ORDER BY executions.fill_time DESC", user_id, start_date_str, end_date_str)
 pub async fn get_unprocessed_executions_for_user(db: &PgPool, user_id: &uuid::Uuid) -> Result<Vec<PendingExecution>, ExecutionError> {
     let query = String::from(
         format!(
-"SELECT id, account_id, user_id, ticker, order_id, fill_time, commission, price, quantity, is_entry, is_exit, is_buy, execution_id, position
+"SELECT id, account_id, user_id, ticker, order_id, fill_time, commission, price, quantity, is_entry, is_buy, execution_id, position
 FROM executions
 WHERE user_id = '{}'
 AND trade_id IS NULL
