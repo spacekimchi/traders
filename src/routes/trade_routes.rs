@@ -10,9 +10,8 @@ use serde::{Serialize, Deserialize};
 use crate::startup::AppState;
 use crate::session_state::TypedSession;
 use crate::template_helpers::{render_content, RenderTemplateParams, err_500_template};
-use crate::utils::{naivedate_to_datetime_utc_start_of_day, naivedate_to_datetime_utc_end_of_day};
-
 use crate::db::models::trades;
+use crate::excel_helpers;
 use crate::services::trade_processor;
 use crate::utils::e500;
 
@@ -29,23 +28,21 @@ async fn get_trades_index(tera_engine: Data<tera::Tera>, session: TypedSession, 
     let today = Local::now().date_naive();
     let start_date = match &query.start_date {
         Some(date) => {
-            let naive_date = NaiveDate::parse_from_str(date, "%Y-%m-%d").unwrap_or(NaiveDate::from_ymd_opt(today.year() - 3, 1, 1).unwrap());
-            naivedate_to_datetime_utc_start_of_day(&naive_date)
+            NaiveDate::parse_from_str(date, "%Y-%m-%d").unwrap_or(NaiveDate::from_ymd_opt(today.year() - 3, 1, 1).unwrap())
         },
         _ => {
-            let naive_date = NaiveDate::from_ymd_opt(today.year() - 3, 1, 1).unwrap();
-            naivedate_to_datetime_utc_start_of_day(&naive_date)
+            NaiveDate::from_ymd_opt(today.year() - 3, 1, 1).unwrap()
         }
     };
 
     let end_date = match &query.end_date {
         Some(date) => {
-            naivedate_to_datetime_utc_end_of_day(&NaiveDate::parse_from_str(date, "%Y-%m-%d").unwrap_or(today))
+            NaiveDate::parse_from_str(date, "%Y-%m-%d").unwrap_or(today)
         },
-        _ => naivedate_to_datetime_utc_end_of_day(&today)
+        _ => today
     };
     // For now, just grab all the trades. Later we can add a filter for dates.
-    let trades_in_range = match trades::get_trades_for_table_in_range(&state.db, &start_date, &end_date).await {
+    let trades_in_range = match trades::get_trades_for_table_in_range(&state.db, excel_helpers::date_to_excel(&start_date), excel_helpers::date_to_excel(&end_date)).await {
         Ok(trades_by_day_in_range) => trades_by_day_in_range,
         Err(e) => return HttpResponse::InternalServerError().body(err_500_template(&tera_engine, e))
     };

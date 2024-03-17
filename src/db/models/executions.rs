@@ -9,7 +9,6 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 use crate::routes::api::execution_routes;
-use crate::excel_helpers;
 use crate::db::models;
 use crate::errors::execution_errors::ExecutionError;
 
@@ -252,10 +251,7 @@ pub struct ExecutionForTable {
 
 /// This function is used to grab executions that will be used grab executions in a proper format
 /// to be displayed on the executions index page
-/// TODO: Edit start_date and end_date to be f64 excel times.
-pub async fn get_executions_for_index_table(db: &PgPool, user_id: &uuid::Uuid, start_date: &DateTime<Utc>, end_date: &DateTime<Utc>) -> Result<Vec<ExecutionForTable>, ExecutionError> {
-    let start_date_str = start_date.to_rfc3339(); // Convert to a string in ISO 8601 format
-    let end_date_str = end_date.to_rfc3339(); // Convert to a string in ISO 8601 format
+pub async fn get_executions_for_index_table(db: &PgPool, user_id: &uuid::Uuid, start_date: u32, end_date: u32) -> Result<Vec<ExecutionForTable>, ExecutionError> {
     let query = String::from(
         format!(
 "SELECT 
@@ -273,10 +269,10 @@ pub async fn get_executions_for_index_table(db: &PgPool, user_id: &uuid::Uuid, s
 FROM executions
 JOIN accounts ON executions.account_id = accounts.id
 WHERE accounts.user_id = '{}'
-AND executions.fill_time >= TIMESTAMP WITH TIME ZONE '{}'
-AND executions.fill_time <= TIMESTAMP WITH TIME ZONE '{}'
+AND executions.fill_time >= {}
+AND executions.fill_time <= {}
 AND accounts.sim != true
-ORDER BY executions.fill_time DESC", user_id, start_date_str, end_date_str)
+ORDER BY executions.fill_time DESC", user_id, start_date, end_date)
 );
     let executions = sqlx::query_as::<_, ExecutionForTable>(&query)
         .fetch_all(db)
