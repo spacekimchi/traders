@@ -81,7 +81,7 @@ pub async fn get_trades_by_day_from(db: &PgPool, start_date: u32) -> Result<Vec<
     let query = String::from(
         format!(
 "SELECT
-    DATE(trades.entry_time) AS trade_day,
+    CAST(FLOOR(trades.entry_time) AS INTEGER) AS trade_day,
     COUNT(trades.id) AS number_of_trades,
     COUNT(DISTINCT accounts.id) AS accounts_traded,
     SUM(trades.pnl) - SUM(trades.commission) AS total_pnl,
@@ -94,7 +94,7 @@ JOIN accounts ON trades.account_id = accounts.id
 WHERE accounts.user_id = '6982c6df-3d03-4583-8fa9-07386cf25f80'
 AND trades.exit_time >= {}
 AND accounts.sim != true
-GROUP BY DATE(trades.entry_time)
+GROUP BY FLOOR(trades.entry_time)
 ORDER BY trade_day", start_date)
 );
 
@@ -124,7 +124,7 @@ WHERE accounts.user_id = '6982c6df-3d03-4583-8fa9-07386cf25f80'
 AND trades.exit_time >= {}
 AND trades.exit_time <= {}
 AND accounts.sim != true
-GROUP BY DATE(trades.entry_time)
+GROUP BY FLOOR(trades.entry_time)
 ORDER BY trade_day", start_date, end_date)
 );
     let trades = sqlx::query_as::<_, TradeInfoByDay>(&query)
@@ -152,7 +152,7 @@ pub async fn get_trades_for_table_in_range(db: &PgPool, start_date: u32, end_dat
     trades.ticker as ticker,
     accounts.name as account_name,
     trades.is_long as is_long,
-    EXTRACT(EPOCH FROM (trades.exit_time - trades.entry_time))::BIGINT as duration_seconds,
+    trades.exit_time - trades.entry_time as duration_seconds,
     trades.entry_time as entry_time
 FROM trades
 JOIN accounts ON trades.account_id = accounts.id

@@ -38,7 +38,7 @@ pub async fn get_journal_entries_index(state: web::Data<AppState>, session: Type
     let trades_by_range = trades::get_trades_by_day_in_range(&state.db, start_date, end_date).await?;
     let mut context = tera::Context::new();
     context.insert("trades_by_day", &trades_by_range);
-    match render_content(&RenderTemplateParams::new("trades/index.html", &tera_engine)
+    match render_content(&RenderTemplateParams::new("journal_entries/index.html", &tera_engine)
                          .with_context(&context)
                          .with_session(&session)) {
         Ok(calendar_template) => Ok(HttpResponse::Ok().body(calendar_template)),
