@@ -24,7 +24,7 @@ jobs:
         DATABASE_URL: ${{ secrets.DATABASE_URL }}
       run: |
         cargo install sqlx-cli --no-default-features --features native-tls,postgres
-        cargo sqlx prepare
+        SQLX_OFFLINE=true cargo sqlx prepare
 
     - name: Migrate Database
       env:
