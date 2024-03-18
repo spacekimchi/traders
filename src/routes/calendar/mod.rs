@@ -19,7 +19,7 @@ use crate::excel_helpers;
 use crate::startup::AppState;
 use crate::template_helpers::{render_content, RenderTemplateParams, err_500_template};
 use crate::db::models::trades;
-use crate::utils::{currency_format, naivedate_to_datetime_utc_start_of_day};
+use crate::utils::currency_format;
 
 #[derive(Debug, Serialize)]
 struct TradesInMonth<'a> {
