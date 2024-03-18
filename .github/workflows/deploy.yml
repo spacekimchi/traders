@@ -23,9 +23,7 @@ jobs:
       run: cargo install sqlx-cli --no-default-features --features native-tls,postgres
     
     - name: Migrate db
-      env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-      run: sqlx migrate run
+      run: cargo sqlx prepare
 
     - name: Build
       run: cargo build --release
