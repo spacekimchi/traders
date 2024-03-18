@@ -22,13 +22,14 @@ jobs:
     - name: Instal sqlx DB
       run: cargo install sqlx-cli --no-default-features --features native-tls,postgres
 
-    - name: Migrate database
-      run: |
-        sudo apt-get install libpq-dev -y
-        SKIP_DOCKER=true ./scripts/init_db.sh
-
     - name: Build
       run: cargo build --release
+
+    - name: Migrate Database
+      env:
+        DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      run: |
+        sqlx migrate run
 
     - name: Deploy to VPS
       env:
