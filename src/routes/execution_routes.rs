@@ -48,6 +48,7 @@ async fn get_executions_index(tera_engine: Data<tera::Tera>, session: TypedSessi
     };
 
     let executions = models::executions::get_executions_for_index_table(&state.db, &user_id, start_date, end_date).await?;
+    println!("EXECUTIONS FOUND: {:?}", executions);
 
     let mut context = tera::Context::new();
     context.insert("executions", &executions);
