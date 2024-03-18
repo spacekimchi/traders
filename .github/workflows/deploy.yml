@@ -39,6 +39,9 @@ jobs:
     - name: Migrate database
       run: SKIP_DOCKER=true ./scripts/init_db.sh
 
+    - name: Prepare DB
+      run: cargo sqlx prepare
+
     - name: Build Traders
       run: cargo build --release
 
