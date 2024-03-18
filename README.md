@@ -16,6 +16,8 @@ Use this command to connect to the PostgreSQL docker container.
 
 `psql -h 127.0.0.1 -p 5432 -U postgres`
 
+Sometimes we may need to rebuild the database while developing
+
 ### Redis
 
 [Redis](https://github.com/redis/redis) is required for some features like keeping user sessions.
