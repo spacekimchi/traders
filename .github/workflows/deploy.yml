@@ -8,6 +8,15 @@ on:
 jobs:
   build_and_deploy:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: traders
+        ports:
+          - 5432:5432
 
     steps:
     - name: Checkout code
@@ -15,6 +24,8 @@ jobs:
 
     - name: Set up Rust
       uses: dtolnay/rust-toolchain@stable
+    - name: Install libpq
+      run: sudo apt-get update && sudo apt-get install postgresql-client -y
     - uses: Swatinem/rust-cache@v2
       with:
         key: sqlx
@@ -25,14 +36,8 @@ jobs:
       run: |
         cargo install sqlx-cli --no-default-features --features native-tls,postgres
 
-    - name: Set up PostgreSQL
-      uses: actix/actix-web-deploy-postgres@v0.1
-      with:
-        postgres-version: '15'
-        postgres-password: ${{ secrets.POSTGRES_PASSWORD }}
-        dbname: 'traders'
-        username: 'jhg'
-        migration-directory: 'migrations'
+    - name: Migrate database
+      run: SKIP_DOCKER=true ./scripts/init_db.sh
 
     - name: Build Traders
       run: cargo build --release
