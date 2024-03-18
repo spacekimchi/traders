@@ -42,7 +42,7 @@ jobs:
         scp -i ~/.ssh/traders-deploy -r static/ $SERVER:/home/jhg/workspace/traders/
         # Deploy migrations
         scp -i ~/.ssh/traders-deploy -r migrations/ $SERVER:/home/jhg/workspace/traders/
-        ssh -i ~/.ssh/traders-deploy $SERVER 'sqlx migrate run'
+        sqlx migrate run
         cargo sqlx prepare
         cargo build --release
         # Stop service
