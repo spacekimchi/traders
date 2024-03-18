@@ -24,8 +24,11 @@ jobs:
     
     - name: Migrate DB
       env:
+        SERVER_USER: ${{ secrets.SERVER_USER }}
+        SERVER_IP: ${{ secrets.SERVER_IP }}
         DATABASE_URL: ${{ secrets.DATABASE_URL }}
       run: |
+        SERVER="${SERVER_USER}@${SERVER_IP}"
         ssh -i ~/.ssh/traders-deploy $SERVER 'sqlx migrate run'
         ssh -i ~/.ssh/traders-deploy $SERVER 'cargo sqlx prepare'
 
