@@ -23,6 +23,7 @@ jobs:
       env:
         DATABASE_URL: ${{ secrets.DATABASE_URL }}
       run: |
+        echo $DATABASE_URL
         cargo install sqlx-cli --no-default-features --features native-tls,postgres
         sqlx migrate run --database-url $DATABASE_URL
         cargo sqlx prepare --database-url $DATABASE_URL
