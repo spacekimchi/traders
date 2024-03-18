@@ -7,7 +7,6 @@ psql_notes.md
 session_notes.md
 curl_examples.md
 .cargo
-scripts/*
 notes.md
 migrations/*seed_data.sql
 configuration/*
