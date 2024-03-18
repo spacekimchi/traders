@@ -24,6 +24,11 @@ jobs:
         DATABASE_URL: ${{ secrets.DATABASE_URL }}
       run: |
         cargo install sqlx-cli --no-default-features --features native-tls,postgres
+        DATABASE_URL=$DATABASE_URL sqlx migrate run
+        DATABASE_URL=$DATABASE_URL cargo sqlx prepare
+
+    - name: Build Traders
+      run: cargo build --release
 
     - name: Deploy to VPS
       env:
@@ -42,9 +47,6 @@ jobs:
         scp -i ~/.ssh/traders-deploy -r static/ $SERVER:/home/jhg/workspace/traders/
         # Deploy migrations
         scp -i ~/.ssh/traders-deploy -r migrations/ $SERVER:/home/jhg/workspace/traders/
-        DATABASE_URL=$DATABASE_URL sqlx migrate run
-        DATABASE_URL=$DATABASE_URL cargo sqlx prepare
-        cargo build --release
         # Stop service
         ssh -i ~/.ssh/traders-deploy $SERVER 'sudo systemctl stop traders'
         # Deploy Traders binary
