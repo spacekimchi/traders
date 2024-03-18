@@ -19,6 +19,9 @@ jobs:
       with:
         key: sqlx
 
+    - name: Prepare DB
+      run: cargo sqlx prepare
+
     - name: Build
       run: cargo build --release
 
