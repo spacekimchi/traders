@@ -24,6 +24,8 @@ jobs:
     
     - name: Migrate DB
       env:
+        DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
         SERVER_USER: ${{ secrets.SERVER_USER }}
         SERVER_IP: ${{ secrets.SERVER_IP }}
         DATABASE_URL: ${{ secrets.DATABASE_URL }}
