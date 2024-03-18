@@ -21,22 +21,6 @@ jobs:
 
     - name: Instal sqlx DB
       run: cargo install sqlx-cli --no-default-features --features native-tls,postgres
-    
-    - name: Migrate DB
-      env:
-        DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
-        SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
-        SERVER_USER: ${{ secrets.SERVER_USER }}
-        SERVER_IP: ${{ secrets.SERVER_IP }}
-        DATABASE_URL: ${{ secrets.DATABASE_URL }}
-      run: |
-        SERVER="${SERVER_USER}@${SERVER_IP}"
-        mkdir -p ~/.ssh/
-        echo "$DEPLOY_SSH_KEY" > ~/.ssh/traders-deploy
-        chmod 600 ~/.ssh/traders-deploy
-        echo "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
-        ssh -i ~/.ssh/traders-deploy $SERVER 'sqlx migrate run'
-        ssh -i ~/.ssh/traders-deploy $SERVER 'cargo sqlx prepare'
 
     - name: Build
       run: cargo build --release
