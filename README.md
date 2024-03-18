@@ -45,6 +45,8 @@ Revert the last migration with
 
 `sqlx migrate revert`
 
+Why queries fail to compile
+
 ## When deploying to server
 
 Remember to get a copy of the `configuration/local.yaml`, `configuration/base.yaml`, and `configuration/production.yaml`.
