@@ -42,7 +42,8 @@ impl TradeInfoByDay {
 
         // Adjusting for Excel's leap year bug
         let adj = if self.trade_day >= 61 { -1 } else { 0 };
-        let dt = base_date + chrono::Duration::days((self.trade_day + adj) as i64);
+        // TODO: Fix this to not use unwrap and handle the case correctly
+        let dt = base_date + chrono::Duration::try_days((self.trade_day + adj) as i64).unwrap();
         dt.month()
     }
 

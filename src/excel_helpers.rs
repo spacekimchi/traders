@@ -9,9 +9,11 @@ pub fn excel_to_date(excel_date: u32) -> Option<NaiveDate> {
         Some(start_date) => {
             if excel_date >= EXCEL_BUG_DATE {
                 // Account for Excel's bug with Feb 29, 1900
-                Some(start_date + Duration::days(excel_date as i64 - 1))
+                // TODO: Fix this to not use unwrap and handle the case correctly
+                Some(start_date + Duration::try_days(excel_date as i64 - 1).unwrap())
             } else {
-                Some(start_date + Duration::days(excel_date as i64))
+                // TODO: Fix this to not use unwrap and handle the case correctly
+                Some(start_date + Duration::try_days(excel_date as i64).unwrap())
             }
         },
         None => None
@@ -31,7 +33,8 @@ pub fn excel_to_utc(excel_date: f64) -> DateTime<Utc> {
     let seconds = (fractional_days * seconds_in_day).round() as i64;
 
     // Create a NaiveDateTime from the base_date plus the Excel days
-    let naive_date_time = base_date.and_hms_opt(0, 0, 0).unwrap() + Duration::days(days) + Duration::seconds(seconds);
+    // TODO: Fix this to not use unwrap and handle the case correctly
+    let naive_date_time = base_date.and_hms_opt(0, 0, 0).unwrap() + Duration::try_days(days).unwrap() + Duration::try_seconds(seconds).unwrap();
 
     // Convert to DateTime<Utc>
     Utc.from_utc_datetime(&naive_date_time)
@@ -42,11 +45,13 @@ pub fn excel_to_utc(excel_date: f64) -> DateTime<Utc> {
 /// allows us to grab trades starting at the start of a week
 pub fn get_start_of_n_weeks_ago(weeks_ago: u32) -> u32 {
     // Calculate the date 52 weeks ago
-    let date_52_weeks_ago = chrono::Local::now().date_naive() - Duration::weeks(weeks_ago as i64);
+    // TODO: Fix this to not use unwrap and handle the case correctly
+    let date_52_weeks_ago = chrono::Local::now().date_naive() - Duration::try_weeks(weeks_ago as i64).unwrap();
 
     // Adjust to the start of that week (i.e., the previous Sunday)
     let days_since_last_sunday = date_52_weeks_ago.weekday().number_from_sunday() as i64 - 1;
-    let start_date = date_52_weeks_ago - Duration::days(days_since_last_sunday);
+    // TODO: Fix this to not use unwrap and handle the case correctly
+    let start_date = date_52_weeks_ago - Duration::try_days(days_since_last_sunday).unwrap();
 
     date_to_excel(&start_date)
 }
