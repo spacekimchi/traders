@@ -15,7 +15,6 @@ configuration/*
 .prettierrc
 migrations/20230818033353_seed_user_and_trades.sql
 trademaker
-trades/
 node_modules/
 test_data/
 dbre.sh
