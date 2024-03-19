@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}
+    Executions
+{% endblock title %}
+
+{% block content %}
+    I am in the executions page
+    <div class="import-container">
+        <span>
+            This section will be expandable/collapsable and the location where users can upload executions.
+            <br>
+            I am thinking the form submission will be in javascript.
+            <br>
+            We might need an imports table to keep track of imports and list the status of the last few import here.
+        </span>
+        <a>Import</a>
+    </div>
+    <div class="filters-container">
+        This will be the container with the filters
+    </div>
+    <div class="table-container">
+        <table class="table">
+            <thead>
+                <tr class="table-row">
+                    <th class="table-header">
+                        Fill Price
+                    </th>
+                    <th class="table-header">
+                        Entry Time
+                    </th>
+                    <th class="table-header">
+                        Ticker
+                    </th>
+                    <th class="table-header">
+                        Quantity
+                    </th>
+                    <th class="table-header">
+                        Position
+                    </th>
+                    <th class="table-header">
+                        Commission
+                    </th>
+                    <th class="table-header">
+                        Is Entry
+                    </th>
+                    <th class="table-header">
+                        Long
+                    </th>
+                    <th class="table-header">
+                        Account
+                    </th>
+                    <th class="table-header">
+                        Trade ID
+                    </th>
+                </tr>
+            </thead>
+            <tbody class="table-body">
+                {% for execution in executions %}
+                    <tr class="table-row">
+                        <td class="table-data">{{ execution.price | currency_format }}</td>
+                        <td class="table-data">{{ execution.fill_time }}</td>
+                        <td class="table-data">{{ execution.ticker }}</td>
+                        <td class="table-data">{{ execution.quantity }}</td>
+                        <td class="table-data">{{ execution.position }}</td>
+                        <td class="table-data">{{ execution.commission | currency_format }}</td>
+                        <td class="table-data">{{ execution.is_entry }}</td>
+                        <td class="table-data">
+                            {% if execution.is_entry and execution.is_buy %}
+                                LONG
+                            {% else %}
+                                SHORT
+                            {% endif %}
+                        </td>
+                        <td class="table-data">{{ execution.account_name }}</td>
+                        <td class="table-data">{{ execution.trade_id }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock content %}
