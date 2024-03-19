@@ -34,7 +34,7 @@
                         Ticker
                     </th>
                     <th class="trades-table-header">
-                        Duration
+                        Duration Seconds
                     </th>
                     <th class="trades-table-header">
                         Side
@@ -54,9 +54,9 @@
                                 <span class="red-day">{{ trade.pnl | currency_format }}</span>
                             {% endif %}
                         </td>
-                        <td class="trades-table-data">{{ trade.entry_time }}</td>
+                        <td class="trades-table-data">{{ trade.entry_time | excel_to_utc }}</td>
                         <td class="trades-table-data">{{ trade.ticker }}</td>
-                        <td class="trades-table-data">{{ trade.duration_seconds }}</td>
+                        <td class="trades-table-data">{{ trade.duration | excel_to_seconds }}</td>
                         <td class="trades-table-data">
                             {% if trade.is_long %}
                                 LONG

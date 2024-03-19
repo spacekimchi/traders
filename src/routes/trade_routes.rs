@@ -34,12 +34,13 @@ async fn get_trades_index(tera_engine: Data<tera::Tera>, session: TypedSession, 
             NaiveDate::from_ymd_opt(today.year() - 3, 1, 1).unwrap()
         }
     };
+    let tomorrow = today + chrono::Duration::try_days(1).unwrap();
 
     let end_date = match &query.end_date {
         Some(date) => {
-            NaiveDate::parse_from_str(date, "%Y-%m-%d").unwrap_or(today)
+            NaiveDate::parse_from_str(date, "%Y-%m-%d").unwrap_or(tomorrow)
         },
-        _ => today
+        _ => tomorrow
     };
     // For now, just grab all the trades. Later we can add a filter for dates.
     let trades_in_range = match trades::get_trades_for_table_in_range(&state.db, excel_helpers::date_to_excel(&start_date), excel_helpers::date_to_excel(&end_date)).await {

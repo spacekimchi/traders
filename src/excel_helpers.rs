@@ -20,6 +20,11 @@ pub fn excel_to_date(excel_date: u32) -> Option<NaiveDate> {
     }
 }
 
+pub fn excel_time_to_seconds(excel_time: f64) -> f64 {
+    const SECONDS_PER_DAY: f64 = 24.0 * 60.0 * 60.0;
+    excel_time * SECONDS_PER_DAY
+}
+
 pub fn excel_to_utc(excel_date: f64) -> DateTime<Utc> {
     // Excel's base date for Windows (December 30, 1899)
     let base_date = NaiveDate::from_ymd_opt(1899, 12, 30).unwrap();

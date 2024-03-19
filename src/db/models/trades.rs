@@ -141,7 +141,7 @@ pub struct TradeForTable {
     pub ticker: String,
     pub account_name: String,
     pub is_long: bool,
-    pub duration_seconds: i64,
+    pub duration: f64,
     pub entry_time: f64,
 }
 
@@ -150,11 +150,11 @@ pub async fn get_trades_for_table_in_range(db: &PgPool, start_date: u32, end_dat
         format!(
 "SELECT 
     trades.pnl - trades.commission AS pnl,
+    trades.entry_time as entry_time,
     trades.ticker as ticker,
     accounts.name as account_name,
     trades.is_long as is_long,
-    trades.exit_time - trades.entry_time as duration_seconds,
-    trades.entry_time as entry_time
+    trades.exit_time - trades.entry_time as duration
 FROM trades
 JOIN accounts ON trades.account_id = accounts.id
 WHERE accounts.user_id = '6982c6df-3d03-4583-8fa9-07386cf25f80'
