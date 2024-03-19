@@ -42,6 +42,7 @@ jobs:
     - name: Build Traders
       run: |
         echo "TRYING TO BUILD PROD RELEASE"
+        cargo sqlx prepare --workspace --check
         cargo build --release
 
     - name: Deploy to VPS
