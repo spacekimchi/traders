@@ -35,20 +35,19 @@ async fn get_executions_index(tera_engine: Data<tera::Tera>, session: TypedSessi
             None => models::users::get_user_from_database_by_ninja_trader_id(&state.db, &"YourNinjaTraderIdString".to_string()).await?.id
         };
 
-    let today = Local::now().date_naive();
-    let default_start_year = today.year() - 3;
+    let tomorrow = Local::now().date_naive() + chrono::Duration::try_days(1).unwrap();
+    let default_start_year = tomorrow.year() - 3;
     let start_date = match &query.start_date {
         Some(date) => excel_helpers::date_to_excel(&NaiveDate::parse_from_str(date, "%Y-%m-%d").unwrap_or(NaiveDate::from_ymd_opt(default_start_year, 1, 1).unwrap())),
         _ => excel_helpers::date_to_excel(&NaiveDate::from_ymd_opt(default_start_year, 1, 1).unwrap())
     };
 
     let end_date = match &query.end_date {
-        Some(date) => excel_helpers::date_to_excel(&NaiveDate::parse_from_str(date, "%Y-%m-%d").unwrap_or(today)),
-        _ => excel_helpers::date_to_excel(&today)
+        Some(date) => excel_helpers::date_to_excel(&NaiveDate::parse_from_str(date, "%Y-%m-%d").unwrap_or(tomorrow)),
+        _ => excel_helpers::date_to_excel(&tomorrow)
     };
 
     let executions = models::executions::get_executions_for_index_table(&state.db, &user_id, start_date, end_date).await?;
-    println!("EXECUTIONS FOUND: {:?}", executions);
 
     let mut context = tera::Context::new();
     context.insert("executions", &executions);

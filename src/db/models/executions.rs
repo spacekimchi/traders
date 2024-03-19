@@ -271,7 +271,6 @@ JOIN accounts ON executions.account_id = accounts.id
 WHERE accounts.user_id = '{}'
 AND executions.fill_time >= {}
 AND executions.fill_time <= {}
-AND accounts.sim != true
 ORDER BY executions.fill_time DESC", user_id, start_date, end_date)
 );
     let executions = sqlx::query_as::<_, ExecutionForTable>(&query)
