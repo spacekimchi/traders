@@ -41,6 +41,7 @@ jobs:
 
     - name: Build Traders
       run: |
+        echo "TRYING TO BUILD PROD RELEASE"
         cargo build --release
 
     - name: Deploy to VPS
