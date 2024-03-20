@@ -164,6 +164,9 @@ button {
   display: flex;
   flex-direction: row;
 }
+.mini-days .day-name {
+  font-size: 10px;
+}
 
 .mini-days-week {
   display: flex;

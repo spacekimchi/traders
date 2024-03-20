@@ -1,11 +1,17 @@
 .mini-days {
     display: flex;
     flex-direction: row;
+
+    .day-name {
+        font-size: 10px;
+    }
 }
+
 .mini-days-week {
     display: flex;
     flex-direction: column;
 }
+
 .mini-day {
     display: inline-block;
     margin: 2px;
@@ -17,6 +23,7 @@
     &.green-day {
         background-color: green;
     }
+
     &.red-day {
         background-color: red;
     }

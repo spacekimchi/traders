@@ -7,6 +7,23 @@
 {% block content %}
     Last 52 weeks of trades
     <div class="mini-days">
+        <div>
+            <div class="day-name">
+                Mo
+            </div>
+            <div class="day-name">
+                Tu
+            </div>
+            <div class="day-name">
+                We
+            </div>
+            <div class="day-name">
+                Th
+            </div>
+            <div class="day-name">
+                Fr
+            </div>
+        </div>
         {% for trading_week in last_52_weeks_of_trades %}
             <div class="mini-days-week">
                 {% for trade in trading_week.trades %}
