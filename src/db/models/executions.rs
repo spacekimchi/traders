@@ -131,7 +131,7 @@ pub async fn fetch_executions_by_user_id(db_pool: &PgPool, user_id: &uuid::Uuid)
 pub async fn save_executions_from_ninja_trader_to_database(db_pool: &PgPool, user_id: &uuid::Uuid, executions: &Vec<execution_routes::ExecutionJsonData>) -> Result<(), ExecutionError> {
     // We need these HashMaps because in the ExecutionJsonData, account_name and instruments come
     // back as strings. We need the ids to store in the executions table
-    let user_accounts_ids_by_name: HashMap<String, i64> = models::accounts::fetch_accounts_by_user_id(&user_id, &db_pool)
+    let user_accounts_ids_by_name: HashMap<String, i64> = models::accounts::fetch_accounts_by_user_id(&db_pool, &user_id)
         .await?
         .into_iter()
         .map(|account| (account.name, account.id))

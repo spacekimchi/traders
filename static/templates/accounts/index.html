@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title %}
+    Accounts
+{% endblock title %}
+
+{% block content %}
+    <p>
+        All of your accounts and information on them will be displayed here.
+    </p>
+    <p>
+        Accounts that are PA accounts are REAL money accounts. PnL on those accounts are real
+    </p>
+    <div class="table-container">
+        <table class="table">
+            <thead>
+                <tr class="table-row">
+                    <th class="table-header">
+                        ID
+                    </th>
+                    <th class="table-header">
+                        Account Name
+                    </th>
+                    <th class="table-header">
+                        PA?
+                    </th>
+                    <th class="table-header">
+                        PnL
+                    </th>
+                    <th class="table-header">
+                        Total Trades
+                    </th>
+                    <th class="table-header">
+                        Win %
+                    </th>
+                    <th class="table-header">
+                        Last Trade Date
+                    </th>
+                </tr>
+            </thead>
+            <tbody class="table-body">
+                {% for account in accounts %}
+                    <tr class="table-row">
+                        <td class="table-data">{{ account.id }}</td>
+                        <td class="table-data">{{ account.name }}</td>
+                        <td class="table-data">{{ account.is_pa }}</td>
+                        <td class="table-data">{{ account.total_pnl | currency_format }}</td>
+                        <td class="table-data">{{ account.total_trades }}</td>
+                        <td class="table-data">{{ account.win_percent }}</td>
+                        <td class="table-data">{{ account.last_trade_date | excel_to_utc }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock content %}

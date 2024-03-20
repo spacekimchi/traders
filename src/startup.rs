@@ -19,7 +19,7 @@ use secrecy::{Secret, ExposeSecret};
 use crate::configuration::Settings;
 use crate::configuration::DatabaseSettings;
 use crate::authentication::reject_anonymous_users;
-use crate::routes::{users, login, homepage, trade_routes, execution_routes, journal_entry_routes, calendar_routes};
+use crate::routes::{users, login, homepage, trade_routes, execution_routes, journal_entry_routes, calendar_routes, account_routes};
 use crate::routes::api;
 use crate::template_helpers;
 
@@ -117,6 +117,7 @@ pub async fn run(db_pool: PgPool, listener: TcpListener, base_url: String, redis
             .service(login::get_login_page)
             .service(login::login)
             .service(login::logout)
+            // TODO: Should I scope the routes?
             .service(execution_routes::get_executions_index)
             .service(
                 web::scope("/trades")
@@ -128,6 +129,10 @@ pub async fn run(db_pool: PgPool, listener: TcpListener, base_url: String, redis
                 .wrap(from_fn(reject_anonymous_users))
                 .service(users::new_user_page)
                 .service(users::create_user)
+            )
+            .service(
+                web::scope("/accounts")
+                .service(account_routes::get_accounts_index)
             )
             .service(
                 web::scope("/journal_entries")
