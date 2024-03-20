@@ -1,6 +1,14 @@
+.weekly-trades {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    text-align: center;
+}
+
 .mini-days {
     display: flex;
     flex-direction: row;
+    justify-content: center;
 
     .day-name {
         font-size: 10px;
