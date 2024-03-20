@@ -5,25 +5,11 @@
 {% endblock title %}
 
 {% block content %}
-    I am on the trading page
-    <div class="import-container">
-        <span>
-            <form action="/trades/process_trades" method="post">
-                <button type="submit">Process Pending Trades</button>
-            </form>
-        </span>
-        <span>
-            This section will be expandable/collapsable and the location where users can upload trades.
-            <br>
-            I am thinking the form submission will be in javascript.
-            <br>
-            We might need an imports table to keep track of imports and list the status of the last few import here.
-        </span>
-        <a>Import</a>
-    </div>
-    <div class="filters-container">
-        This will be the container with the filters
-    </div>
+    {% if logged_in %}
+        <form action="/trades/process_trades" method="post">
+            <button type="submit" class="button submit-form-button">Process Pending Executions</button>
+        </form>
+    {% endif %}
     <div class="trades-table-container">
         <table class="trades-table">
             <thead>
