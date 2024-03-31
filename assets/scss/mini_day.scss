@@ -1,3 +1,5 @@
+@import "variables";
+
 .weekly-trades {
     display: flex;
     flex-direction: column;
@@ -33,6 +35,6 @@
     }
 
     &.red-day {
-        background-color: red;
+        background-color: $k-red;
     }
 }

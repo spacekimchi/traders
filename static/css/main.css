@@ -144,6 +144,7 @@ button {
 .navigation {
   display: flex;
   align-items: center;
+  margin-bottom: 15px;
 }
 
 .nav-logo {
@@ -193,7 +194,7 @@ button {
   background-color: green;
 }
 .mini-day.red-day {
-  background-color: red;
+  background-color: #CD2E3A;
 }
 
 .trades-table-container {
@@ -274,25 +275,32 @@ button {
   margin: 5px 0;
 }
 
-.journal-entry-container {
-  border: solid 1px white;
-  padding: 10px;
+.journal-entry-container .journal-entry-day {
+  padding: 10px 0 20px 0;
+  max-width: 700px;
+  margin: auto;
 }
 .journal-entry-container .green-day {
-  color: green;
+  color: #008000;
 }
 .journal-entry-container .red-day {
-  color: red;
+  color: #C60211;
 }
 .journal-entry-container .journal-entry-date {
   font-weight: 600;
   font-size: 24px;
-  padding-bottom: 15px;
+  color: #FFFFFF;
 }
 .journal-entry-container .account-overview-title {
   font-weight: 600;
-  border-bottom: solid 1px white;
+  border-bottom: solid 1px #E9B43A;
   padding-bottom: 5px;
+}
+.journal-entry-container .account-overview-title.pa-account-overview {
+  color: #CD2E3A;
+}
+.journal-entry-container .account-overview-title.eval-account-overview {
+  color: #4D96FF;
 }
 .journal-entry-container .journal-entry-account-overview {
   padding-top: 15px;
@@ -303,6 +311,7 @@ body {
   color: #DDE6ED;
   width: 1080px;
   margin: auto;
+  font-family: "Ubuntu";
 }
 
 /*# sourceMappingURL=main.css.map */

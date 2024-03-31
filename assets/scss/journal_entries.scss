@@ -1,25 +1,37 @@
+@import "variables";
+
 .journal-entry-container {
-    border: solid 1px white;
-    padding: 10px;
+    .journal-entry-day {
+        padding: 10px 0 20px 0;
+        max-width: 700px;
+        margin: auto;
+    }
 
     .green-day {
-        color: green;
+        color: $green;
     }
 
     .red-day {
-        color: red;
+        color: $red;
     }
 
     .journal-entry-date {
         font-weight: 600;
         font-size: 24px;
-        padding-bottom: 15px;
+        color: $k-white;
     }
 
     .account-overview-title {
         font-weight: 600;
-        border-bottom: solid 1px white;
+        border-bottom: solid 1px $k-yellow;
         padding-bottom: 5px;
+
+        &.pa-account-overview {
+            color: $k-red;
+        }
+        &.eval-account-overview {
+            color: $k-blue;
+        }
     }
 
     .journal-entry-account-overview {

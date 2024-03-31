@@ -1,11 +1,13 @@
 <div class="journal-entry-account-overview">
-    <h4 class="account-overview-title">
-        {% if accounts.is_pa %}
+    {% if accounts.is_pa %}
+        <h4 class="account-overview-title pa-account-overview">
             PA Accounts Overview
-        {% else %}
+        </h4>
+    {% else %}
+        <h4 class="account-overview-title eval-account-overview">
             EVAL Accounts Overview
-        {% endif %}
-    </h4>
+        </h4>
+    {% endif %}
     <div>
         Total Pnl: <span class="{{ accounts.total_pnl | pnl_class }}">{{ accounts.total_pnl | currency_format }}</span> |
         Total Trades: {{ accounts.total_trades_count }} |

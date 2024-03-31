@@ -5,9 +5,9 @@
 {% endblock title %}
 
 {% block content %}
-    <div>
+    <div class="journal-entry-container">
         {% for entry in trades_by_day %}
-            <div class="journal-entry-container">
+            <div class="journal-entry-day">
                 {% set trade_day = entry.0 %}
                 {% set trade_info = entry.1 %}
                 {% set pa_accounts = trade_info.pa_entry %}
