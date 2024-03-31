@@ -144,7 +144,8 @@ button {
 .navigation {
   display: flex;
   align-items: center;
-  margin-bottom: 15px;
+  margin: 5px auto 15px auto;
+  max-width: 700px;
 }
 
 .nav-logo {
@@ -197,67 +198,33 @@ button {
   background-color: #CD2E3A;
 }
 
-.trades-table-container {
-  border: solid 1px white;
-}
-
-.trades-table {
+table {
   margin: auto;
+  border-collapse: collapse;
 }
-
-.trades-table-header {
-  border: solid 1px white;
+table thead tr {
+  border-bottom: solid 3px #00479f;
+  color: #E9B43A;
+}
+table thead tr th {
   min-width: 100px;
+  padding: 3px 5px;
+  background-color: #CD2E3A;
 }
-
-.trades-table-body tr:nth-child(even) .trades-table-data {
-  border-top: solid 1px white;
-  border-bottom: solid 1px white;
+table thead tr th:first-child {
+  border-top-left-radius: 5px;
 }
-
-.trades-table-data {
+table thead tr th:last-child {
+  border-top-right-radius: 5px;
+}
+table tbody tr td {
+  padding: 3px 10px;
   text-align: center;
-  padding: 0 10px;
 }
-.trades-table-data .green-day {
+table tbody tr td.green-day {
   color: green;
 }
-.trades-table-data .red-day {
-  color: red;
-}
-
-.table-container {
-  border: solid 1px white;
-}
-
-.table {
-  margin: auto;
-}
-
-.table-header {
-  border: solid 1px white;
-  min-width: 100px;
-}
-
-.table-body tr:nth-child(even) .trades-table-data {
-  border-top: solid 1px white;
-  border-bottom: solid 1px white;
-}
-.table-body .green-day {
-  color: green;
-}
-.table-body .red-day {
-  color: red;
-}
-
-.table-data {
-  text-align: center;
-  padding: 0 10px;
-}
-.table-data .green-day {
-  color: green;
-}
-.table-data .red-day {
+table tbody tr td.red-day {
   color: red;
 }
 
@@ -289,18 +256,18 @@ button {
 .journal-entry-container .journal-entry-date {
   font-weight: 600;
   font-size: 24px;
-  color: #FFFFFF;
+  color: #E9B43A;
 }
 .journal-entry-container .account-overview-title {
   font-weight: 600;
-  border-bottom: solid 1px #E9B43A;
+  border-bottom: solid 1px #FFFFFF;
   padding-bottom: 5px;
 }
 .journal-entry-container .account-overview-title.pa-account-overview {
   color: #CD2E3A;
 }
 .journal-entry-container .account-overview-title.eval-account-overview {
-  color: #4D96FF;
+  color: #00479f;
 }
 .journal-entry-container .journal-entry-account-overview {
   padding-top: 15px;
@@ -309,7 +276,7 @@ button {
 body {
   background-color: #171010;
   color: #DDE6ED;
-  width: 1080px;
+  max-width: 1080px;
   margin: auto;
   font-family: "Ubuntu";
 }

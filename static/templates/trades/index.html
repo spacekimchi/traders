@@ -10,51 +10,35 @@
             <button type="submit" class="button submit-form-button">Process Pending Executions</button>
         </form>
     {% endif %}
-    <div class="trades-table-container">
-        <table class="trades-table">
+    <div>
+        <table>
             <thead>
-                <tr class="trades-table-row">
-                    <th class="trades-table-header">
-                        PnL
-                    </th>
-                    <th class="trades-table-header">
-                        Entry Time
-                    </th>
-                    <th class="trades-table-header">
-                        Ticker
-                    </th>
-                    <th class="trades-table-header">
-                        Duration Seconds
-                    </th>
-                    <th class="trades-table-header">
-                        Side
-                    </th>
-                    <th class="trades-table-header">
-                        Account
-                    </th>
+                <tr>
+                    <th>ID</th>
+                    <th>Account</th>
+                    <th>PnL</th>
+                    <th>Ticker</th>
+                    <th>Duration Seconds</th>
+                    <th>Side</th>
+                    <th>Entry Time</th>
                 </tr>
             </thead>
-            <tbody class="trades-table-body">
+            <tbody>
                 {% for trade in trades_in_range %}
-                    <tr class="trades-table-row">
-                        <td class="trades-table-data">
-                            {% if trade.pnl >= 0 %}
-                                <span class="green-day">{{ trade.pnl | currency_format }}</span>
-                            {% else %}
-                                <span class="red-day">{{ trade.pnl | currency_format }}</span>
-                            {% endif %}
-                        </td>
-                        <td class="trades-table-data">{{ trade.entry_time | excel_to_utc }}</td>
-                        <td class="trades-table-data">{{ trade.ticker }}</td>
-                        <td class="trades-table-data">{{ trade.duration | excel_to_seconds }}</td>
-                        <td class="trades-table-data">
+                    <tr>
+                        <td>{{ trade.id }}</td>
+                        <td>{{ trade.account_name }}</td>
+                        <td class="{{ trade.pnl | pnl_class }}">{{ trade.pnl | currency_format }}</td>
+                        <td>{{ trade.ticker }}</td>
+                        <td>{{ trade.duration | excel_to_seconds }}</td>
+                        <td>
                             {% if trade.is_long %}
                                 LONG
                             {% else %}
                                 SHORT
                             {% endif %}
                         </td>
-                        <td class="trades-table-data">{{ trade.account_name }}</td>
+                        <td>{{ trade.entry_time | excel_to_utc }}</td>
                     </tr>
                 {% endfor %}
             </tbody>

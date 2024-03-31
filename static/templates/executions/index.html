@@ -5,61 +5,31 @@
 {% endblock title %}
 
 {% block content %}
-    <div class="table-container">
-        <table class="table">
+    <div>
+        <table>
             <thead>
-                <tr class="table-row">
-                    <th class="table-header">
-                        Fill Price
-                    </th>
-                    <th class="table-header">
-                        Entry Time
-                    </th>
-                    <th class="table-header">
-                        Ticker
-                    </th>
-                    <th class="table-header">
-                        Quantity
-                    </th>
-                    <th class="table-header">
-                        Position
-                    </th>
-                    <th class="table-header">
-                        Commission
-                    </th>
-                    <th class="table-header">
-                        Is Entry
-                    </th>
-                    <th class="table-header">
-                        Long
-                    </th>
-                    <th class="table-header">
-                        Account
-                    </th>
-                    <th class="table-header">
-                        Trade ID
-                    </th>
+                <tr>
+                    <th>Account</th>
+                    <th>Ticker</th>
+                    <th>Fill Price</th>
+                    <th>Entry Time</th>
+                    <th>Quantity</th>
+                    <th>Position</th>
+                    <th>Is Entry</th>
+                    <th>Trade ID</th>
                 </tr>
             </thead>
-            <tbody class="table-body">
+            <tbody>
                 {% for execution in executions %}
-                    <tr class="table-row">
-                        <td class="table-data">{{ execution.price | round_hundreths }}</td>
-                        <td class="table-data">{{ execution.fill_time | excel_to_utc }}</td>
-                        <td class="table-data">{{ execution.ticker }}</td>
-                        <td class="table-data">{{ execution.quantity }}</td>
-                        <td class="table-data">{{ execution.position }}</td>
-                        <td class="table-data">${{ execution.commission | round_hundreths }}</td>
-                        <td class="table-data">{{ execution.is_entry }}</td>
-                        <td class="table-data">
-                            {% if execution.is_entry == execution.is_buy %}
-                                LONG
-                            {% else %}
-                                SHORT
-                            {% endif %}
-                        </td>
-                        <td class="table-data">{{ execution.account_name }}</td>
-                        <td class="table-data">{{ execution.trade_id }}</td>
+                    <tr>
+                        <td>{{ execution.account_name }}</td>
+                        <td>{{ execution.ticker }}</td>
+                        <td>{{ execution.price | round_hundreths }}</td>
+                        <td>{{ execution.fill_time | excel_to_utc }}</td>
+                        <td>{{ execution.quantity }}</td>
+                        <td>{{ execution.position }}</td>
+                        <td>{{ execution.is_entry }}</td>
+                        <td>{{ execution.trade_id }}</td>
                     </tr>
                 {% endfor %}
             </tbody>

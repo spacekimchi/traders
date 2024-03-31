@@ -1,47 +1,48 @@
-.table-container {
-    border: solid 1px white;
-}
-
-.table {
+table {
     margin: auto;
-}
+    border-collapse: collapse;
 
-.table-header {
-    border: solid 1px white;
-    min-width: 100px;
-}
+    thead {
+        tr {
+            border-bottom: solid 3px $k-blue;
+            color: $k-yellow;
 
-.table-body {
-    tr:nth-child(odd) {
-        // css for odd and even rows
-    }
-
-    tr:nth-child(even) {
-        // css for odd and even rows
-        .trades-table-data {
-            border-top: solid 1px white;
-            border-bottom: solid 1px white;
+            th {
+                min-width: 100px;
+                padding: 3px 5px;
+                background-color: $k-red;
+            }
+            th:first-child {
+                border-top-left-radius: 5px;
+            }
+            th:last-child {
+                border-top-right-radius: 5px;
+            }
+            th:not(:last-child) {
+            }
+            th:not(:first-child) {
+            }
+            th:nth-child(odd) {
+            }
+            th:nth-child(even) {
+            }
         }
     }
 
-    .green-day {
-        color: green;
-    }
+    tbody {
+        tr {
+            td {
+                padding: 3px 10px;
+                text-align: center;
 
-    .red-day {
-        color: red;
-    }
-}
+                &.green-day {
+                    color: green;
+                }
 
-.table-data {
-    text-align: center;
-    padding: 0 10px;
-
-    .green-day {
-        color: green;
-    }
-
-    .red-day {
-        color: red;
+                &.red-day {
+                    color: red;
+                }
+            }
+        }
     }
 }

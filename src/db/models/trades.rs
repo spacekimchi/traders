@@ -282,6 +282,7 @@ pub async fn trades_by_hash_for_journal(db: &PgPool, trade_search_params: &Trade
 
 #[derive(Debug, Deserialize, Serialize, FromRow)]
 pub struct TradeForTable {
+    pub id: i64,
     pub pnl: f32,
     pub ticker: String,
     pub account_name: String,
@@ -294,6 +295,7 @@ pub async fn get_trades_for_table_in_range(db: &PgPool, trade_search_params: &Tr
     let query = String::from(
         format!(
 "SELECT 
+    trades.id as id,
     trades.pnl - trades.commission AS pnl,
     trades.entry_time as entry_time,
     trades.ticker as ticker,
