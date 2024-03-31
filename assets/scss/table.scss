@@ -30,11 +30,11 @@ table {
     }
 
     tbody {
-        background-color: $bright-1;
         color: $k-black;
         tr {
             td {
-                padding: 3px 10px;
+                background-color: $bright-1;
+                padding: 3px 11px;
                 text-align: center;
 
                 &.green-day {
@@ -45,11 +45,13 @@ table {
                     color: red;
                 }
             }
-            &:nth-child(odd) {
-                //background-color: $lightest-blue;
-            }
-            &:nth-child(even) {
-                //background-color: $light-blue;
+            &:last-child {
+                td:first-child {
+                    border-bottom-left-radius: 5px
+                }
+                td:last-child {
+                    border-bottom-right-radius: 5px
+                }
             }
         }
     }

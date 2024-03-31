@@ -222,11 +222,11 @@ table thead tr th:last-child {
   border-top-right-radius: 5px;
 }
 table tbody {
-  background-color: #F0EAD6;
   color: #000000;
 }
 table tbody tr td {
-  padding: 3px 10px;
+  background-color: #F0EAD6;
+  padding: 3px 11px;
   text-align: center;
 }
 table tbody tr td.green-day {
@@ -235,6 +235,13 @@ table tbody tr td.green-day {
 table tbody tr td.red-day {
   color: red;
 }
+table tbody tr:last-child td:first-child {
+  border-bottom-left-radius: 5px;
+}
+table tbody tr:last-child td:last-child {
+  border-bottom-right-radius: 5px;
+}
+
 .button {
   color: black;
   padding: 4px;
