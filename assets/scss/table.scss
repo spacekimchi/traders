@@ -30,6 +30,8 @@ table {
     }
 
     tbody {
+        background-color: $bright-1;
+        color: $k-black;
         tr {
             td {
                 padding: 3px 10px;
@@ -42,6 +44,12 @@ table {
                 &.red-day {
                     color: red;
                 }
+            }
+            &:nth-child(odd) {
+                //background-color: $lightest-blue;
+            }
+            &:nth-child(even) {
+                //background-color: $light-blue;
             }
         }
     }

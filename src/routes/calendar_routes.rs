@@ -120,16 +120,8 @@ async fn get_calendar_index(tera_engine: Data<tera::Tera>, session: TypedSession
         _ => tomorrow
     };
 
-    let year_in_weeks = 52;
-    let year_of_trades = excel_helpers::get_start_of_n_weeks_ago(year_in_weeks);
     let start_date_excel = excel_helpers::date_to_excel(&start_date);
     let end_date_excel = excel_helpers::date_to_excel(&end_date);
-    let trade_search_params = trades::TradeSearchParams::default()
-        .start_date(year_of_trades);
-    let trades_by_day = match trades::get_trades_by_day_from(&state.db, &trade_search_params).await {
-        Ok(trades_by_day) => trades_by_day,
-        Err(e) => return HttpResponse::InternalServerError().body(err_500_template(&tera_engine, e))
-    };
     let trade_search_params = trades::TradeSearchParams::default()
         .start_date(start_date_excel)
         .end_date(end_date_excel);
@@ -138,7 +130,6 @@ async fn get_calendar_index(tera_engine: Data<tera::Tera>, session: TypedSession
         Err(e) => return HttpResponse::InternalServerError().body(err_500_template(&tera_engine, e))
     };
     let todays_date = chrono::Local::now().date_naive();
-    let last_52_weeks_of_trades = calendar_trades_from_last_52_weeks(&trades_by_day, year_of_trades);
     let trades_by_day_in_range_ref = trades_by_day_in_range.iter().collect();
     let trades_calendar = match get_trades_in_year_by_days_in_month(&trades_by_day_in_range_ref, todays_date.year()) {
         Ok(trades_calendar) => trades_calendar,
@@ -148,9 +139,7 @@ async fn get_calendar_index(tera_engine: Data<tera::Tera>, session: TypedSession
 
     let mut context = tera::Context::new();
     context.insert("statistics", &statistics);
-    context.insert("trades", &trades_by_day);
     context.insert("trades_by_day_in_range", &trades_by_day_in_range);
-    context.insert("last_52_weeks_of_trades", &last_52_weeks_of_trades);
     context.insert("trades_calendar", &trades_calendar);
 
     match render_content(&RenderTemplateParams::new("calendar/index.html", &tera_engine)
@@ -183,52 +172,6 @@ fn statistics_calculations(trades_by_day: &Vec<&trades::TradeInfoByDay>) -> Trad
         total_pnl: currency_format(sum),
         total_trades
     }
-}
-
-// This will build trades into a display like the commit history you see on github,
-// except this doesnt have weekends
-fn calendar_trades_from_last_52_weeks(trades: &Vec<trades::TradeInfoByDay>, start_date_excel: u32) -> Vec<TradesInWeek> {
-    let mut trades_in_year: Vec<TradesInWeek> = Vec::new();
-
-    // Today's date
-    let today = chrono::Local::now().date_naive();
-    let end_date_excel = excel_helpers::date_to_excel(&today);
-
-    let mut trades_iter = trades.iter().peekable();
-    let mut current_week = TradesInWeek::new();
-
-    for cur_excel_date in (start_date_excel)..=(end_date_excel) {
-        let cur_date_obj = excel_helpers::excel_to_date(cur_excel_date).unwrap();
-        let day_of_week = cur_date_obj.weekday().number_from_sunday();
-
-        // If it's a weekend, skip
-        // 1 == sunday and 7 == saturday
-        if day_of_week == 1 || day_of_week == 7 {
-            continue;
-        }
-
-        // If a trade exists for the current date, pop it from the iterator
-        let trade_info = if trades_iter.peek().is_some() && trades_iter.peek().unwrap().trade_day as u32  == cur_excel_date {
-            Some(trades_iter.next().unwrap())
-        } else {
-            None
-        };
-
-        current_week.trades.push(TradingDay::new(trade_info, day_of_week, cur_date_obj.day()).with_mini_day());
-
-        // If the current_week has 5 days or if we're in the current week (where we might not have reached 5 weekdays yet)
-        if current_week.trades.len() == 5 || (cur_date_obj == today && day_of_week == 5) {
-            trades_in_year.push(current_week);
-            current_week = TradesInWeek::new();
-        }
-    }
-
-    // If there are any remaining days in the current_week, push it to trades_in_year
-    if !current_week.trades.is_empty() {
-        trades_in_year.push(current_week);
-    }
-
-    trades_in_year
 }
 
 /// This function is for building trades into a calendar style for displaying on the calendar

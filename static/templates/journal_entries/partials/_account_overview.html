@@ -15,13 +15,13 @@
     </div>
     <ul>
         {% for account in accounts.accounts %}
-        <li>
-            {{ account.account_name }} |
-            Total Pnl: <span class="{{ account.total_pnl | pnl_class }}">{{ account.total_pnl | currency_format }}</span> |
-            Total Trades: {{ account.total_trades_count }} |
-            Win %: {{ (account.winning_trades_count / account.total_trades_count) * 100 | round }} |
-            ID: {{ account.account_id }}
-        </li>
+            <li>
+                {{ account.account_name }} |
+                Total Pnl: <span class="{{ account.total_pnl | pnl_class }}">{{ account.total_pnl | currency_format }}</span> |
+                Total Trades: {{ account.total_trades_count }} |
+                Win %: {{ (account.winning_trades_count / account.total_trades_count) * 100 | round }} |
+                ID: {{ account.account_id }}
+            </li>
         {% endfor %}
     </ul>
 </div>

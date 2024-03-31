@@ -5,17 +5,27 @@
 {% endblock title %}
 
 {% block content %}
-    <html>
-        <head>
-            <title>{{name}}</title>
-        </head>
-
-        <body>
-            <h1>Welcome to {{name}}</h1>
-            <p>Trades are done through a prop firm and are futures trades.</p>
-            <p>Navigate to the Calendar page to see trades.</p>
-            <p>Days with profit will be green, and days with losses will be red.</p>
-            <p>You can click on days in the calendar to view notes about that day.</p>
-        </body>
-    </html>
+    <div class="weekly-trades">
+        <div class="mini-days">
+            <div>
+                <div class="day-name">Mo</div>
+                <div class="day-name">Tu</div>
+                <div class="day-name">We</div>
+                <div class="day-name">Th</div>
+                <div class="day-name">Fr</div>
+            </div>
+            {% for trading_week in last_52_weeks_of_trades %}
+                <div class="mini-days-week">
+                    {% for trade in trading_week.trades %}
+                        <span class="{{ trade.class_list | join(sep=' ') }}">
+                        </span>
+                    {% endfor %}
+                </div>
+            {% endfor %}
+        </div>
+        {#1) Total pnl: {{ statistics.total_pnl  }}#}
+        {#2) Total trades: {{ statistics.total_trades }}#}
+        {#3) Average Winner#}
+        {#4) Average Loser#}
+    </div>
 {% endblock content %}

@@ -15,5 +15,13 @@ body {
     max-width: 1080px;
     margin: auto;
     font-family: 'Ubuntu';
+
+    // TODO: Need to make responsive so this padding disappears when screen isn't on a desktop size
+    padding: 10px;
+}
+
+#main-content {
+    padding: 15px;
+    background-color: $dark-1;
 }
 

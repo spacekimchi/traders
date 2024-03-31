@@ -144,8 +144,8 @@ button {
 .navigation {
   display: flex;
   align-items: center;
-  margin: 5px auto 15px auto;
-  max-width: 700px;
+  background-color: #0F0F0F;
+  padding: 0 10px;
 }
 
 .nav-logo {
@@ -154,12 +154,16 @@ button {
 
 .nav-section {
   display: flex;
+  color: #E9B43A;
 }
 .nav-section:last-child {
   margin-left: auto;
 }
 .nav-section > li:not(:first-child) {
   margin-left: 5px;
+}
+.nav-section > li a {
+  color: #F0EAD6;
 }
 
 .weekly-trades {
@@ -217,6 +221,10 @@ table thead tr th:first-child {
 table thead tr th:last-child {
   border-top-right-radius: 5px;
 }
+table tbody {
+  background-color: #F0EAD6;
+  color: #000000;
+}
 table tbody tr td {
   padding: 3px 10px;
   text-align: center;
@@ -227,7 +235,6 @@ table tbody tr td.green-day {
 table tbody tr td.red-day {
   color: red;
 }
-
 .button {
   color: black;
   padding: 4px;
@@ -274,11 +281,17 @@ table tbody tr td.red-day {
 }
 
 body {
-  background-color: #171010;
-  color: #DDE6ED;
+  background-color: #0F0F0F;
+  color: #F0EAD6;
   max-width: 1080px;
   margin: auto;
   font-family: "Ubuntu";
+  padding: 10px;
+}
+
+#main-content {
+  padding: 15px;
+  background-color: #0F0F0F;
 }
 
 /*# sourceMappingURL=main.css.map */
