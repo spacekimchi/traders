@@ -90,7 +90,10 @@ pub async fn run(db_pool: PgPool, listener: TcpListener, base_url: String, redis
     // Register the custom filter
     tera.register_filter("currency_format", template_helpers::currency_format);
     tera.register_filter("excel_to_seconds", template_helpers::excel_to_seconds);
+    tera.register_filter("round_hundreths", template_helpers::round_hundreths);
     tera.register_filter("excel_to_utc", template_helpers::excel_to_utc);
+    tera.register_filter("excel_to_date", template_helpers::excel_to_date);
+    tera.register_filter("pnl_class", template_helpers::pnl_class);
     // Wrap the Tera instance in web::Data for Actix-web
     let tera = web::Data::new(tera);
 

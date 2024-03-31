@@ -42,8 +42,11 @@ async fn get_trades_index(tera_engine: Data<tera::Tera>, session: TypedSession, 
         },
         _ => tomorrow
     };
+    let trade_search_params = trades::TradeSearchParams::default()
+        .start_date(excel_helpers::date_to_excel(&start_date))
+        .end_date(excel_helpers::date_to_excel(&end_date));
     // For now, just grab all the trades. Later we can add a filter for dates.
-    let trades_in_range = match trades::get_trades_for_table_in_range(&state.db, excel_helpers::date_to_excel(&start_date), excel_helpers::date_to_excel(&end_date)).await {
+    let trades_in_range = match trades::get_trades_for_table_in_range(&state.db, &trade_search_params).await {
         Ok(trades_by_day_in_range) => trades_by_day_in_range,
         Err(e) => return HttpResponse::InternalServerError().body(err_500_template(&tera_engine, e))
     };

@@ -221,12 +221,13 @@ async fn create_missing_accounts_from_executions(user_id: &uuid::Uuid,
 
     // Insert new accounts if there are any
     for account_name in new_accounts {
+        let is_pa = account_name.starts_with("PA");
         let account_id: i64 = sqlx::query!(
-            "INSERT INTO accounts (user_id, name, visible, sim) VALUES ($1, $2, TRUE, FALSE) RETURNING id",
+            "INSERT INTO accounts (user_id, name, visible, sim, is_pa) VALUES ($1, $2, TRUE, FALSE, $3) RETURNING id",
             user_id,
-            account_name
-            )
-            .fetch_one(db_pool)
+            account_name,
+            is_pa
+            ).fetch_one(db_pool)
             .await?
             .id;
         accounts.insert(account_name.to_string(), account_id);

@@ -44,12 +44,12 @@
             <tbody class="table-body">
                 {% for execution in executions %}
                     <tr class="table-row">
-                        <td class="table-data">{{ execution.price | currency_format }}</td>
+                        <td class="table-data">{{ execution.price | round_hundreths }}</td>
                         <td class="table-data">{{ execution.fill_time | excel_to_utc }}</td>
                         <td class="table-data">{{ execution.ticker }}</td>
                         <td class="table-data">{{ execution.quantity }}</td>
                         <td class="table-data">{{ execution.position }}</td>
-                        <td class="table-data">{{ execution.commission | currency_format }}</td>
+                        <td class="table-data">${{ execution.commission | round_hundreths }}</td>
                         <td class="table-data">{{ execution.is_entry }}</td>
                         <td class="table-data">
                             {% if execution.is_entry == execution.is_buy %}

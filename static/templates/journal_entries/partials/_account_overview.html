@@ -1,0 +1,25 @@
+<div class="journal-entry-account-overview">
+    <h4 class="account-overview-title">
+        {% if accounts.is_pa %}
+            PA Accounts Overview
+        {% else %}
+            EVAL Accounts Overview
+        {% endif %}
+    </h4>
+    <div>
+        Total Pnl: <span class="{{ accounts.total_pnl | pnl_class }}">{{ accounts.total_pnl | currency_format }}</span> |
+        Total Trades: {{ accounts.total_trades_count }} |
+        Win %: {{ (accounts.winning_trades_count / accounts.total_trades_count) * 100 | round }}
+    </div>
+    <ul>
+        {% for account in accounts.accounts %}
+        <li>
+            {{ account.account_name }} |
+            Total Pnl: <span class="{{ account.total_pnl | pnl_class }}">{{ account.total_pnl | currency_format }}</span> |
+            Total Trades: {{ account.total_trades_count }} |
+            Win %: {{ (account.winning_trades_count / account.total_trades_count) * 100 | round }} |
+            ID: {{ account.account_id }}
+        </li>
+        {% endfor %}
+    </ul>
+</div>

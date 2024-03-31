@@ -26,14 +26,66 @@ pub struct Trade {
     pub updated_at: chrono::DateTime<chrono::offset::Utc>,
 }
 
-
 #[derive(Debug, Deserialize, Serialize, FromRow)]
 pub struct TradeInfoByDay {
     pub trade_day: i32, // Excel serialize date
-    pub number_of_trades: i64, // TODO: see if this can be changed to an i32
-    pub accounts_traded: i64, // TODO: see if this can be changed to an i32
     pub total_pnl: f32,
+    pub total_trades_count: i64, // TODO: see if this can be changed to an i32
+    pub accounts_traded: i64, // TODO: see if this can be changed to an i32
     pub pct_winning_trades: f64,
+}
+
+#[derive(Debug, Deserialize, Serialize, FromRow, Clone)]
+pub struct TradeInfoByDayForJournal {
+    pub trade_day: i32, // Excel serialize date
+    pub total_pnl: f32,
+    pub account_name: String,
+    pub account_id: i64,
+    pub is_pa: bool,
+    pub total_trades_count: i64, // TODO: see if this can be changed to an i32
+    pub pct_winning_trades: f64,
+    pub winning_trades_count: i64,
+}
+
+#[derive(Debug, Deserialize, Serialize, FromRow)]
+pub struct TradeSearchParams {
+    pub user_id: uuid::Uuid,
+    pub start_date: u32,
+    pub end_date: u32,
+    pub is_pa: bool,
+    pub is_sim: bool,
+}
+
+impl TradeSearchParams {
+    pub fn default() -> TradeSearchParams {
+        TradeSearchParams {
+            user_id: uuid::uuid!("6982c6df-3d03-4583-8fa9-07386cf25f80"),
+            start_date: 0,
+            end_date: 0,
+            is_pa: true,
+            is_sim: false,
+        }
+    }
+
+    pub fn start_date(mut self, start_date: u32) -> Self {
+        self.start_date = start_date;
+        self
+    }
+
+    pub fn end_date(mut self, end_date: u32) -> Self {
+        self.end_date = end_date;
+        self
+    }
+
+    pub fn is_pa(mut self, is_pa: bool) -> Self {
+        self.is_pa = is_pa;
+        self
+    }
+
+    pub fn is_sim(mut self, is_sim: bool) -> Self {
+        self.is_sim = is_sim;
+        self
+    }
 }
 
 impl TradeInfoByDay {
@@ -60,7 +112,7 @@ impl TradeInfoByDay {
 ///
 /// This is an example of rows that are returned from the query
 ///
-/// trade_day | number_of_trades | accounts_traded | total_pnl | pct_winning_trades
+/// trade_day | total_trades_count | accounts_traded | total_pnl | pct_winning_trades
 ///-----------+------------------+-----------------+-----------+-------------------------
 ///     44973 |               10 |               2 |     98.00 |                   40.00
 ///     44978 |                3 |               1 |    125.26 |                  100.00
@@ -78,12 +130,12 @@ impl TradeInfoByDay {
 ///     45012 |               25 |               3 |   -243.64 |                   64.00
 ///     45013 |               32 |               3 |      2.82 |                   96.88
 ///     45014 |               10 |               3 |    121.67 |                   70.00
-pub async fn get_trades_by_day_from(db: &PgPool, start_date: u32) -> Result<Vec<TradeInfoByDay>, TradeError> {
+pub async fn get_trades_by_day_from(db: &PgPool, trade_search_params: &TradeSearchParams) -> Result<Vec<TradeInfoByDay>, TradeError> {
     let query = String::from(
         format!(
 "SELECT
     CAST(FLOOR(trades.entry_time) AS INTEGER) AS trade_day,
-    COUNT(trades.id) AS number_of_trades,
+    COUNT(trades.id) AS total_trades_count,
     COUNT(DISTINCT accounts.id) AS accounts_traded,
     SUM(trades.pnl) - SUM(trades.commission) AS total_pnl,
     CAST(
@@ -95,8 +147,9 @@ JOIN accounts ON trades.account_id = accounts.id
 WHERE accounts.user_id = '6982c6df-3d03-4583-8fa9-07386cf25f80'
 AND trades.exit_time >= {}
 AND accounts.sim != true
+AND accounts.is_pa = {}
 GROUP BY FLOOR(trades.entry_time)
-ORDER BY trade_day", start_date)
+ORDER BY trade_day", trade_search_params.start_date, trade_search_params.is_pa)
 );
 
     let trades = sqlx::query_as::<_, TradeInfoByDay>(&query)
@@ -107,12 +160,12 @@ ORDER BY trade_day", start_date)
 
 /// Similar to the above query, but this will return trades in a range
 /// This function and #get_trades_by_day_from can be combined into a single function
-pub async fn get_trades_by_day_in_range(db: &PgPool, start_date: u32, end_date: u32) -> Result<Vec<TradeInfoByDay>, TradeError> {
+pub async fn get_trades_by_day_in_range(db: &PgPool, trade_search_params: &TradeSearchParams) -> Result<Vec<TradeInfoByDay>, TradeError> {
     let query = String::from(
         format!(
 "SELECT
     CAST(FLOOR(trades.entry_time) AS INTEGER) AS trade_day,
-    COUNT(trades.id) AS number_of_trades,
+    COUNT(trades.id) AS total_trades_count,
     COUNT(DISTINCT accounts.id) AS accounts_traded,
     SUM(trades.pnl) - SUM(trades.commission) AS total_pnl,
     CAST(
@@ -124,9 +177,10 @@ JOIN accounts ON trades.account_id = accounts.id
 WHERE accounts.user_id = '6982c6df-3d03-4583-8fa9-07386cf25f80'
 AND trades.exit_time >= {}
 AND trades.exit_time <= {}
-AND accounts.sim != true
+AND accounts.sim = {}
+AND accounts.is_pa = {}
 GROUP BY FLOOR(trades.entry_time)
-ORDER BY trade_day", start_date, end_date)
+ORDER BY trade_day", trade_search_params.start_date, trade_search_params.end_date, trade_search_params.is_sim, trade_search_params.is_pa)
 );
     let trades = sqlx::query_as::<_, TradeInfoByDay>(&query)
         .fetch_all(db)
@@ -134,6 +188,97 @@ ORDER BY trade_day", start_date, end_date)
     Ok(trades)
 }
 
+/// Function for getting journal entries that will appear on the journal page
+pub async fn get_trades_by_day_in_range_for_journals(db: &PgPool, trade_search_params: &TradeSearchParams) -> Result<Vec<TradeInfoByDayForJournal>, TradeError> {
+    let trades = sqlx::query_as::<_, TradeInfoByDayForJournal>(
+        "SELECT
+            CAST(FLOOR(trades.entry_time) AS INTEGER) AS trade_day,
+            COUNT(trades.id) AS total_trades_count,
+            SUM(trades.pnl) - SUM(trades.commission) AS total_pnl,
+            accounts.name AS account_name,
+            accounts.id as account_id,
+            accounts.is_pa AS is_pa,
+            COUNT(CASE WHEN trades.pnl - trades.commission > 0.0 THEN 1 END) as winning_trades_count,
+            CAST(
+                SUM(CASE WHEN trades.pnl - trades.commission > 0.0 THEN 1.0 ELSE 0.0 END) / COUNT(trades.id) * 100
+                AS DOUBLE PRECISION
+            ) AS pct_winning_trades
+        FROM trades
+        JOIN accounts ON trades.account_id = accounts.id
+        WHERE accounts.user_id = $1
+        AND trades.exit_time >= $2
+        AND trades.exit_time <= $3
+        AND accounts.sim = $4
+        GROUP BY FLOOR(trades.entry_time), accounts.id, accounts.name, accounts.is_pa
+        ORDER BY trade_day, is_pa, account_name"
+    )
+    .bind(&trade_search_params.user_id)
+    .bind(trade_search_params.start_date as i32)
+    .bind(trade_search_params.end_date as i32)
+    .bind(trade_search_params.is_sim)
+    .fetch_all(db)
+    .await?;
+
+    Ok(trades)
+}
+
+#[derive(Debug, Deserialize, Serialize, FromRow)]
+pub struct JournalEntryDayStats {
+    pub trade_day: i32,
+    pub pa_entry: JournalEntryAccountStats,
+    pub eval_entry: JournalEntryAccountStats,
+}
+
+impl JournalEntryDayStats {
+    fn default() -> JournalEntryDayStats {
+        JournalEntryDayStats {
+            trade_day: 0,
+            pa_entry: JournalEntryAccountStats::default(true),
+            eval_entry: JournalEntryAccountStats::default(false),
+        }
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize, FromRow)]
+pub struct JournalEntryAccountStats {
+    pub total_pnl: f32,
+    pub total_trades_count: u32,
+    pub is_pa: bool,
+    pub winning_trades_count: i64,
+    pub accounts: Vec<TradeInfoByDayForJournal>,
+}
+
+impl JournalEntryAccountStats {
+    fn default(is_pa: bool) -> JournalEntryAccountStats {
+        JournalEntryAccountStats {
+            total_pnl: 0.0,
+            total_trades_count: 0,
+            is_pa,
+            winning_trades_count: 0,
+            accounts: Vec::new(),
+        }
+    }
+}
+
+pub async fn trades_by_hash_for_journal(db: &PgPool, trade_search_params: &TradeSearchParams) -> Result<std::collections::HashMap<i32, JournalEntryDayStats>, TradeError> {
+    let trades = get_trades_by_day_in_range_for_journals(db, trade_search_params).await?;
+    let mut journal_entries_by_day: std::collections::HashMap<i32, JournalEntryDayStats> = std::collections::HashMap::new();
+    for trade_info in trades {
+        // Get mutable reference to entry or insert a new one if it doesn't exist
+        let entry = journal_entries_by_day.entry(trade_info.trade_day).or_insert(JournalEntryDayStats::default());
+        entry.trade_day = trade_info.trade_day;
+        let account_stats = if trade_info.is_pa {
+            &mut entry.pa_entry
+        } else {
+            &mut entry.eval_entry
+        };
+        account_stats.total_pnl += trade_info.total_pnl;
+        account_stats.total_trades_count += trade_info.total_trades_count as u32;
+        account_stats.winning_trades_count += trade_info.winning_trades_count;
+        account_stats.accounts.push(trade_info.clone());
+    }
+    Ok(journal_entries_by_day)
+}
 
 #[derive(Debug, Deserialize, Serialize, FromRow)]
 pub struct TradeForTable {
@@ -145,7 +290,7 @@ pub struct TradeForTable {
     pub entry_time: f64,
 }
 
-pub async fn get_trades_for_table_in_range(db: &PgPool, start_date: u32, end_date: u32) -> Result<Vec<TradeForTable>, TradeError> {
+pub async fn get_trades_for_table_in_range(db: &PgPool, trade_search_params: &TradeSearchParams) -> Result<Vec<TradeForTable>, TradeError> {
     let query = String::from(
         format!(
 "SELECT 
@@ -160,7 +305,7 @@ JOIN accounts ON trades.account_id = accounts.id
 WHERE accounts.user_id = '6982c6df-3d03-4583-8fa9-07386cf25f80'
 AND trades.exit_time >= {}
 AND trades.exit_time <= {}
-ORDER BY trades.entry_time DESC", start_date, end_date)
+ORDER BY trades.entry_time DESC", trade_search_params.start_date, trade_search_params.end_date)
 );
     let trades = sqlx::query_as::<_, TradeForTable>(&query)
         .fetch_all(db)

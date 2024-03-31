@@ -44,7 +44,7 @@
                         <td class="table-data">{{ account.id }}</td>
                         <td class="table-data">{{ account.name }}</td>
                         <td class="table-data">{{ account.is_pa }}</td>
-                        <td class="table-data">{{ account.total_pnl | currency_format }}</td>
+                        <td class="table-data {{ account.total_pnl | pnl_class }}">{{ account.total_pnl | currency_format }}</td>
                         <td class="table-data">{{ account.total_trades }}</td>
                         <td class="table-data">{{ account.win_percent }}</td>
                         <td class="table-data">{{ account.last_trade_date | excel_to_utc }}</td>

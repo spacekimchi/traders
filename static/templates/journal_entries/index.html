@@ -5,5 +5,22 @@
 {% endblock title %}
 
 {% block content %}
-
+    <div>
+        {% for entry in trades_by_day %}
+            <div class="journal-entry-container">
+                {% set trade_day = entry.0 %}
+                {% set trade_info = entry.1 %}
+                {% set pa_accounts = trade_info.pa_entry %}
+                {% set eval_accounts = trade_info.eval_entry %}
+                <h3 class="journal-entry-date">
+                    {{ trade_info.trade_day | excel_to_date }}
+                </h3>
+                {% for accounts in [pa_accounts, eval_accounts] %}
+                    {% if accounts.total_trades_count > 0 %}
+                        {% include "journal_entries/partials/_account_overview.html" %}
+                    {% endif %}
+                {% endfor %}
+            </div>
+        {% endfor %}
+    </div>
 {% endblock content %}

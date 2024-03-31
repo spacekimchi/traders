@@ -39,7 +39,7 @@
                     <tr class="trades-table-row">
                         <td class="trades-table-data">
                             {% if trade.pnl >= 0 %}
-                                <span class="green-day">+{{ trade.pnl | currency_format }}</span>
+                                <span class="green-day">{{ trade.pnl | currency_format }}</span>
                             {% else %}
                                 <span class="red-day">{{ trade.pnl | currency_format }}</span>
                             {% endif %}

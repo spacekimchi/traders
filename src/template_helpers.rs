@@ -86,7 +86,22 @@ pub fn currency_format(value: &tera::Value, _: &std::collections::HashMap<String
     match value.as_f64() {
         Some(num) => {
             // Format the number as currency here. This is a simple example.
-            let formatted = format!("{:.2}", num);
+            let formatted = if num > 0.0 {
+                format!("+${:.2}", num.abs())
+            } else {
+                format!("-${:.2}", num.abs())
+            };
+            Ok(tera::Value::String(formatted))
+        },
+        None => Err("Failed to format value as currency".into()),
+    }
+}
+
+pub fn round_hundreths(value: &tera::Value, _: &std::collections::HashMap<String, tera::Value>) -> tera::Result<tera::Value> {
+    match value.as_f64() {
+        Some(num) => {
+            // Format the number as currency here. This is a simple example.
+            let formatted = format!("{:.2}", num.abs());
             Ok(tera::Value::String(formatted))
         },
         None => Err("Failed to format value as currency".into()),
@@ -113,5 +128,32 @@ pub fn excel_to_utc(value: &tera::Value, _: &std::collections::HashMap<String, t
             Ok(tera::Value::String(date_string))
         },
         None => Err("Failed to format value as a DateTime".into()),
+    }
+}
+
+pub fn excel_to_date(value: &tera::Value, _: &std::collections::HashMap<String, tera::Value>) -> tera::Result<tera::Value> {
+    match value.as_f64() {
+        Some(num) => {
+            // Format the number as currency here. This is a simple example.
+            let date = excel_helpers::excel_to_utc(num);
+            let date_string = date.format("%e %B, %Y").to_string();
+            Ok(tera::Value::String(date_string))
+        },
+        None => Err("Failed to format value as a DateTime".into()),
+    }
+}
+
+pub fn pnl_class(value: &tera::Value, _: &std::collections::HashMap<String, tera::Value>) -> tera::Result<tera::Value> {
+    match value.as_f64() {
+        Some(num) => {
+            // Format the number as currency here. This is a simple example.
+            let formatted = if num > 0.0 {
+                "green-day"
+            } else {
+                "red-day"
+            };
+            Ok(tera::Value::String(formatted.to_string()))
+        },
+        None => Err("Failed to format value as currency".into()),
     }
 }

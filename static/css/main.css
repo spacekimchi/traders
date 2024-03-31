@@ -242,6 +242,12 @@ button {
   border-top: solid 1px white;
   border-bottom: solid 1px white;
 }
+.table-body .green-day {
+  color: green;
+}
+.table-body .red-day {
+  color: red;
+}
 
 .table-data {
   text-align: center;
@@ -266,6 +272,30 @@ button {
 .submit-form-button {
   background: green;
   margin: 5px 0;
+}
+
+.journal-entry-container {
+  border: solid 1px white;
+  padding: 10px;
+}
+.journal-entry-container .green-day {
+  color: green;
+}
+.journal-entry-container .red-day {
+  color: red;
+}
+.journal-entry-container .journal-entry-date {
+  font-weight: 600;
+  font-size: 24px;
+  padding-bottom: 15px;
+}
+.journal-entry-container .account-overview-title {
+  font-weight: 600;
+  border-bottom: solid 1px white;
+  padding-bottom: 5px;
+}
+.journal-entry-container .journal-entry-account-overview {
+  padding-top: 15px;
 }
 
 body {

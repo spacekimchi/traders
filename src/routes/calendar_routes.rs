@@ -124,11 +124,16 @@ async fn get_calendar_index(tera_engine: Data<tera::Tera>, session: TypedSession
     let year_of_trades = excel_helpers::get_start_of_n_weeks_ago(year_in_weeks);
     let start_date_excel = excel_helpers::date_to_excel(&start_date);
     let end_date_excel = excel_helpers::date_to_excel(&end_date);
-    let trades_by_day = match trades::get_trades_by_day_from(&state.db, year_of_trades).await {
+    let trade_search_params = trades::TradeSearchParams::default()
+        .start_date(year_of_trades);
+    let trades_by_day = match trades::get_trades_by_day_from(&state.db, &trade_search_params).await {
         Ok(trades_by_day) => trades_by_day,
         Err(e) => return HttpResponse::InternalServerError().body(err_500_template(&tera_engine, e))
     };
-    let trades_by_day_in_range = match trades::get_trades_by_day_in_range(&state.db, start_date_excel, end_date_excel).await {
+    let trade_search_params = trades::TradeSearchParams::default()
+        .start_date(start_date_excel)
+        .end_date(end_date_excel);
+    let trades_by_day_in_range = match trades::get_trades_by_day_in_range(&state.db, &trade_search_params).await {
         Ok(trades_by_day_in_range) => trades_by_day_in_range,
         Err(e) => return HttpResponse::InternalServerError().body(err_500_template(&tera_engine, e))
     };
@@ -171,7 +176,7 @@ fn statistics_calculations(trades_by_day: &Vec<&trades::TradeInfoByDay>) -> Trad
     let mut total_trades = 0;
     for trade in trades_by_day {
         sum += trade.total_pnl;
-        total_trades += trade.number_of_trades;
+        total_trades += trade.total_trades_count;
     }
 
     TradeStatistics {

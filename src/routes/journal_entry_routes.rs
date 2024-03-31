@@ -35,9 +35,19 @@ pub async fn get_journal_entries_index(state: web::Data<AppState>, session: Type
         Some(date) => excel_helpers::date_to_excel(&NaiveDate::parse_from_str(date, "%Y-%m-%d").unwrap_or(today)),
         _ => excel_helpers::date_to_excel(&today)
     };
-    let trades_by_range = trades::get_trades_by_day_in_range(&state.db, start_date, end_date).await?;
+
+    // PA trades
+    let trade_search_params = trades::TradeSearchParams::default()
+        .start_date(start_date)
+        .end_date(end_date);
+    let trades_by_day = trades::trades_by_hash_for_journal(&state.db, &trade_search_params).await?;
+    let mut sorted_keys: Vec<&i32> = trades_by_day.keys().collect();
+    sorted_keys.sort();
+    sorted_keys.reverse();
+    let sorted_trades_by_day: Vec<(&i32, &trades::JournalEntryDayStats)> = sorted_keys.iter().map(|&k| (k, trades_by_day.get(k).unwrap())).collect();
+
     let mut context = tera::Context::new();
-    context.insert("trades_by_day", &trades_by_range);
+    context.insert("trades_by_day", &sorted_trades_by_day);
     match render_content(&RenderTemplateParams::new("journal_entries/index.html", &tera_engine)
                          .with_context(&context)
                          .with_session(&session)) {
