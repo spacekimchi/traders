@@ -12,6 +12,14 @@
     .mini-month-header {
         padding: 15px 0;
         text-align: center;
+
+        .green-day {
+            color: $green;
+        }
+
+        .red-day {
+            color: $red;
+        }
     }
 }
 

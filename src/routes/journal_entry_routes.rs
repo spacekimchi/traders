@@ -26,14 +26,15 @@ pub async fn get_journal_entries_index(state: web::Data<AppState>, session: Type
         Err(_e) => return Ok(HttpResponse::Unauthorized().body("You are unauthorized"))
     };
     let today = Local::now().date_naive();
+    let tomorrow = today + chrono::Duration::try_days(1).unwrap();
     let start_date = match &query.start_date {
         Some(date) => excel_helpers::date_to_excel(&NaiveDate::parse_from_str(date, "%Y-%m-%d").unwrap_or(NaiveDate::from_ymd_opt(today.year() - 3, 1, 1).unwrap())),
         _ => excel_helpers::date_to_excel(&NaiveDate::from_ymd_opt(today.year() - 3, 1, 1).unwrap())
     };
 
     let end_date = match &query.end_date {
-        Some(date) => excel_helpers::date_to_excel(&NaiveDate::parse_from_str(date, "%Y-%m-%d").unwrap_or(today)),
-        _ => excel_helpers::date_to_excel(&today)
+        Some(date) => excel_helpers::date_to_excel(&NaiveDate::parse_from_str(date, "%Y-%m-%d").unwrap_or(tomorrow)),
+        _ => excel_helpers::date_to_excel(&tomorrow)
     };
 
     // PA trades

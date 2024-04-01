@@ -118,6 +118,12 @@ button {
   padding: 15px 0;
   text-align: center;
 }
+.mini-month-container .mini-month-header .green-day {
+  color: #008000;
+}
+.mini-month-container .mini-month-header .red-day {
+  color: #C60211;
+}
 
 .mini-week-container {
   display: flex;

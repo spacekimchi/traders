@@ -26,6 +26,9 @@ struct TradesInMonth<'a> {
     pub trades: Vec<TradesInWeek<'a>>,
     pub name: &'static str,
     pub year: i32,
+    pub total_pnl: f32,
+    pub total_trades_count: i64,
+    pub winning_trades_count: i64,
 }
 
 #[derive(Debug, Serialize)]
@@ -205,6 +208,9 @@ fn build_month<'a>(year: i32, month: u32, trades: &HashMap<u32, &'a trades::Trad
     // In chrono::Weekday, numbering starts with 0 on Monday up to 6 on Sunday
     // [Mon, Tue, Wed, Thu, Fri, Sat, Sun]
     // This will make sure the first_weekday_of_month always starts on a Monday
+    let mut total_pnl = 0.0;
+    let mut total_trades_count = 0;
+    let mut winning_trades_count = 0;
     let mut padding_day = match first_day_of_month.weekday() {
         Weekday::Mon => first_day_of_month,
         Weekday::Tue => first_day_of_month - Duration::try_days(1).unwrap(),
@@ -242,7 +248,12 @@ fn build_month<'a>(year: i32, month: u32, trades: &HashMap<u32, &'a trades::Trad
                 let days_from_sunday = current_day.weekday().number_from_sunday();
                 let date_number = current_day.day();
                 let trading_day = match trades.get(&excel_date) {
-                    Some(trade_info) => TradingDay::new(Some(*trade_info), days_from_sunday, date_number).with_mini_month(),
+                    Some(trade_info) => {
+                        total_pnl += trade_info.total_pnl;
+                        total_trades_count += trade_info.total_trades_count;
+                        winning_trades_count += trade_info.winning_trades_count;
+                        TradingDay::new(Some(*trade_info), days_from_sunday, date_number).with_mini_month()
+                    },
                     None => TradingDay::new(None, days_from_sunday, date_number).with_mini_month()
                 };
                 trades_in_month.push(trading_day);
@@ -269,11 +280,13 @@ fn build_month<'a>(year: i32, month: u32, trades: &HashMap<u32, &'a trades::Trad
 
 
     let mut weeks = vec![];
-    for chunk in trades_in_month.chunks(5) { // Now the chunk size remains 5 for weekdays
+    // Now the chunk size remains 5 for weekdays
+    let weekday_chunk_size = 5;
+    for chunk in trades_in_month.chunks(weekday_chunk_size) {
         weeks.push(TradesInWeek { trades: chunk.to_vec() });
     }
 
-    Ok(TradesInMonth { trades: weeks, name: get_month_name_from_number(month), year })
+    Ok(TradesInMonth { trades: weeks, name: get_month_name_from_number(month), year, total_pnl, total_trades_count, winning_trades_count })
 }
 
 fn get_day_name_from_number(mut day: u32) -> &'static str {

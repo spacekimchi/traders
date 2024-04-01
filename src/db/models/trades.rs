@@ -33,6 +33,7 @@ pub struct TradeInfoByDay {
     pub total_trades_count: i64, // TODO: see if this can be changed to an i32
     pub accounts_traded: i64, // TODO: see if this can be changed to an i32
     pub pct_winning_trades: f64,
+    pub winning_trades_count: i64,
 }
 
 #[derive(Debug, Deserialize, Serialize, FromRow, Clone)]
@@ -138,6 +139,7 @@ pub async fn get_trades_by_day_from(db: &PgPool, trade_search_params: &TradeSear
     COUNT(trades.id) AS total_trades_count,
     COUNT(DISTINCT accounts.id) AS accounts_traded,
     SUM(trades.pnl) - SUM(trades.commission) AS total_pnl,
+    COUNT(CASE WHEN trades.pnl - trades.commission > 0.0 THEN 1 END) as winning_trades_count,
     CAST(
         SUM(CASE WHEN trades.pnl - trades.commission > 0.0 THEN 1.0 ELSE 0.0 END) / COUNT(trades.id) * 100
         AS DOUBLE PRECISION
@@ -168,6 +170,7 @@ pub async fn get_trades_by_day_in_range(db: &PgPool, trade_search_params: &Trade
     COUNT(trades.id) AS total_trades_count,
     COUNT(DISTINCT accounts.id) AS accounts_traded,
     SUM(trades.pnl) - SUM(trades.commission) AS total_pnl,
+    COUNT(CASE WHEN trades.pnl - trades.commission > 0.0 THEN 1 END) as winning_trades_count,
     CAST(
         SUM(CASE WHEN trades.pnl - trades.commission > 0.0 THEN 1.0 ELSE 0.0 END) / COUNT(trades.id) * 100
         AS DOUBLE PRECISION
