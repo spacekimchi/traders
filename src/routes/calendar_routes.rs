@@ -263,21 +263,29 @@ fn build_month<'a>(year: i32, month: u32, trades: &HashMap<u32, &'a trades::Trad
     }
     
     // Padding for the remaining days in the month calendar
-    let last_day_of_month = next_month_start - Duration::try_days(1).unwrap();
-    let last_weekday_of_month = match last_day_of_month.weekday() {
-        Weekday::Mon => last_day_of_month + Duration::try_days(4).unwrap(),
-        Weekday::Tue => last_day_of_month + Duration::try_days(3).unwrap(),
-        Weekday::Wed => last_day_of_month + Duration::try_days(2).unwrap(),
-        Weekday::Thu => last_day_of_month + Duration::try_days(1).unwrap(),
-        Weekday::Fri => last_day_of_month,
-        Weekday::Sat => last_day_of_month - Duration::try_days(1).unwrap(),
-        Weekday::Sun => last_day_of_month - Duration::try_days(2).unwrap(),
-    };
-    while current_day <= last_weekday_of_month {
-        trades_in_month.push(TradingDay::new(None, current_day.weekday().number_from_sunday(), current_day.day()).with_padding_true());
-        current_day += Duration::try_days(1).unwrap();
-    }
-
+    //let last_day_of_month = next_month_start - Duration::try_days(1).unwrap();
+    //let last_weekday_of_month = last_day_of_month.clone();
+    //while last_weekday_of_month.
+    //let last_weekday_of_month = match last_day_of_month.weekday() {
+        //Weekday::Mon => last_day_of_month + Duration::try_days(4).unwrap(),
+        //Weekday::Tue => last_day_of_month + Duration::try_days(3).unwrap(),
+        //Weekday::Wed => last_day_of_month + Duration::try_days(2).unwrap(),
+        //Weekday::Thu => last_day_of_month + Duration::try_days(1).unwrap(),
+        //Weekday::Fri => last_day_of_month,
+        //Weekday::Sat => last_day_of_month - Duration::try_days(1).unwrap(),
+        //Weekday::Sun => last_day_of_month - Duration::try_days(2).unwrap(),
+    //};
+    //while current_day < last_weekday_of_month {
+        //println!("MONTH: {:?}", month);
+        //println!("LAST WEEKDAY OF MONTH: {:?}", last_weekday_of_month);
+        //println!("CURRENT DAY: {:?}", current_day);
+        //println!("LAST DAY OF MONTH: {:?}", last_day_of_month);
+        //println!("NEXT MONTH START: {:?}", next_month_start);
+        //println!("CURRENT DAY NUMBER FROM SUNDAY: {:?}", current_day.weekday().number_from_sunday());
+        //println!("CURRENT DAY DAY: {:?}\n", current_day.day());
+        //trades_in_month.push(TradingDay::new(None, current_day.weekday().number_from_sunday(), current_day.day()).with_padding_true());
+        //current_day += Duration::try_days(1).unwrap();
+    //}
 
     let mut weeks = vec![];
     // Now the chunk size remains 5 for weekdays
