@@ -1,9 +1,9 @@
 <div class="mini-week-container">
     {% for trading_day in trades_in_week.trades %}
         <span class="{{ trading_day.class_list | join(sep=' ') }}">
-            <div>
+            <span class="mini-week-day">
                 {{ trading_day.date_number }}
-            </div>
+            </span>
         </span>
     {% endfor %}
 </div>

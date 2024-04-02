@@ -6,17 +6,24 @@
     justify-content: center;
 }
 
+.mini-month-weeks-container {
+    padding: 5px;
+}
+
 .mini-month-container {
     margin: 2px;
+    color: $bright-1;
 
     .mini-month-header {
         padding: 15px 0;
         text-align: center;
 
+        .month-and-year {
+            font-weight: 600;
+        }
         .green-day {
             color: $green;
         }
-
         .red-day {
             color: $red;
         }
@@ -28,21 +35,27 @@
 }
 
 .mini-month-day {
-    margin: 2px;
-    padding: 1px;
     display: inline-block;
-    border: solid 1px black;
+    border: solid 1px $k-yellow;
+    color: $bright-1;
     height: 50px;
     width: 50px;
+    margin: 2px;
+    padding: 3px;
+
+    line-height: normal;
+
     &.padding-day {
         visibility: hidden;
     }
 
     &.green-day {
-        background-color: green;
+        background-color: $green;
+        border-color: $green;
     }
     &.red-day {
-        background-color: red;
+        background-color: $red;
+        border-color: $red;
     }
 }
 

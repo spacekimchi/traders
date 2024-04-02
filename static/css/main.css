@@ -111,12 +111,20 @@ button {
   justify-content: center;
 }
 
+.mini-month-weeks-container {
+  padding: 5px;
+}
+
 .mini-month-container {
   margin: 2px;
+  color: #F0EAD6;
 }
 .mini-month-container .mini-month-header {
   padding: 15px 0;
   text-align: center;
+}
+.mini-month-container .mini-month-header .month-and-year {
+  font-weight: 600;
 }
 .mini-month-container .mini-month-header .green-day {
   color: #008000;
@@ -130,21 +138,25 @@ button {
 }
 
 .mini-month-day {
-  margin: 2px;
-  padding: 1px;
   display: inline-block;
-  border: solid 1px black;
+  border: solid 1px #E9B43A;
+  color: #F0EAD6;
   height: 50px;
   width: 50px;
+  margin: 2px;
+  padding: 3px;
+  line-height: normal;
 }
 .mini-month-day.padding-day {
   visibility: hidden;
 }
 .mini-month-day.green-day {
-  background-color: green;
+  background-color: #008000;
+  border-color: #008000;
 }
 .mini-month-day.red-day {
-  background-color: red;
+  background-color: #C60211;
+  border-color: #C60211;
 }
 
 .navigation {

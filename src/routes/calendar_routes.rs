@@ -51,16 +51,18 @@ struct TradingDay<'a> {
     pub date_number: u32,
     pub padding_day: bool,
     pub class_list: Vec<&'static str>,
+    pub is_today: bool,
 }
 
 impl <'a>TradingDay<'_> {
-    fn new(trade_info: Option<&'a trades::TradeInfoByDay>, day: u32, date_number: u32) -> TradingDay<'a> {
+    fn new(trade_info: Option<&'a trades::TradeInfoByDay>, day: u32, date_number: u32, is_today: bool) -> TradingDay<'a> {
         TradingDay {
             trade_info,
             day_name: get_day_name_from_number(day),
             date_number,
             class_list: get_class_list_for_trading_day(&trade_info),
             padding_day: false,
+            is_today
         }
     }
 
@@ -202,6 +204,7 @@ fn build_year<'a>(year: i32, trades: &HashMap<u32, &'a trades::TradeInfoByDay>) 
 }
 
 fn build_month<'a>(year: i32, month: u32, trades: &HashMap<u32, &'a trades::TradeInfoByDay>) -> Result<TradesInMonth<'a>, &'static str> {
+    let today = Local::now().date_naive();
     let mut trades_in_month: Vec<TradingDay> = Vec::new();
     // NaiveDate returns a date that looks like 12/24/1991. There is no time association
     let first_day_of_month = NaiveDate::from_ymd_opt(year, month, 1).ok_or("Unable to set first_weekday_of_month in build_month")?;
@@ -223,7 +226,10 @@ fn build_month<'a>(year: i32, month: u32, trades: &HashMap<u32, &'a trades::Trad
     while padding_day < first_day_of_month {
         match padding_day.weekday() {
             Weekday::Sat | Weekday::Sun => {},
-            _ => trades_in_month.push(TradingDay::new(None, padding_day.weekday().number_from_sunday(), padding_day.day())
+            _ => trades_in_month.push(TradingDay::new(None,
+                                                      padding_day.weekday().number_from_sunday(),
+                                                      padding_day.day(),
+                                                      false)
                                       .with_padding_true()
                                       .with_mini_month())
         }
@@ -241,6 +247,7 @@ fn build_month<'a>(year: i32, month: u32, trades: &HashMap<u32, &'a trades::Trad
     // We only want to collect weekdays
     let mut current_day = first_day_of_month;
     while current_day < next_month_start {
+        let is_today = today == current_day;
         match current_day.weekday() {
             Weekday::Sat | Weekday::Sun => {},
             _ => { 
@@ -252,9 +259,9 @@ fn build_month<'a>(year: i32, month: u32, trades: &HashMap<u32, &'a trades::Trad
                         total_pnl += trade_info.total_pnl;
                         total_trades_count += trade_info.total_trades_count;
                         winning_trades_count += trade_info.winning_trades_count;
-                        TradingDay::new(Some(*trade_info), days_from_sunday, date_number).with_mini_month()
+                        TradingDay::new(Some(*trade_info), days_from_sunday, date_number, is_today).with_mini_month()
                     },
-                    None => TradingDay::new(None, days_from_sunday, date_number).with_mini_month()
+                    None => TradingDay::new(None, days_from_sunday, date_number, is_today).with_mini_month()
                 };
                 trades_in_month.push(trading_day);
             }
@@ -262,6 +269,10 @@ fn build_month<'a>(year: i32, month: u32, trades: &HashMap<u32, &'a trades::Trad
         current_day += Duration::try_days(1).unwrap();
     }
     
+    /*
+     * TODO:
+     *   We might need to bring this back and fix it when we want to show a detailed view of the month
+     */
     // Padding for the remaining days in the month calendar
     //let last_day_of_month = next_month_start - Duration::try_days(1).unwrap();
     //let last_weekday_of_month = last_day_of_month.clone();
