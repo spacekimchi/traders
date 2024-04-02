@@ -3,7 +3,7 @@
         <span class="month-and-year">{{ month.name }} {{ month.year }}</span>
         {% if month.total_trades_count > 0 %}
             <div>
-                <span class="{{ month.total_pnl | pnl_class }}">Total PnL: {{ month.total_pnl | currency_format }}</span> |
+                Total PnL: <span class="{{ month.total_pnl | pnl_class }}">{{ month.total_pnl | currency_format }}</span> |
                 <span>Win %: {{ (month.winning_trades_count / month.total_trades_count) * 100 | round }}</span>
             </div>
         {% endif %}
