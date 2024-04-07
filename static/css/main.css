@@ -308,6 +308,35 @@ table tbody tr:last-child td:last-child {
 .account-charts {
   display: flex;
   flex-wrap: wrap;
+  width: auto;
+}
+.account-charts .account-charts-container {
+  margin: auto;
+  width: 45%;
+}
+.account-charts .account-charts-chart-container {
+  margin-top: 24px;
+}
+.account-charts .account-charts-chart-container .account-charts-title {
+  text-align: center;
+  margin-bottom: 5px;
+}
+.account-charts .account-charts-info-container {
+  display: flex;
+}
+.account-charts .account-charts-info-container .account-charts-info-items {
+  flex-grow: 1;
+}
+.account-charts .account-charts-info-container .chart-info-label {
+  width: 60%;
+  text-align: right;
+  display: inline-block;
+}
+.account-charts .green-day {
+  color: #008000;
+}
+.account-charts .red-day {
+  color: #C60211;
 }
 
 body {

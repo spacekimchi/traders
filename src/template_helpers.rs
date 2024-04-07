@@ -88,8 +88,10 @@ pub fn currency_format(value: &tera::Value, _: &std::collections::HashMap<String
             // Format the number as currency here. This is a simple example.
             let formatted = if num > 0.0 {
                 format!("+${:.2}", num.abs())
-            } else {
+            } else if 0.0 > num {
                 format!("-${:.2}", num.abs())
+            } else {
+                "$0.00".to_string()
             };
             Ok(tera::Value::String(formatted))
         },
@@ -149,8 +151,10 @@ pub fn pnl_class(value: &tera::Value, _: &std::collections::HashMap<String, tera
             // Format the number as currency here. This is a simple example.
             let formatted = if num > 0.0 {
                 "green-day"
-            } else {
+            } else if 0.0 > num {
                 "red-day"
+            } else {
+                ""
             };
             Ok(tera::Value::String(formatted.to_string()))
         },

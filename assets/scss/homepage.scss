@@ -1,4 +1,43 @@
+@import "variables";
+
 .account-charts {
     display: flex;
     flex-wrap: wrap;
+    width: auto;
+
+    .account-charts-container {
+        margin: auto;
+        width: 45%;
+    }
+
+    .account-charts-chart-container {
+        margin-top: 24px;
+
+        .account-charts-title {
+            text-align: center;
+            margin-bottom: 5px;
+        }
+    }
+ 
+    .account-charts-info-container {
+        display: flex;
+
+        .account-charts-info-items {
+            flex-grow: 1;
+        }
+
+        .chart-info-label {
+            width: 60%;
+            text-align: right;
+            display: inline-block;
+        }
+    }
+
+    .green-day {
+        color: $green;
+    }
+
+    .red-day {
+        color: $red;
+    }
 }

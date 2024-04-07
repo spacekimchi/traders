@@ -87,7 +87,7 @@ async fn index(tera_engine: web::Data<tera::Tera>, flash_messages: IncomingFlash
     };
     let last_52_weeks_of_trades = calendar_trades_from_last_52_weeks(&trades_by_day, year_of_trades);
     let accounts_for_pnl_chart = accounts::fetch_accounts_for_pnl_charts(&state.db, &user_id).await.map_err(e500)?;
-    println!("XXXXXXX ACCOUNTS_FOR_PNL_CHART: {:#?}", accounts_for_pnl_chart);
+
     let mut context = tera::Context::new();
     context.insert("name", "Traders");
     context.insert("last_52_weeks_of_trades", &last_52_weeks_of_trades);

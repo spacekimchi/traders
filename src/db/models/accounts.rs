@@ -149,6 +149,11 @@ pub struct AccountForPnlChart {
     pub losing_days_pnl_total: f32,
     pub total_winning_days: i32,
     pub total_losing_days: i32,
+    pub total_trade_days_count: i32,
+    pub average_winning_day: f32,
+    pub average_losing_day: f32,
+    pub average_day: f32,
+    pub trades_win_percent: f32,
 }
 
 fn format_query_for_pnl_charts(trades_by_accounts: &Vec<AccountTradesByDay>) -> Vec<AccountForPnlChart> {
@@ -160,14 +165,22 @@ fn format_query_for_pnl_charts(trades_by_accounts: &Vec<AccountTradesByDay>) -> 
                 account_for_pnl_chart.total_pnl += total_pnl;
                 account_for_pnl_chart.trade_day_pnls.push(account_for_pnl_chart.total_pnl);
                 account_for_pnl_chart.trade_days.push(trades_by_account.trade_day);
-                account_for_pnl_chart.total_trades_count += 1;
+                account_for_pnl_chart.total_trade_days_count += 1;
+                account_for_pnl_chart.total_trades_count += trades_by_account.total_trades_count;
                 account_for_pnl_chart.winning_trades_count += trades_by_account.winning_trades_count;
+                account_for_pnl_chart.average_day = account_for_pnl_chart.total_pnl / account_for_pnl_chart.total_trade_days_count as f32;
+                if account_for_pnl_chart.winning_trades_count > 0 {
+                    account_for_pnl_chart.trades_win_percent = account_for_pnl_chart.winning_trades_count as f32 / account_for_pnl_chart.total_trades_count as f32 * 100.0;
+                    println!("account_for_pnl_chart.trades_win_percent: {:#?}", account_for_pnl_chart.trades_win_percent);
+                }
                 if total_pnl > 0.0 {
                     account_for_pnl_chart.total_winning_days += 1;
                     account_for_pnl_chart.winning_days_pnl_total += total_pnl;
+                    account_for_pnl_chart.average_winning_day = account_for_pnl_chart.winning_days_pnl_total / account_for_pnl_chart.total_winning_days as f32;
                 } else if 0.0 > total_pnl {
                     account_for_pnl_chart.total_losing_days += 1;
                     account_for_pnl_chart.losing_days_pnl_total += total_pnl;
+                    account_for_pnl_chart.average_losing_day = account_for_pnl_chart.losing_days_pnl_total / account_for_pnl_chart.total_losing_days as f32;
                 }
                 if trades_by_account.total_pnl > account_for_pnl_chart.largest_day {
                     account_for_pnl_chart.largest_day = trades_by_account.total_pnl;
@@ -179,12 +192,18 @@ fn format_query_for_pnl_charts(trades_by_accounts: &Vec<AccountTradesByDay>) -> 
                 let total_pnl = trades_by_account.total_pnl;
                 let mut winning_day = 0;
                 let mut losing_day = 0;
+                let mut average_winning_day = 0.0;
+                let mut average_losing_day = 0.0;
+                let mut trades_win_percent = 0.0;
                 if trades_by_account.total_pnl > 0.0 {
                     winning_day_pnl_total = total_pnl;
+                    average_winning_day = total_pnl;
+                    trades_win_percent = 100.0;
                     winning_day = 1;
                 };
                 if 0.0 > trades_by_account.total_pnl {
                     losing_day_pnl_total = total_pnl;
+                    average_losing_day = total_pnl;
                     losing_day = 1;
                 };
                 accounts_for_pnl_chart.insert(trades_by_account.account_id, AccountForPnlChart {
@@ -200,6 +219,11 @@ fn format_query_for_pnl_charts(trades_by_accounts: &Vec<AccountTradesByDay>) -> 
                     losing_days_pnl_total: losing_day_pnl_total,
                     total_winning_days: winning_day,
                     total_losing_days: losing_day,
+                    total_trade_days_count: 1,
+                    average_winning_day,
+                    average_losing_day,
+                    average_day: total_pnl,
+                    trades_win_percent,
                 });
             }
         }
@@ -207,5 +231,8 @@ fn format_query_for_pnl_charts(trades_by_accounts: &Vec<AccountTradesByDay>) -> 
 
     let mut accounts_for_pnl_chart: Vec<AccountForPnlChart> = accounts_for_pnl_chart.values().cloned().collect();
     accounts_for_pnl_chart.sort_by_key(|account| account.account_id);
+    for account in &accounts_for_pnl_chart {
+        println!("XXXXXXX ACCOUNT_FOR_PNL_CHART: {:#?}", account);
+    }
     accounts_for_pnl_chart
 }

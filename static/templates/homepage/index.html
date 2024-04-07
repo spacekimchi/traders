@@ -15,7 +15,8 @@
                 datasets: [{
                     label: account_data.account_name,
                     data: account_data.trade_day_pnls,
-                    borderColor: 'rgba(233,180,58,.1)',
+                    borderColor: 'rgba(233,180,58,.5)',
+                    borderWidth: 1,
                     pointBorderColor: function(context) {
                         const value = context.dataset.data[context.dataIndex];
                         return value >= 0 ? 'rgba(0,128,0,0.9)' : 'rgba(198,2,17,0.9)'; // Change point color based on value
@@ -35,6 +36,9 @@
                         }
                     },
                     plugins: {
+                        legend: {
+                            display: false
+                        },
                         tooltip: {
                             callbacks: {
                                 label: function(context) {
@@ -71,27 +75,40 @@
     </div>
     <div class="account-charts">
         {% for account_chart in accounts_for_pnl_chart %}
-            <div>
-                <div style="height: 250px;">
-                    <canvas id="account-chart-{{ account_chart.account_id }}" class="account-chart"></canvas>
-                </div>
-                <div class="account-chart-container" style="width: 500px;">
-                    Account Name: {{ account_chart.account_name }}
-                    Total PnL: {{ account_chart.total_pnl | currency_format }}
-                    Largest Day: {{ account_chart.largest_day | currency_format }}
-                    Total trades: {{ account_chart.total_trades_count }}
-                    {% if account_chart.total_winning_days > 0 %}
-                        Win %: {{ (account_chart.total_trades_count / account_chart.winning_trades_count) * 100 | round }}
-                        Average Winning Day: {{ (account_chart.winning_days_pnl_total / account_chart.total_winning_days) | currency_format }}
-                    {% else %}
-                        Win %: 0
-                        Average Winning Day: $0.00
-                    {% endif %}
-                    {% if account_chart.total_losing_days > 0 %}
-                        Average Losing Day: {{ (account_chart.losing_days_pnl_total / account_chart.total_losing_days) | currency_format }}
-                    {% else %}
-                        Average Losing Day: $0.00
-                    {% endif %}
+            <div class="account-charts-container">
+                <div class="account-charts-chart-container">
+                    <div class="account-charts-title">
+                        Account Name: {{ account_chart.account_name }}
+                        <br>
+                        <span>Total PnL:</span> <span class="{{ account_chart.total_pnl | pnl_class }}">{{ account_chart.total_pnl | currency_format }}</span>
+                    </div>
+                    <div class="account-charts-chart">
+                        <canvas id="account-chart-{{ account_chart.account_id }}"></canvas>
+                    </div>
+                    <div class="account-charts-info-container">
+                        <span class="account-charts-info-items">
+                            <div class="account-charts-info-item">
+                                <span class="chart-info-label">Largest Day:</span> <span class="{{ account_chart.largest_day | pnl_class }}">{{ account_chart.largest_day | currency_format }}</span>
+                            </div>
+                            <div class="account-charts-info-item">
+                                <span class="chart-info-label">Win %:</span> <span>{{ account_chart.trades_win_percent | round }}</span>
+                            </div>
+                            <div class="account-charts-info-item">
+                                <span class="chart-info-label">Total trades:</span> <span>{{ account_chart.total_trades_count }}</span>
+                            </div>
+                        </span>
+                        <span class="account-charts-info-items">
+                            <div class="account-charts-info-item">
+                                <span class="chart-info-label">Avg Day:</span> <span class="{{ account_chart.average_day | pnl_class }}">{{ account_chart.average_day | currency_format }}</span>
+                            </div>
+                            <div class="account-charts-info-item">
+                                <span class="chart-info-label">Avg Winning Day:</span> <span class="{{ account_chart.average_winning_day | pnl_class }}">{{ account_chart.average_winning_day | currency_format }}</span>
+                            </div>
+                            <div class="account-charts-info-item">
+                                <span class="chart-info-label">Avg Losing Day:</span> <span class="{{ account_chart.average_losing_day | pnl_class }}">{{ account_chart.average_losing_day | currency_format }}</span>
+                            </div>
+                        </span>
+                    </div>
                 </div>
             </div>
             <script>
