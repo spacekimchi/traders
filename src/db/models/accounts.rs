@@ -188,8 +188,8 @@ fn format_query_for_pnl_charts(trades_by_accounts: &Vec<AccountTradesByDay>) -> 
                 accounts_for_pnl_chart.insert(trades_by_account.account_id, AccountForPnlChart {
                     account_id: trades_by_account.account_id,
                     account_name: trades_by_account.account_name.clone(),
-                    trade_day_pnls: vec![total_pnl],
-                    trade_days: vec![trades_by_account.trade_day],
+                    trade_day_pnls: vec![0.0, total_pnl],
+                    trade_days: vec![trades_by_account.trade_day - 1, trades_by_account.trade_day],
                     total_pnl,
                     total_trades_count: trades_by_account.total_trades_count,
                     winning_trades_count: trades_by_account.winning_trades_count,
