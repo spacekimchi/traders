@@ -122,10 +122,12 @@ pub async fn fetch_accounts_for_pnl_charts(db: &PgPool, user_id: &Uuid) -> Resul
         JOIN accounts ON trades.account_id = accounts.id
         WHERE accounts.user_id = $1
         AND accounts.is_pa = $2
+        AND accounts.is_active = $3
         GROUP BY FLOOR(trades.entry_time), accounts.id, accounts.name, accounts.is_pa
         ORDER BY trade_day, is_pa, account_name"
     )
     .bind(user_id)
+    .bind(true)
     .bind(true)
     .fetch_all(db)
     .await?;
@@ -203,6 +205,7 @@ fn format_query_for_pnl_charts(trades_by_accounts: &Vec<AccountTradesByDay>) -> 
         }
     }
 
-    let accounts_for_pnl_chart: Vec<AccountForPnlChart> = accounts_for_pnl_chart.values().cloned().collect();
+    let mut accounts_for_pnl_chart: Vec<AccountForPnlChart> = accounts_for_pnl_chart.values().cloned().collect();
+    accounts_for_pnl_chart.sort_by_key(|account| account.account_id);
     accounts_for_pnl_chart
 }
