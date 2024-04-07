@@ -92,7 +92,7 @@ async fn index(tera_engine: web::Data<tera::Tera>, flash_messages: IncomingFlash
     context.insert("name", "Traders");
     context.insert("last_52_weeks_of_trades", &last_52_weeks_of_trades);
     context.insert("accounts_for_pnl_chart", &accounts_for_pnl_chart);
-    let content = render_content(&RenderTemplateParams::new(&"index.html", &tera_engine)
+    let content = render_content(&RenderTemplateParams::new(&"homepage/index.html", &tera_engine)
                                          .with_flash_messages(&flash_messages)
                                          .with_context(&context)
                                          .with_session(&session))?;

@@ -305,6 +305,11 @@ table tbody tr:last-child td:last-child {
   padding-top: 15px;
 }
 
+.account-charts {
+  display: flex;
+  flex-wrap: wrap;
+}
+
 body {
   background-color: #0F0F0F;
   color: #F0EAD6;

@@ -156,7 +156,7 @@ fn format_query_for_pnl_charts(trades_by_accounts: &Vec<AccountTradesByDay>) -> 
             Some(account_for_pnl_chart) => {
                 let total_pnl = trades_by_account.total_pnl;
                 account_for_pnl_chart.total_pnl += total_pnl;
-                account_for_pnl_chart.trade_day_pnls.push(total_pnl);
+                account_for_pnl_chart.trade_day_pnls.push(account_for_pnl_chart.total_pnl);
                 account_for_pnl_chart.trade_days.push(trades_by_account.trade_day);
                 account_for_pnl_chart.total_trades_count += 1;
                 account_for_pnl_chart.winning_trades_count += trades_by_account.winning_trades_count;

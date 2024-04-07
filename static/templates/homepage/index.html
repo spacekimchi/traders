@@ -9,7 +9,6 @@
     <script>
         function generateChart(account_data) {
             const ctx = document.getElementById(`account-chart-${ account_data.account_id }`);
-            console.log("CTX:", ctx);
             const labels = account_data.trade_days;
             const data = {
                 labels: labels,
@@ -72,17 +71,37 @@
     </div>
     <div class="account-charts">
         {% for account_chart in accounts_for_pnl_chart %}
-            {% include "partials/_account_pnl_chart.html" %}
+            <div>
+                <div style="height: 250px;">
+                    <canvas id="account-chart-{{ account_chart.account_id }}" class="account-chart"></canvas>
+                </div>
+                <div class="account-chart-container" style="width: 500px;">
+                    Account Name: {{ account_chart.account_name }}
+                    Total PnL: {{ account_chart.total_pnl | currency_format }}
+                    Largest Day: {{ account_chart.largest_day | currency_format }}
+                    Total trades: {{ account_chart.total_trades_count }}
+                    {% if account_chart.total_winning_days > 0 %}
+                        Win %: {{ (account_chart.total_trades_count / account_chart.winning_trades_count) * 100 | round }}
+                        Average Winning Day: {{ (account_chart.winning_days_pnl_total / account_chart.total_winning_days) | currency_format }}
+                    {% else %}
+                        Win %: 0
+                        Average Winning Day: $0.00
+                    {% endif %}
+                    {% if account_chart.total_losing_days > 0 %}
+                        Average Losing Day: {{ (account_chart.losing_days_pnl_total / account_chart.total_losing_days) | currency_format }}
+                    {% else %}
+                        Average Losing Day: $0.00
+                    {% endif %}
+                </div>
+            </div>
             <script>
                 document.addEventListener('DOMContentLoaded', function() {
-                    console.log("XXXXXXXXXXXXXX ACCOUNT_DATA:", {{ account_chart.total_pnl }});
                     let account_data = {
                         account_id: {{ account_chart.account_id }},
                         account_name: '{{ account_chart.account_name }}',
                         trade_days: {{ account_chart.trade_days }},
                         trade_day_pnls: {{ account_chart.trade_day_pnls }}
                     };
-                    console.log("XXXXXXXXXXXXXX ACCOUNT_DATA:", account_data);
                     generateChart(account_data);
                 });
             </script>
