@@ -12,7 +12,9 @@ use crate::template_helpers::{RenderTemplateParams, render_content, err_500_temp
 use crate::startup::AppState;
 use crate::excel_helpers;
 use crate::db::models::trades;
+use crate::db::models::accounts;
 use crate::session_state::TypedSession;
+use crate::utils::e500;
 
 #[derive(Debug, Serialize, Clone)]
 struct TradingDay<'a> {
@@ -68,8 +70,13 @@ impl <'a>TradesInWeek<'_> {
 //
 #[get("/")]
 async fn index(tera_engine: web::Data<tera::Tera>, flash_messages: IncomingFlashMessages, session: TypedSession, state: Data<AppState>) -> Result<HttpResponse, actix_web::Error> {
-    let mut context = tera::Context::new();
-    context.insert("name", "Traders");
+    let user_id = match session
+        .get_user_id()
+        .map_err(e500)? {
+            Some(user_id) => user_id,
+            // This None will grab the default user_id, which is my account
+            None => crate::db::models::users::get_user_from_database_by_ninja_trader_id(&state.db, &"YourNinjaTraderIdString".to_string()).await?.id
+        };
     let year_in_weeks = 52;
     let year_of_trades = excel_helpers::get_start_of_n_weeks_ago(year_in_weeks);
     let trade_search_params = trades::TradeSearchParams::default()
@@ -79,7 +86,12 @@ async fn index(tera_engine: web::Data<tera::Tera>, flash_messages: IncomingFlash
         Err(e) => return Ok(HttpResponse::InternalServerError().body(err_500_template(&tera_engine, e)))
     };
     let last_52_weeks_of_trades = calendar_trades_from_last_52_weeks(&trades_by_day, year_of_trades);
+    let accounts_for_pnl_chart = accounts::fetch_accounts_for_pnl_charts(&state.db, &user_id).await.map_err(e500)?;
+    println!("XXXXXXX ACCOUNTS_FOR_PNL_CHART: {:#?}", accounts_for_pnl_chart);
+    let mut context = tera::Context::new();
+    context.insert("name", "Traders");
     context.insert("last_52_weeks_of_trades", &last_52_weeks_of_trades);
+    context.insert("accounts_for_pnl_chart", &accounts_for_pnl_chart);
     let content = render_content(&RenderTemplateParams::new(&"index.html", &tera_engine)
                                          .with_flash_messages(&flash_messages)
                                          .with_context(&context)

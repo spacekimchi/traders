@@ -5,6 +5,52 @@
 {% endblock title %}
 
 {% block content %}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        function generateChart(account_data) {
+            const ctx = document.getElementById(`account-chart-${ account_data.account_id }`);
+            console.log("CTX:", ctx);
+            const labels = account_data.trade_days;
+            const data = {
+                labels: labels,
+                datasets: [{
+                    label: account_data.account_name,
+                    data: account_data.trade_day_pnls,
+                    borderColor: 'rgba(233,180,58,.1)',
+                    pointBorderColor: function(context) {
+                        const value = context.dataset.data[context.dataIndex];
+                        return value >= 0 ? 'rgba(0,128,0,0.9)' : 'rgba(198,2,17,0.9)'; // Change point color based on value
+                    },
+                    fill: {above: 'rgba(0,128,0,0.3)', below: 'rgba(198,2,17,0.3)', target: {value: 0}},
+                    cubicInterpolationMode: 'monotone',
+                }]
+            };
+            const config = {
+                type: 'line',
+                data: data,
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const value = context.dataset.data[context.dataIndex];
+                                    const label = value >= 0 ? 'Above Zero New line checker' : 'Below Zero'; // Custom label
+                                    return [label + ': ' + value, 'Foo: bar']; // Display custom text and data value
+                                }
+                            }
+                        }
+                    }
+                }
+            };
+            new Chart(ctx, config);
+        }
+    </script>
     <div class="weekly-trades">
         <div class="mini-days">
             <div>
@@ -23,9 +69,23 @@
                 </div>
             {% endfor %}
         </div>
-        {#1) Total pnl: {{ statistics.total_pnl  }}#}
-        {#2) Total trades: {{ statistics.total_trades }}#}
-        {#3) Average Winner#}
-        {#4) Average Loser#}
+    </div>
+    <div class="account-charts">
+        {% for account_chart in accounts_for_pnl_chart %}
+            {% include "partials/_account_pnl_chart.html" %}
+            <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                    console.log("XXXXXXXXXXXXXX ACCOUNT_DATA:", {{ account_chart.total_pnl }});
+                    let account_data = {
+                        account_id: {{ account_chart.account_id }},
+                        account_name: '{{ account_chart.account_name }}',
+                        trade_days: {{ account_chart.trade_days }},
+                        trade_day_pnls: {{ account_chart.trade_day_pnls }}
+                    };
+                    console.log("XXXXXXXXXXXXXX ACCOUNT_DATA:", account_data);
+                    generateChart(account_data);
+                });
+            </script>
+        {% endfor %}
     </div>
 {% endblock content %}
