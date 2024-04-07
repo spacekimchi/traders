@@ -36,14 +36,6 @@ struct TradesInWeek<'a> {
     pub trades: Vec<TradingDay<'a>>,
 }
 
-impl <'a>TradesInWeek<'_> {
-    fn new() -> TradesInWeek<'a> {
-        TradesInWeek {
-            trades: Vec::<TradingDay>::new(),
-        }
-    }
-}
-
 #[derive(Debug, Serialize, Clone)]
 struct TradingDay<'a> {
     pub trade_info: Option<&'a trades::TradeInfoByDay>,
@@ -77,7 +69,7 @@ impl <'a>TradingDay<'_> {
         self
     }
 
-    fn with_mini_day(mut self) -> Self {
+    fn _with_mini_day(mut self) -> Self {
         self.class_list.push("mini-day");
         self
     }

@@ -5,8 +5,8 @@
 use actix_web::{get, HttpResponse, web};
 use actix_web::web::Data;
 use actix_web_flash_messages::IncomingFlashMessages;
-use chrono::{Datelike, NaiveDate, Duration, Weekday, Local};
-use serde::{Serialize, Deserialize};
+use chrono::Datelike;
+use serde::Serialize;
 
 use crate::template_helpers::{RenderTemplateParams, render_content, err_500_template};
 use crate::startup::AppState;
@@ -36,13 +36,13 @@ impl <'a>TradingDay<'_> {
         }
     }
 
-    fn with_padding_true(mut self) -> Self {
+    fn _with_padding_true(mut self) -> Self {
         self.padding_day = true;
         self.class_list.push("padding-day");
         self
     }
 
-    fn with_mini_month(mut self) -> Self {
+    fn _with_mini_month(mut self) -> Self {
         self.class_list.push("mini-month-day");
         self
     }

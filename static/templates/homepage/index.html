@@ -10,6 +10,7 @@
         function generateChart(account_data) {
             const ctx = document.getElementById(`account-chart-${ account_data.account_id }`);
             const labels = account_data.trade_days;
+            console.log(account_data);
             const data = {
                 labels: labels,
                 datasets: [{
@@ -43,8 +44,24 @@
                             callbacks: {
                                 label: function(context) {
                                     const value = context.dataset.data[context.dataIndex];
-                                    const label = value >= 0 ? 'Above Zero New line checker' : 'Below Zero'; // Custom label
-                                    return [label + ': ' + value, 'Foo: bar']; // Display custom text and data value
+                                    let preVal = 0.0;
+                                    if (context.dataIndex > 0) {
+                                        preVal = value - context.dataset.data[context.dataIndex - 1];
+                                    }
+                                    let pnlToday = "$0.00";
+                                    if (preVal > 0.0) {
+                                        pnlToday = `+$${Math.abs(preVal).toFixed(2)}`;
+                                    } else if (0.0 > preVal) {
+                                        pnlToday = `-$${Math.abs(preVal).toFixed(2)}`;
+                                    }
+                                    const label = 'Total PnL'; // Custom label
+                                    let currency_value = "$0.00";
+                                    if (value > 0.0) {
+                                        currency_value = `+$${Math.abs(value).toFixed(2)}`;
+                                    } else if (0.0 > value) {
+                                        currency_value = `-$${Math.abs(value).toFixed(2)}`;
+                                    }
+                                    return [label + ': ' + currency_value, 'PnL today: ' + pnlToday]; // Display custom text and data value
                                 }
                             }
                         }
@@ -116,7 +133,13 @@
                     let account_data = {
                         account_id: {{ account_chart.account_id }},
                         account_name: '{{ account_chart.account_name }}',
-                        trade_days: {{ account_chart.trade_days }},
+                        // For some reason this gets converted to integers (the quotes disappear).
+                        // I'm not sure how to pass to tera templates as strings
+                        trade_days: [
+                            {% for day in account_chart.trade_days %}
+                                '{{ day | excel_to_dmy }}',
+                            {% endfor %}
+                        ],
                         trade_day_pnls: {{ account_chart.trade_day_pnls }}
                     };
                     generateChart(account_data);

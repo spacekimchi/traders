@@ -103,10 +103,16 @@ pub fn round_hundreths(value: &tera::Value, _: &std::collections::HashMap<String
     match value.as_f64() {
         Some(num) => {
             // Format the number as currency here. This is a simple example.
-            let formatted = format!("{:.2}", num.abs());
+            let formatted = if num > 0.0 {
+                format!("+{:.2}", num.abs())
+            } else if 0.0 > num {
+                format!("-{:.2}", num.abs())
+            } else {
+                "0.00".to_string()
+            };
             Ok(tera::Value::String(formatted))
         },
-        None => Err("Failed to format value as currency".into()),
+        None => Err("Failed to format value as f64 in round_hundreths".into()),
     }
 }
 
@@ -127,6 +133,18 @@ pub fn excel_to_utc(value: &tera::Value, _: &std::collections::HashMap<String, t
             // Format the number as currency here. This is a simple example.
             let date = excel_helpers::excel_to_utc(num);
             let date_string = date.format("%Y-%m-%d %H:%M:%S").to_string();
+            Ok(tera::Value::String(date_string))
+        },
+        None => Err("Failed to format value as a DateTime".into()),
+    }
+}
+
+pub fn excel_to_dmy(value: &tera::Value, _: &std::collections::HashMap<String, tera::Value>) -> tera::Result<tera::Value> {
+    match value.as_f64() {
+        Some(num) => {
+            // Format the number as currency here. This is a simple example.
+            let date = excel_helpers::excel_to_utc(num);
+            let date_string = date.format("%d-%m-%Y").to_string();
             Ok(tera::Value::String(date_string))
         },
         None => Err("Failed to format value as a DateTime".into()),

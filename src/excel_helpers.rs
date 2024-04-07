@@ -76,6 +76,10 @@ pub fn date_to_excel(date: &NaiveDate) -> u32 {
     excel_date
 }
 
+pub fn excel_to_dmy(value: i32) -> String {
+    let date = excel_to_utc(value as f64);
+    date.format("%e %B, %Y").to_string()
+}
 
 /// For converting year value into the excel value for the first day of the year
 pub fn year_to_excel(year: i32) -> Result<u32, &'static str> {

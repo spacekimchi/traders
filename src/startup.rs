@@ -94,6 +94,7 @@ pub async fn run(db_pool: PgPool, listener: TcpListener, base_url: String, redis
     tera.register_filter("excel_to_utc", template_helpers::excel_to_utc);
     tera.register_filter("excel_to_date", template_helpers::excel_to_date);
     tera.register_filter("pnl_class", template_helpers::pnl_class);
+    tera.register_filter("excel_to_dmy", template_helpers::excel_to_dmy);
     // Wrap the Tera instance in web::Data for Actix-web
     let tera = web::Data::new(tera);
 
