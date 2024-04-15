@@ -91,7 +91,6 @@ pub async fn get_journal_entries_by_from(db: &PgPool, start_date: u32) -> Result
 }
 
 pub async fn get_journal_entries_in_range(db: &PgPool, journal_entry_params: &JournalEntrySearchParams) -> Result<Vec<JournalEntry>, sqlx::Error> {
-    println!("JOURNAL ENTRY PARAMS ABOUT TO FETCH FROM DB: {:?}", journal_entry_params);
     let journal_entries = sqlx::query_as::<_, JournalEntry>(
         "SELECT *
         FROM journal_entries
@@ -105,7 +104,6 @@ pub async fn get_journal_entries_in_range(db: &PgPool, journal_entry_params: &Jo
         .bind(journal_entry_params.end_date as i32)
         .fetch_all(db)
         .await?;
-    println!("GOT JOURNAL ENTRIES FROM DB: {:?}", journal_entries);
 
     Ok(journal_entries)
 }

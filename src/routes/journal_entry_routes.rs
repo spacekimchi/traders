@@ -54,20 +54,17 @@ pub async fn get_journal_entries_index(
         Some(date) => excel_helpers::date_to_excel(&NaiveDate::parse_from_str(date, "%Y-%m-%d").unwrap_or(tomorrow)),
         _ => excel_helpers::date_to_excel(&tomorrow)
     };
-    println!("ABOUT TO GET TRADES FOR JOURNAL");
 
     // PA trades
     let trade_search_params = trades::TradeSearchParams::default()
         .start_date(start_date)
         .end_date(end_date);
     let trades_by_day = trades::trades_by_hash_for_journal(&state.db, &trade_search_params).await?;
-    println!("XXXXXX TRADES_BY_DAY: {:?}", trades_by_day);
 
     let mut sorted_keys: Vec<&i32> = trades_by_day.keys().collect();
     sorted_keys.sort();
     sorted_keys.reverse();
     let sorted_trades_by_day: Vec<(&i32, &trades::JournalEntryDayStats)> = sorted_keys.iter().map(|&k| (k, trades_by_day.get(k).unwrap())).collect();
-    println!("XXXXXX SORTED_TRADES_BY_DAY: {:?}", sorted_trades_by_day);
 
     let mut context = tera::Context::new();
     context.insert("trades_by_day", &sorted_trades_by_day);
@@ -101,7 +98,6 @@ pub async fn create_journal_entry(
             Some(user_id) => user_id,
             None => return Ok(HttpResponse::Unauthorized().json("You are not authorized"))
         };
-    println!("CREATE JOURNAL ENTRY: {:?}", body);
     let journal_entry_insert_params = journal_entries::JournalEntryInsertParams {
         user_id,
         entry_date: body.0.entry_date,

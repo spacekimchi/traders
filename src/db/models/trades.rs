@@ -277,9 +277,7 @@ pub async fn trades_by_hash_for_journal(db: &PgPool, trade_search_params: &Trade
         .user_id(trade_search_params.user_id)
         .start_date(trade_search_params.start_date)
         .end_date(trade_search_params.end_date);
-    println!("ABOUT TO GET JOURNAL ENTRIES");
     let journal_entries = journal_entries::get_journal_entries_in_range(db, &journal_entry_search_params).await?;
-    println!("GOT JOURNAL ENTRIES: {:?}", journal_entries);
 
     let mut journal_entries_by_day: std::collections::HashMap<i32, JournalEntryDayStats> = std::collections::HashMap::new();
     for trade_info in trades {
@@ -296,7 +294,6 @@ pub async fn trades_by_hash_for_journal(db: &PgPool, trade_search_params: &Trade
         account_stats.winning_trades_count += trade_info.winning_trades_count;
         account_stats.accounts.push(trade_info.clone());
     }
-    println!("ABOUT TO SET JOURNAL ENTRIES TO RETURN OBJECT");
 
     for journal_entry in journal_entries {
         match journal_entries_by_day.get_mut(&journal_entry.entry_date) {
