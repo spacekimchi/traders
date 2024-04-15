@@ -76,6 +76,7 @@ serde-aux = "4.1.2"
 
 # templating engine crate
 tera = "1.19.0"
+pulldown-cmark = "0.10.2"
 
 [dev-dependencies]
 claims = "0.7.1"

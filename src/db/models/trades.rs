@@ -8,6 +8,7 @@ use chrono::Datelike;
 use crate::errors::trade_errors::TradeError;
 use crate::db::models::executions::PendingExecution;
 use crate::db::models::trade_processing_statuses;
+use crate::db::models::journal_entries;
 use crate::instrument_prices;
 
 #[derive(Debug, Deserialize, Serialize, FromRow)]
@@ -230,6 +231,7 @@ pub struct JournalEntryDayStats {
     pub trade_day: i32,
     pub pa_entry: JournalEntryAccountStats,
     pub eval_entry: JournalEntryAccountStats,
+    pub journal_entry: Option<journal_entries::JournalEntry>,
 }
 
 impl JournalEntryDayStats {
@@ -238,7 +240,12 @@ impl JournalEntryDayStats {
             trade_day: 0,
             pa_entry: JournalEntryAccountStats::default(true),
             eval_entry: JournalEntryAccountStats::default(false),
+            journal_entry: None
         }
+    }
+
+    fn set_journal_entry(&mut self, journal_entry: journal_entries::JournalEntry) {
+        self.journal_entry = Some(journal_entry);
     }
 }
 
@@ -265,6 +272,15 @@ impl JournalEntryAccountStats {
 
 pub async fn trades_by_hash_for_journal(db: &PgPool, trade_search_params: &TradeSearchParams) -> Result<std::collections::HashMap<i32, JournalEntryDayStats>, TradeError> {
     let trades = get_trades_by_day_in_range_for_journals(db, trade_search_params).await?;
+
+    let journal_entry_search_params = journal_entries::JournalEntrySearchParams::default()
+        .user_id(trade_search_params.user_id)
+        .start_date(trade_search_params.start_date)
+        .end_date(trade_search_params.end_date);
+    println!("ABOUT TO GET JOURNAL ENTRIES");
+    let journal_entries = journal_entries::get_journal_entries_in_range(db, &journal_entry_search_params).await?;
+    println!("GOT JOURNAL ENTRIES: {:?}", journal_entries);
+
     let mut journal_entries_by_day: std::collections::HashMap<i32, JournalEntryDayStats> = std::collections::HashMap::new();
     for trade_info in trades {
         // Get mutable reference to entry or insert a new one if it doesn't exist
@@ -280,6 +296,17 @@ pub async fn trades_by_hash_for_journal(db: &PgPool, trade_search_params: &Trade
         account_stats.winning_trades_count += trade_info.winning_trades_count;
         account_stats.accounts.push(trade_info.clone());
     }
+    println!("ABOUT TO SET JOURNAL ENTRIES TO RETURN OBJECT");
+
+    for journal_entry in journal_entries {
+        match journal_entries_by_day.get_mut(&journal_entry.entry_date) {
+            Some(entry) => {
+                entry.set_journal_entry(journal_entry);
+            },
+            None => {}
+        }
+    }
+
     Ok(journal_entries_by_day)
 }
 
@@ -297,7 +324,7 @@ pub struct TradeForTable {
 pub async fn get_trades_for_table_in_range(db: &PgPool, trade_search_params: &TradeSearchParams) -> Result<Vec<TradeForTable>, TradeError> {
     let query = String::from(
         format!(
-"SELECT 
+            "SELECT 
     trades.id as id,
     trades.pnl - trades.commission AS pnl,
     trades.entry_time as entry_time,
@@ -311,7 +338,7 @@ WHERE accounts.user_id = '6982c6df-3d03-4583-8fa9-07386cf25f80'
 AND trades.exit_time >= {}
 AND trades.exit_time <= {}
 ORDER BY trades.entry_time DESC", trade_search_params.start_date, trade_search_params.end_date)
-);
+    );
     let trades = sqlx::query_as::<_, TradeForTable>(&query)
         .fetch_all(db)
         .await?;
@@ -334,7 +361,7 @@ impl TradeToSave {
     pub fn to_string(&self) -> String {
         format!(
             "Trade: ticker: {}, is_long: {}, is_open: {}", self.ticker, self.is_long, self.is_open
-            )
+        )
     }
 }
 
@@ -535,7 +562,7 @@ async fn trade_to_save_to_database(transaction: &mut sqlx::Transaction<'_, sqlx:
         trade.is_open,
         trade.commission,
         trade.pnl
-        )
+    )
         .fetch_one(transaction)
         .await?
         .id;
@@ -549,8 +576,8 @@ async fn update_execution_trade_id(transaction: &mut sqlx::Transaction<'_, sqlx:
         trade_id,
         execution_ids
     )
-    .execute(transaction)
-    .await?;
+        .execute(transaction)
+        .await?;
 
     Ok(())
 }

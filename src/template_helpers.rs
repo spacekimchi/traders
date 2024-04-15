@@ -2,7 +2,7 @@ use std::fmt::Write;
 
 use actix_web_flash_messages::IncomingFlashMessages;
 
-use crate::utils::e500;
+use crate::utils::{e500, markdown_to_html};
 use crate::excel_helpers;
 use crate::session_state::TypedSession;
 
@@ -177,5 +177,14 @@ pub fn pnl_class(value: &tera::Value, _: &std::collections::HashMap<String, tera
             Ok(tera::Value::String(formatted.to_string()))
         },
         None => Err("Failed to format value as currency".into()),
+    }
+}
+
+pub fn markdown_to_html_helper(args: &tera::Value, _: &std::collections::HashMap<String, tera::Value>) -> tera::Result<tera::Value> {
+    if let Some(markdown) = args.as_str() {
+        let html_content = markdown_to_html(markdown);
+        Ok(tera::to_value(html_content).unwrap())
+    } else {
+        Err("Argument must be a string".into())
     }
 }

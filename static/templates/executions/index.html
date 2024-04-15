@@ -12,10 +12,10 @@
                     <th>Account</th>
                     <th>Ticker</th>
                     <th>Fill Price</th>
-                    <th>Entry Time</th>
                     <th>Quantity</th>
                     <th>Position</th>
                     <th>Is Entry</th>
+                    <th>Entry Time</th>
                     <th>Trade ID</th>
                 </tr>
             </thead>
@@ -25,10 +25,10 @@
                         <td>{{ execution.account_name }}</td>
                         <td>{{ execution.ticker }}</td>
                         <td>{{ execution.price | round_hundreths }}</td>
-                        <td>{{ execution.fill_time | excel_to_utc }}</td>
                         <td>{{ execution.quantity }}</td>
                         <td>{{ execution.position }}</td>
                         <td>{{ execution.is_entry }}</td>
+                        <td>{{ execution.fill_time | excel_to_utc }}</td>
                         <td>{{ execution.trade_id }}</td>
                     </tr>
                 {% endfor %}

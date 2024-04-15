@@ -6,6 +6,15 @@
 
 {% block content %}
     <div class="journal-entry-container">
+        {% if logged_in %}
+            <p>
+            Enter notes using Markdown format.
+            <br>
+            Insert images: ![loadign failed text](path/to/image.jpg "Optional title (hover text)")
+            <br>
+            Insert images with a clickable link: [![loading failed text](path/to/image.jpg "Optional title (hover text)")](http://example.com)
+            </p>
+        {% endif %}
         {% for entry in trades_by_day %}
             <div class="journal-entry-day">
                 {% set trade_day = entry.0 %}
@@ -20,7 +29,52 @@
                         {% include "journal_entries/partials/_account_overview.html" %}
                     {% endif %}
                 {% endfor %}
+                <button type="button" class="button journal-entry-notes-button" data-trade-day="{{ trade_info.trade_day }}">
+                    Show Notes
+                </button>
+                <div id="journal-entry-notes-{{ trade_info.trade_day }}" class="journal-entry-notes-container" style="display: {% if loop.index == 1 %}block;{% else %}none;{% endif %}">
+                    {% if trade_info.journal_entry %}
+                        <p>
+                        {{ trade_info.journal_entry.notes | markdown_to_html_helper | safe }}
+                        </p>
+                    {% elif logged_in %}
+
+                        <div class="journal-entry-notes">
+                            <form action="/journal_entries" method="post">
+                                <input type="hidden" id="entry_date" name="entry_date" value="{{ trade_day }}">
+
+                                <label for="notes">Notes:</label>
+                                <textarea id="notes" class="journal-entry-form-notes" name="notes" placeholder="Placeholder"></textarea>
+                                <button type="submit" class="button submit-button">Submit</button>
+                            </form>
+                        </div>
+                    {% else %}
+                        No notes!
+                    {% endif %}
+                </div>
             </div>
         {% endfor %}
     </div>
+    <script>
+        function toggleDisplay(element) {
+            if (element.style.display === 'none') {
+                element.style.display = 'block';
+            } else {
+                console.log("SETTING TO NONE");
+                element.style.display = 'none';
+            }
+        }
+        const showMoreButtons = document.getElementsByClassName("journal-entry-notes-button");
+        for (let i = 0; i < showMoreButtons.length; i++) {
+            const button = showMoreButtons[i];
+            button.addEventListener('click', function(event) {
+                event.preventDefault();
+                const tradeDay = this.getAttribute("data-trade-day");
+                const journalEntryElement = document.getElementById(`journal-entry-notes-${tradeDay}`);
+                if (journalEntryElement) {
+                    toggleDisplay(journalEntryElement);
+                }
+            });
+        }
+    </script>
 {% endblock content %}

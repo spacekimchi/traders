@@ -95,6 +95,7 @@ pub async fn run(db_pool: PgPool, listener: TcpListener, base_url: String, redis
     tera.register_filter("excel_to_date", template_helpers::excel_to_date);
     tera.register_filter("pnl_class", template_helpers::pnl_class);
     tera.register_filter("excel_to_dmy", template_helpers::excel_to_dmy);
+    tera.register_filter("markdown_to_html_helper", template_helpers::markdown_to_html_helper);
     // Wrap the Tera instance in web::Data for Actix-web
     let tera = web::Data::new(tera);
 
@@ -141,6 +142,7 @@ pub async fn run(db_pool: PgPool, listener: TcpListener, base_url: String, redis
             .service(
                 web::scope("/journal_entries")
                 .service(journal_entry_routes::get_journal_entries_index)
+                .service(journal_entry_routes::create_journal_entry)
             )
             .service(
                 web::scope("/calendar")
