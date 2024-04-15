@@ -7,14 +7,6 @@
         margin: auto;
     }
 
-    .green-day {
-        color: $green;
-    }
-
-    .red-day {
-        color: $red;
-    }
-
     .journal-entry-date {
         font-weight: 600;
         font-size: 24px;
@@ -36,5 +28,24 @@
 
     .journal-entry-account-overview {
         padding-top: 15px;
+    }
+
+    .journal-entry-form-notes {
+        color: $k-black;
+        width: 100%;
+        height: 200px;
+    }
+
+    .journal-entry-notes-button {
+        cursor: pointer;
+        background-color: $light-green;
+    }
+
+    .green-day {
+        color: $green;
+    }
+
+    .red-day {
+        color: $red;
     }
 }
