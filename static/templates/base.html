@@ -9,6 +9,7 @@
         <link rel="manifest" href="/static/site.webmanifest">
         {# Ubuntu font family #}
         <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Ubuntu:regular,bold&subset=Latin">
+        {# Javascript Utils #}
 
         <title>
             {% block title %}
@@ -21,6 +22,7 @@
             {{flash_html|safe}}
         {% endblock flash_html %}
         {% include "partials/_navigation.html" %}
+        <div id="mouse-notification" style="display: none;">Copied!</div>
         <div id="main-content">
             {% block content %}{% endblock content %}
         </div>

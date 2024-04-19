@@ -17,6 +17,7 @@ pub struct JournalEntry {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct JournalEntryForm {
+    pub id: Option<i32>,
     pub entry_date: i32,
     pub notes: String,
 }
@@ -106,5 +107,26 @@ pub async fn get_journal_entries_in_range(db: &PgPool, journal_entry_params: &Jo
         .await?;
 
     Ok(journal_entries)
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct JournalEntryUpdateParams {
+    pub id: i64,
+    pub user_id: Uuid,
+    pub notes: String,
+    pub entry_date: i32,
+}
+
+pub async fn update_journal_entry_in_database(db: &PgPool, journal_entry_update_params: &JournalEntryUpdateParams) -> Result<(), sqlx::Error> {
+    sqlx::query!(
+        "UPDATE journal_entries
+        SET notes = $1
+        WHERE id = $2 AND user_id = $3 AND entry_date = $4",
+        journal_entry_update_params.notes,
+        journal_entry_update_params.id,
+        journal_entry_update_params.user_id,
+        journal_entry_update_params.entry_date,
+        ).execute(db).await?;
+    Ok(())
 }
 

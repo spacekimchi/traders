@@ -19,7 +19,7 @@ use secrecy::{Secret, ExposeSecret};
 use crate::configuration::Settings;
 use crate::configuration::DatabaseSettings;
 use crate::authentication::reject_anonymous_users;
-use crate::routes::{users, login, homepage, trade_routes, execution_routes, journal_entry_routes, calendar_routes, account_routes};
+use crate::routes::{users, login, homepage, trade_routes, execution_routes, journal_entry_routes, calendar_routes, account_routes, faq_routes};
 use crate::routes::api;
 use crate::template_helpers;
 
@@ -119,6 +119,7 @@ pub async fn run(db_pool: PgPool, listener: TcpListener, base_url: String, redis
                     "./static/"
                     ))
             .service(homepage::index)
+            .service(faq_routes::index)
             .service(login::get_login_page)
             .service(login::login)
             .service(login::logout)
@@ -143,6 +144,7 @@ pub async fn run(db_pool: PgPool, listener: TcpListener, base_url: String, redis
                 web::scope("/journal_entries")
                 .service(journal_entry_routes::get_journal_entries_index)
                 .service(journal_entry_routes::create_journal_entry)
+                .service(journal_entry_routes::update_journal_entry)
             )
             .service(
                 web::scope("/calendar")

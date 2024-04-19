@@ -1,6 +1,10 @@
 use chrono::{DateTime, Utc, NaiveDate};
 use pulldown_cmark::{html, Parser};
 
+pub mod faq_anchors {
+    pub const GOOGLE_IMAGE_TO_MARKDOWN: &str = "google-image-to-markdown";
+}
+
 // Return an opaque 500 while preserving the error's root cause for logging.
 pub fn e500<T>(e: T) -> actix_web::Error 
 where

@@ -1,10 +1,10 @@
-@import "variables";
-
 .journal-entry-container {
+    max-width: 700px;
+    margin: auto;
+
     .journal-entry-day {
         padding: 10px 0 20px 0;
-        max-width: 700px;
-        margin: auto;
+        //max-width: 700px;
     }
 
     .journal-entry-date {
@@ -36,16 +36,32 @@
         height: 200px;
     }
 
-    .journal-entry-notes-button {
-        cursor: pointer;
-        background-color: $light-green;
+    .parsed-image-to-markdown-container {
+        display: none;
+
+        .parsed-google-drive-image-button {
+            background-color: inherit;
+            border: none;
+            cursor: pointer;
+            text-align: left;
+
+            &:hover {
+                text-decoration: underline;
+                color: $neon-blue;
+            }
+
+            &:active {
+                position: relative;
+                top: 2px;
+            }
+        }
     }
 
     .green-day {
-        color: $green;
+        color: $pnl-green;
     }
 
     .red-day {
-        color: $red;
+        color: $pnl-red;
     }
 }

@@ -7,13 +7,13 @@
 {% block content %}
     <div class="journal-entry-container">
         {% if logged_in %}
-            <p>
-            Enter notes using Markdown format.
-            <br>
-            Insert images: ![loadign failed text](path/to/image.jpg "Optional title (hover text)")
-            <br>
-            Insert images with a clickable link: [![loading failed text](path/to/image.jpg "Optional title (hover text)")](http://example.com)
-            </p>
+            <div class="journal-entry-instructions-container">
+                <p>
+                Enter notes using <a href="https://github.com/adam-p/markdown-here/wiki/Markdown-Here-Cheatsheet" class="clickable-link" target="_blank">Markdown format.</a>
+                <br>
+                <a href="/faq#{{ google_image_to_markdown_faq_anchor }}" class="clickable-link">How to include images</a> in your journal entry notes.
+                </p>
+            </div>
         {% endif %}
         {% for entry in trades_by_day %}
             <div class="journal-entry-day">
@@ -29,52 +29,161 @@
                         {% include "journal_entries/partials/_account_overview.html" %}
                     {% endif %}
                 {% endfor %}
-                <button type="button" class="button journal-entry-notes-button" data-trade-day="{{ trade_info.trade_day }}">
-                    Show Notes
-                </button>
-                <div id="journal-entry-notes-{{ trade_info.trade_day }}" class="journal-entry-notes-container" style="display: {% if loop.index == 1 %}block;{% else %}none;{% endif %}">
+                {% if loop.index == 1 %}
+                    <button type="button" class="button show-more-button showing" data-show-more-id="{{ trade_info.trade_day }}">
+                        Hide Notes
+                    </button>
+                {% else %}
+                    <button type="button" class="button show-more-button hiding" data-show-more-id="{{ trade_info.trade_day }}">
+                        Show Notes
+                    </button>
+                {% endif %}
+                <div id="show-more-id-{{ trade_info.trade_day }}" class="journal-entry-notes-container" style="display: {% if loop.index == 1 %}block;{% else %}none;{% endif %}">
                     {% if trade_info.journal_entry %}
                         <p>
                         {{ trade_info.journal_entry.notes | markdown_to_html_helper | safe }}
                         </p>
-                    {% elif logged_in %}
-
+                    {% else %}
+                        <p>
+                        No notes!
+                        </p>
+                    {% endif %}
+                    {% if logged_in %}
+                        <div class="action-label-input-button">
+                            <label for="google-drive-image-parser-{{ loop.index }}" class="form-label">
+                                Google Drive Image Parser:
+                            </label>
+                            <input id="google-drive-image-parser-{{ loop.index }}" type="text" class="form-input">
+                            <button type="button" class="button action-button google-drive-image-parser-button" data-input-index="{{ loop.index }}">
+                                Parse
+                            </button>
+                        </div>
+                        <div id="parsed-image-to-markdown-container-{{ loop.index }}" class="parsed-image-to-markdown-container">
+                            Image to Markdown (click to copy to clipboard): <button id="parsed-google-drive-image-button-{{ loop.index }}" class="parsed-google-drive-image-button"></button>
+                        </div>
                         <div class="journal-entry-notes">
-                            <form action="/journal_entries" method="post">
-                                <input type="hidden" id="entry_date" name="entry_date" value="{{ trade_day }}">
+                            {% set form_action = "/journal_entries" %}
+                            {% set form_method = "post" %}
+                            {% if trade_info.journal_entry %}
+                                {% set form_action = "/journal_entries/" ~ trade_info.journal_entry.id %}
+                            {% endif %}
+                            <form action="{{ form_action }}" method="{{ form_method }}">
+                                <input type="hidden" name="entry_date" value="{{ trade_day }}">
+                                {% if trade_info.journal_entry %}
+                                    <input type="hidden" name="id" value="{{ trade_info.journal_entry.id }}">
+                                {% endif %}
 
-                                <label for="notes">Notes:</label>
-                                <textarea id="notes" class="journal-entry-form-notes" name="notes" placeholder="Placeholder"></textarea>
+                                <label for="notes-{{ loop.index }}">Notes:</label>
+                                <textarea id="notes-{{ loop.index }}" class="journal-entry-form-notes" name="notes" placeholder="Placeholder">{% if trade_info.journal_entry %}{{ trade_info.journal_entry.notes }}{% endif %}</textarea>
                                 <button type="submit" class="button submit-button">Submit</button>
                             </form>
                         </div>
-                    {% else %}
-                        No notes!
                     {% endif %}
                 </div>
             </div>
         {% endfor %}
     </div>
+    <script src="/static/js/utils.js"></script>
     <script>
-        function toggleDisplay(element) {
+        function toggleDisplayAndButtonText(element, button) {
             if (element.style.display === 'none') {
                 element.style.display = 'block';
+                button.innerText = 'Hide Notes';
+                button.classList.add('showing');
+                button.classList.remove('hiding');
             } else {
-                console.log("SETTING TO NONE");
                 element.style.display = 'none';
+                button.innerText = 'Show Notes';
+                button.classList.add('hiding');
+                button.classList.remove('showing');
             }
         }
-        const showMoreButtons = document.getElementsByClassName("journal-entry-notes-button");
+
+        const showMoreButtons = document.getElementsByClassName('show-more-button');
         for (let i = 0; i < showMoreButtons.length; i++) {
             const button = showMoreButtons[i];
             button.addEventListener('click', function(event) {
                 event.preventDefault();
-                const tradeDay = this.getAttribute("data-trade-day");
-                const journalEntryElement = document.getElementById(`journal-entry-notes-${tradeDay}`);
-                if (journalEntryElement) {
-                    toggleDisplay(journalEntryElement);
+                const showMoreId = this.getAttribute('data-show-more-id');
+                const showMoreInfo = document.getElementById(`show-more-id-${showMoreId}`);
+                if (showMoreInfo) {
+                    toggleDisplayAndButtonText(showMoreInfo, this);
                 }
             });
         }
+
+        function markdownGoogleImage(imageId) {
+            const googleImageUrl = `https://lh3.googleusercontent.com/d/${imageId}`;
+            const googleLinkUrl = `https://drive.google.com/file/d/${imageId}/view?usp=sharing`;
+            const markdownImageText = `[![loading image failed text](${googleImageUrl} "Optional title (hover text)")](${googleLinkUrl})`;
+            return markdownImageText;
+        }
+
+        function parseGoogleImage(inputIndex) {
+            const googleImageInput = document.getElementById(`google-drive-image-parser-${inputIndex}`);
+            let markdownImageText = 'Parsing image...';
+            if (googleImageInput) {
+                const googleImageUrl = googleImageInput.value.trim();
+                const googleImageUrlPrefix = 'https://drive.google.com/file/d/';
+                // Example urls
+                // https://drive.google.com/file/d/1vO8eyK_vGzw4ad9lb_vMeN3R_vg9-_Tu/view?usp=drive_link
+                // https://drive.google.com/file/d/1n80VktEAOb9kp2M2bUkoxAmp5X_GugTC/view?usp=sharing
+                if (googleImageUrl.startsWith(googleImageUrlPrefix)) {
+                    // Split the URL by '/'
+                    const parts = googleImageUrl.split('/');
+
+                    // Find the index of 'd' in the array
+                    const index = parts.indexOf('d');
+
+                    // If 'd' is found and a segment follows it, print the next segment
+                    if (index !== -1 && index + 1 < parts.length) {
+                        const imageId = parts[index + 1];
+                        markdownImageText = markdownGoogleImage(imageId);
+                    } else {
+                        markdownImageText = `Input element found and value starts with correct prefix, but failed to find id. googleImageUrl: ${googleImageUrl}, Index: ${inputIndex}`;
+                    }
+                } else {
+                    markdownImageText = `Input element found, but contained invalid format. Must start with 'https://drive.google.com/file/d/'. index: ${inputIndex}`;
+                }
+            } else {
+                markdownImageText = `Failed to find googe image input element with id: ${inputIndex}`;
+            }
+            return markdownImageText;
+        }
+
+        function getImageToMarkdownContainer(inputIndex) {
+            const parsedImageToMarkdownContainer = document.getElementById(`parsed-image-to-markdown-container-${inputIndex}`);
+            return parsedImageToMarkdownContainer;
+        }
+
+        function getParsedGoogleImageButton(inputIndex) {
+            const parsedGoogleImageButton = document.getElementById(`parsed-google-drive-image-button-${inputIndex}`);
+            return parsedGoogleImageButton;
+        }
+
+        function setParsedGoogleImageButton(inputIndex) {
+            const parsedGoogleImageButton = getParsedGoogleImageButton(inputIndex);
+            const parsedImageToMarkdownContainer = getImageToMarkdownContainer(inputIndex);
+            parsedGoogleImageButton.innerText = parseGoogleImage(inputIndex);
+            parsedImageToMarkdownContainer.style.display = 'block';
+        }
+
+        const googleDriveImageParserButtons = document.getElementsByClassName('google-drive-image-parser-button');
+        for (let i = 0; i < googleDriveImageParserButtons.length; i++) {
+            button = googleDriveImageParserButtons[i];
+            button.addEventListener('click', function(event) {
+                event.preventDefault();
+
+                const inputIndex = this.getAttribute('data-input-index');
+                setParsedGoogleImageButton(inputIndex);
+            });
+        }
+
+        const parsedGoogleDriveImageButtons = document.getElementsByClassName('parsed-google-drive-image-button');
+        for (let i = 0; i < parsedGoogleDriveImageButtons.length; i++) {
+            button = parsedGoogleDriveImageButtons[i];
+            addCopyToClipboardWithNotificationEvent(button);
+        }
+
     </script>
 {% endblock content %}

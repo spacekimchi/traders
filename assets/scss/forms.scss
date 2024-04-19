@@ -1,0 +1,29 @@
+input {
+    color: $k-black;
+}
+
+form {
+    button.submit-button {
+        background-color: $light-green;
+    }
+}
+
+.action-label-input-button {
+    display: flex;
+    align-items: center;
+
+    > .form-label {
+        font-size: 16px;
+    }
+
+    > .form-input {
+        flex: 1;
+        margin: 8px;
+        height: 32px;
+    }
+
+    > .action-button {
+        background-color: $gold;
+    }
+}
+

@@ -30,20 +30,25 @@ table {
     }
 
     tbody {
-        color: $k-black;
         tr {
             td {
-                background-color: $bright-1;
                 padding: 3px 11px;
                 text-align: center;
 
                 &.green-day {
-                    color: green;
+                    color: $pnl-green;
                 }
 
                 &.red-day {
-                    color: red;
+                    color: $pnl-red;
                 }
+
+            }
+            &:hover {
+                position: relative;
+                top: 1px;
+                text-decoration: underline;
+                color: $neon-blue;
             }
             &:last-child {
                 td:first-child {

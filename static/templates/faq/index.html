@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block title %}
+    F.A.Q.
+{% endblock title %}
+
+{% block content %}
+    <div class="faq-container">
+        <h1><b>F.A.Q.</b></h1>
+        <p>
+        Feel free to reach out to my email with any feature requests, suggestions, questions, or comments at <span id="contact-email" class="faq-email">gwoun@jinz.co</span>
+        </p>
+        <h2>Adding images to journal entries</h2>
+        <div id="{{ google_image_to_markdown_faq_anchor }}">
+            <p>
+            Images can be easily added to journal entries using Google Images. Here
+            </p>
+        </div>
+    </div>
+    <script src="/static/js/utils.js"></script>
+    <script>
+        const contactEmailElement = document.getElementById('contact-email');
+        addCopyToClipboardWithNotificationEvent(contactEmailElement);
+    </script>
+{% endblock content %}

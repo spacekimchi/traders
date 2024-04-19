@@ -1,0 +1,12 @@
+.faq-container {
+    .faq-email {
+        color: $neon-blue;
+        cursor: pointer;
+
+        &:active {
+            text-decoration: underline;
+            position: relative;
+            top: 2px;
+        }
+    }
+}

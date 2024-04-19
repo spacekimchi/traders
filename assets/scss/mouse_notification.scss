@@ -1,0 +1,23 @@
+#mouse-notification {
+    position: absolute;
+    background-color: $royal-purple;
+    color: $gold;
+    border: solid 1px $gold;
+    padding: 0 5px;
+    border-radius: 5px;
+    display: none; /* Start as not displayed */
+    opacity: 0; /* Start as fully transparent */
+    transition: opacity 0.5s ease-in-out; /* Smooth transition for the opacity */
+    z-index: 1000; /* Make sure it does not get hidden behind other elements */
+
+    &::before {
+        content: "";
+        position: absolute;
+        top: 10px; /* Adjust this to move the arrow up or down */
+        left: -10px; /* Position the arrow to the left of the box */
+        border-width: 5px;
+        border-style: solid;
+        border-color: transparent $gold transparent transparent;
+        /* The right border is now the same color as the popup background (the arrow points left) */
+    }
+}

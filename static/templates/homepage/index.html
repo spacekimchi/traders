@@ -10,7 +10,6 @@
         function generateChart(account_data) {
             const ctx = document.getElementById(`account-chart-${ account_data.account_id }`);
             const labels = account_data.trade_days;
-            console.log(account_data);
             const data = {
                 labels: labels,
                 datasets: [{
@@ -19,7 +18,12 @@
                     borderColor: 'rgba(233,180,58,.5)',
                     borderWidth: 1,
                     pointBorderColor: function(context) {
-                        const value = context.dataset.data[context.dataIndex];
+                        const todayTotalPnl = context.dataset.data[context.dataIndex];
+                        let yesterdayTotalPnl = 0.0;
+                        if (context.dataIndex > 0) {
+                            yesterdayTotalPnl = context.dataset.data[context.dataIndex - 1];
+                        }
+                        const value = todayTotalPnl - yesterdayTotalPnl;
                         return value >= 0 ? 'rgba(0,128,0,0.9)' : 'rgba(198,2,17,0.9)'; // Change point color based on value
                     },
                     fill: {above: 'rgba(0,128,0,0.3)', below: 'rgba(198,2,17,0.3)', target: {value: 0}},
@@ -43,25 +47,25 @@
                         tooltip: {
                             callbacks: {
                                 label: function(context) {
-                                    const value = context.dataset.data[context.dataIndex];
-                                    let preVal = 0.0;
+                                    const todayTotalPnl = context.dataset.data[context.dataIndex];
+                                    const yesterdayTotalPnl = context.dataset.data[context.dataIndex - 1];
+                                    let pnl = 0.0;
                                     if (context.dataIndex > 0) {
-                                        preVal = value - context.dataset.data[context.dataIndex - 1];
+                                        pnl = todayTotalPnl - yesterdayTotalPnl;
                                     }
                                     let pnlToday = "$0.00";
-                                    if (preVal > 0.0) {
-                                        pnlToday = `+$${Math.abs(preVal).toFixed(2)}`;
-                                    } else if (0.0 > preVal) {
-                                        pnlToday = `-$${Math.abs(preVal).toFixed(2)}`;
+                                    if (pnl > 0.0) {
+                                        pnlToday = `+$${Math.abs(pnl).toFixed(2)}`;
+                                    } else if (0.0 > pnl) {
+                                        pnlToday = `-$${Math.abs(pnl).toFixed(2)}`;
                                     }
-                                    const label = 'Total PnL'; // Custom label
                                     let currency_value = "$0.00";
-                                    if (value > 0.0) {
-                                        currency_value = `+$${Math.abs(value).toFixed(2)}`;
-                                    } else if (0.0 > value) {
-                                        currency_value = `-$${Math.abs(value).toFixed(2)}`;
+                                    if (todayTotalPnl > 0.0) {
+                                        currency_value = `+$${Math.abs(todayTotalPnl).toFixed(2)}`;
+                                    } else if (0.0 > todayTotalPnl) {
+                                        currency_value = `-$${Math.abs(todayTotalPnl).toFixed(2)}`;
                                     }
-                                    return [label + ': ' + currency_value, 'PnL today: ' + pnlToday]; // Display custom text and data value
+                                    return ['Pnl today: ' + pnlToday,  'Total pnl: ' + currency_value];
                                 }
                             }
                         }

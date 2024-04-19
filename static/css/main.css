@@ -127,10 +127,10 @@ button {
   font-weight: 600;
 }
 .mini-month-container .mini-month-header .green-day {
-  color: #008000;
+  color: #3FB93F;
 }
 .mini-month-container .mini-month-header .red-day {
-  color: #C60211;
+  color: #CD2E3A;
 }
 
 .mini-week-container {
@@ -151,12 +151,12 @@ button {
   visibility: hidden;
 }
 .mini-month-day.green-day {
-  background-color: #008000;
-  border-color: #008000;
+  background-color: #3FB93F;
+  border-color: #3FB93F;
 }
 .mini-month-day.red-day {
-  background-color: #C60211;
-  border-color: #C60211;
+  background-color: #CD2E3A;
+  border-color: #CD2E3A;
 }
 
 .navigation {
@@ -182,6 +182,12 @@ button {
 }
 .nav-section > li a {
   color: #F0EAD6;
+}
+.nav-section > li a:hover {
+  color: #05D0F5;
+  position: relative;
+  text-decoration: underline;
+  top: 1px;
 }
 
 .weekly-trades {
@@ -214,7 +220,7 @@ button {
   background-color: gray;
 }
 .mini-day.green-day {
-  background-color: green;
+  background-color: #3FB93F;
 }
 .mini-day.red-day {
   background-color: #CD2E3A;
@@ -239,19 +245,21 @@ table thead tr th:first-child {
 table thead tr th:last-child {
   border-top-right-radius: 5px;
 }
-table tbody {
-  color: #000000;
-}
 table tbody tr td {
-  background-color: #F0EAD6;
   padding: 3px 11px;
   text-align: center;
 }
 table tbody tr td.green-day {
-  color: green;
+  color: #3FB93F;
 }
 table tbody tr td.red-day {
-  color: red;
+  color: #CD2E3A;
+}
+table tbody tr:hover {
+  position: relative;
+  top: 1px;
+  text-decoration: underline;
+  color: #05D0F5;
 }
 table tbody tr:last-child td:first-child {
   border-bottom-left-radius: 5px;
@@ -263,6 +271,28 @@ table tbody tr:last-child td:last-child {
 .button {
   color: black;
   padding: 4px;
+  background-color: #FDB927;
+  cursor: pointer;
+  margin: 8px auto;
+}
+.button:hover {
+  cursor: pointer;
+  filter: brightness(90%);
+  text-decoration: underline;
+}
+.button:active {
+  position: relative;
+  top: 2px;
+}
+
+.show-more-button.showing {
+  background-color: red;
+}
+.show-more-button.showing:hover + .journal-entry-notes-container {
+  border: solid 2px #FFEA00;
+}
+.show-more-button.hiding {
+  background-color: #16FF00;
 }
 
 .logout-button {
@@ -270,14 +300,16 @@ table tbody tr:last-child td:last-child {
 }
 
 .submit-form-button {
-  background: green;
+  background-color: #16FF00;
   margin: 5px 0;
 }
 
-.journal-entry-container .journal-entry-day {
-  padding: 10px 0 20px 0;
+.journal-entry-container {
   max-width: 700px;
   margin: auto;
+}
+.journal-entry-container .journal-entry-day {
+  padding: 10px 0 20px 0;
 }
 .journal-entry-container .journal-entry-date {
   font-weight: 600;
@@ -303,15 +335,28 @@ table tbody tr:last-child td:last-child {
   width: 100%;
   height: 200px;
 }
-.journal-entry-container .journal-entry-notes-button {
+.journal-entry-container .parsed-image-to-markdown-container {
+  display: none;
+}
+.journal-entry-container .parsed-image-to-markdown-container .parsed-google-drive-image-button {
+  background-color: inherit;
+  border: none;
   cursor: pointer;
-  background-color: #16FF00;
+  text-align: left;
+}
+.journal-entry-container .parsed-image-to-markdown-container .parsed-google-drive-image-button:hover {
+  text-decoration: underline;
+  color: #05D0F5;
+}
+.journal-entry-container .parsed-image-to-markdown-container .parsed-google-drive-image-button:active {
+  position: relative;
+  top: 2px;
 }
 .journal-entry-container .green-day {
-  color: #008000;
+  color: #3FB93F;
 }
 .journal-entry-container .red-day {
-  color: #C60211;
+  color: #CD2E3A;
 }
 
 .account-charts {
@@ -342,10 +387,67 @@ table tbody tr:last-child td:last-child {
   display: inline-block;
 }
 .account-charts .green-day {
-  color: #008000;
+  color: #3FB93F;
 }
 .account-charts .red-day {
-  color: #C60211;
+  color: #CD2E3A;
+}
+
+input {
+  color: #000000;
+}
+
+form button.submit-button {
+  background-color: #16FF00;
+}
+
+.action-label-input-button {
+  display: flex;
+  align-items: center;
+}
+.action-label-input-button > .form-label {
+  font-size: 16px;
+}
+.action-label-input-button > .form-input {
+  flex: 1;
+  margin: 8px;
+  height: 32px;
+}
+.action-label-input-button > .action-button {
+  background-color: #FDB927;
+}
+
+.faq-container .faq-email {
+  color: #05D0F5;
+  cursor: pointer;
+}
+.faq-container .faq-email:active {
+  text-decoration: underline;
+  position: relative;
+  top: 2px;
+}
+
+#mouse-notification {
+  position: absolute;
+  background-color: #7851A9;
+  color: #FDB927;
+  border: solid 1px #FDB927;
+  padding: 0 5px;
+  border-radius: 5px;
+  display: none; /* Start as not displayed */
+  opacity: 0; /* Start as fully transparent */
+  transition: opacity 0.5s ease-in-out; /* Smooth transition for the opacity */
+  z-index: 1000; /* Make sure it does not get hidden behind other elements */
+}
+#mouse-notification::before {
+  content: "";
+  position: absolute;
+  top: 10px; /* Adjust this to move the arrow up or down */
+  left: -10px; /* Position the arrow to the left of the box */
+  border-width: 5px;
+  border-style: solid;
+  border-color: transparent #FDB927 transparent transparent;
+  /* The right border is now the same color as the popup background (the arrow points left) */
 }
 
 body {
@@ -355,6 +457,15 @@ body {
   margin: auto;
   font-family: "Ubuntu";
   padding: 10px;
+}
+
+.clickable-link {
+  color: #05D0F5;
+}
+.clickable-link:hover {
+  text-decoration: underline;
+  position: relative;
+  top: 1px;
 }
 
 #main-content {

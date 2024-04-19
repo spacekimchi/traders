@@ -1,6 +1,6 @@
+@import "variables";
 @import "normalize";
 @import "mini_calendar";
-@import "variables";
 @import "navigation";
 @import "mini_day";
 @import "trades";
@@ -9,6 +9,9 @@
 @import "buttons";
 @import "journal_entries";
 @import "homepage";
+@import "forms";
+@import "faq";
+@import "mouse_notification";
 
 body {
     background-color: $dark-1;
@@ -19,6 +22,16 @@ body {
 
     // TODO: Need to make responsive so this padding disappears when screen isn't on a desktop size
     padding: 10px;
+}
+
+.clickable-link {
+    color: $neon-blue;
+
+    &:hover {
+        text-decoration: underline;
+        position: relative;
+        top: 1px;
+    }
 }
 
 #main-content {

@@ -1,6 +1,33 @@
 .button {
     color: black;
     padding: 4px;
+    background-color: $gold;
+    cursor: pointer;
+    margin: 8px auto;
+
+    &:hover {
+        cursor: pointer;
+        filter: brightness(90%);
+        text-decoration: underline;
+    }
+
+    &:active {
+        position: relative;
+        top: 2px;
+    }
+}
+
+.show-more-button {
+    &.showing {
+        background-color: red;
+
+        &:hover + .journal-entry-notes-container {
+            border: solid 2px $bright-yellow;
+        }
+    }
+    &.hiding {
+        background-color: $light-green;
+    }
 }
 
 .logout-button {
@@ -8,6 +35,6 @@
 }
 
 .submit-form-button {
-    background: green;
+    background-color: $light-green;
     margin: 5px 0;
 }
