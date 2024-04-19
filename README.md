@@ -80,6 +80,10 @@ The project uses [tera](https://github.com/Keats/tera) for templating.
 Future feature:
   [ ] Add Stimulus/Turbo with Hotwire
 
+## Javascript
+
+Add javascript files to /static/js/ directory and include them in the html wherever they are needed
+
 ## Routes and returning from them
 
 For simple routes it is fine to return with something simple like `fn simple_endpoint() -> HttpResponse {}`
